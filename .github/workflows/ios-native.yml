@@ -55,8 +55,8 @@ jobs:
           data = json.load(sys.stdin)
           for runtime, devices in data['devices'].items():
               for d in devices:
-                  if 'iPhone' in d['name'] and d['isAvailable']:
-                      print(d['id']); sys.exit(0)
+                  if 'iPhone' in d['name'] and d.get('isAvailable'):
+                      print(d.get('udid', d.get('id', ''))); sys.exit(0)
           print('NONE')
           ")
           if [ "$DEST" = "NONE" ]; then

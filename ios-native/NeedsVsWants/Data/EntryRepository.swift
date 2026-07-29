@@ -13,6 +13,7 @@ enum RepositoryError: Error {
 /// aggregation mixed in (that lives in `StatsEngine`). Views read via `@Query`;
 /// they do not call the repository for reads.
 @MainActor
+@Observable
 final class EntryRepository {
     private let context: ModelContext
 
