@@ -9,7 +9,9 @@ final class LogViewModelTests: XCTestCase {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: Entry.self, configurations: config)
         let repo = EntryRepository(context: container.mainContext)
-        return LogViewModel(repo: repo)
+        let vm = LogViewModel.placeholder
+        vm.attach(repo: repo)
+        return vm
     }
 
     func test_empty_input_cannot_seal() throws {
@@ -60,8 +62,9 @@ final class LogViewModelTests: XCTestCase {
     func test_20_cap_blocks_seal() throws {
         let vm = try makeVM()
         // Fill to 20
+        guard let repo = vm.repo else { XCTFail("no repo"); return }
         for i in 0..<20 {
-            _ = vm.repo.insert(item: "x\(i)", costCents: 100, type: .need)
+            _ = repo.insert(item: "x\(i)", costCents: 100, type: .need)
         }
         XCTAssertTrue(vm.isSheetFull)
 
@@ -75,8 +78,9 @@ final class LogViewModelTests: XCTestCase {
 
     func test_start_new_sheet_clears_all() throws {
         let vm = try makeVM()
-        _ = vm.repo.insert(item: "a", costCents: 100, type: .need)
-        _ = vm.repo.insert(item: "b", costCents: 200, type: .want)
+        guard let repo = vm.repo else { XCTFail("no repo"); return }
+        _ = repo.insert(item: "a", costCents: 100, type: .need)
+        _ = repo.insert(item: "b", costCents: 200, type: .want)
         XCTAssertEqual(vm.sheetCount, 2)
 
         vm.startNewSheet()

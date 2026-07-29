@@ -6,11 +6,14 @@ struct SummaryView: View {
     @Environment(AppModel.self) private var appModel
     @AppStorage("currency") private var currencyRaw = CurrencyOption.default.rawValue
 
-    @State private var vm: SummaryViewModel?
+    @State private var period: Period = .day
 
     private var currency: CurrencyOption {
         CurrencyOption(rawValue: currencyRaw) ?? .default
     }
+
+    private var stats: SummaryStats { repo.stats(for: period) }
+    private var rangeCaption: String { StatsEngine().rangeCaption(period) }
 
     var body: some View {
         NavigationStack {
@@ -68,38 +71,28 @@ struct SummaryView: View {
 
     private var periodRotor: some View {
         VStack(spacing: 6) {
-            Picker("Period", selection: rotorBinding) {
+            Picker("Period", selection: $period) {
                 ForEach(Period.allCases, id: \.self) { p in
                     Text(p.label).tag(p)
                 }
             }
             .pickerStyle(.segmented)
 
-            if let vm {
-                Text(vm.rangeCaption)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.textSecondary)
-            }
+            Text(rangeCaption)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppColors.textSecondary)
         }
-    }
-
-    private var rotorBinding: Binding<Period> {
-        Binding(
-            get: { vm?.period ?? .day },
-            set: { vm?.period = $0 }
-        )
     }
 
     // MARK: - Donut
 
+    @ViewBuilder
     private var donutSection: some View {
-        Group {
-            if let vm, vm.stats.totalCents > 0 {
-                DonutChart(stats: vm.stats, currency: currency)
-                    .frame(width: 180, height: 180)
-            } else {
-                emptyDonut
-            }
+        if stats.totalCents > 0 {
+            DonutChart(stats: stats, currency: currency)
+                .frame(width: 180, height: 180)
+        } else {
+            emptyDonut
         }
     }
 
@@ -127,12 +120,10 @@ struct SummaryView: View {
 
     @ViewBuilder
     private var statCards: some View {
-        if let vm {
-            HStack(spacing: 12) {
-                statCard("NEEDS", vm.stats.needsTotalCents, AppColors.need, vm.stats.needsCount)
-                statCard("WANTS", vm.stats.wantsTotalCents, AppColors.want, vm.stats.wantsCount)
-                statCard("NEED %", Int64(Int(vm.stats.needPct * 100)), AppColors.accent, nil, suffix: "%")
-            }
+        HStack(spacing: 12) {
+            statCard("NEEDS", stats.needsTotalCents, AppColors.need, stats.needsCount)
+            statCard("WANTS", stats.wantsTotalCents, AppColors.want, stats.wantsCount)
+            statCard("NEED %", Int64(Int(stats.needPct * 100)), AppColors.accent, nil, suffix: "%")
         }
     }
 
@@ -153,7 +144,7 @@ struct SummaryView: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }
-            ShareBar(stats: vm!.stats)
+            ShareBar(stats: stats)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)

@@ -83,7 +83,7 @@ final class EntryRepository {
 
     // MARK: - Stats
 
-    func stats(for period: Period, engine: StatsEngine) -> SummaryStats {
+    func stats(for period: Period, engine: StatsEngine = StatsEngine()) -> SummaryStats {
         let entries = (try? context.fetch(FetchDescriptor<Entry>())) ?? []
         return engine.stats(for: period, entries: entries)
     }

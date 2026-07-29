@@ -7,13 +7,18 @@ struct HistoryView: View {
     @AppStorage("currency") private var currencyRaw = CurrencyOption.default.rawValue
 
     @Query(sort: \Entry.dateUtc, order: .reverse) private var entries: [Entry]
-    @State private var vm: HistoryViewModel?
 
     @State private var showDeleteAlert = false
     @State private var entryToDelete: Entry?
 
+    private let vm = HistoryViewModel()
+
     private var currency: CurrencyOption {
         CurrencyOption(rawValue: currencyRaw) ?? .default
+    }
+
+    private var grouped: [(key: String, entries: [Entry])] {
+        vm.grouped(entries: entries)
     }
 
     var body: some View {
@@ -45,14 +50,10 @@ struct HistoryView: View {
         }
     }
 
-    private var grouped: [(key: String, entries: [Entry])] {
-        vm?.grouped(entries: entries) ?? []
-    }
-
     // MARK: - Day section
 
     private func daySection(_ key: String, _ dayEntries: [Entry]) -> some View {
-        let totals = vm?.dayTotals(dayEntries) ?? (0, 0)
+        let totals = vm.dayTotals(dayEntries)
         return VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -65,12 +66,12 @@ struct HistoryView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    if totals.0 > 0 {
-                        CurrencyText(cents: totals.0, currency: currency)
+                    if totals.needs > 0 {
+                        CurrencyText(cents: totals.needs, currency: currency)
                             .foregroundStyle(AppColors.need)
                     }
-                    if totals.1 > 0 {
-                        CurrencyText(cents: totals.1, currency: currency)
+                    if totals.wants > 0 {
+                        CurrencyText(cents: totals.wants, currency: currency)
                             .foregroundStyle(AppColors.want)
                     }
                 }
@@ -123,7 +124,6 @@ struct HistoryView: View {
     // MARK: - Helpers
 
     private func formatDayHeader(_ key: String) -> String {
-        // key is "yyyy-MM-dd"; format as "Jul 29, 2026"
         let input = DateFormatter()
         input.dateFormat = "yyyy-MM-dd"
         input.locale = Locale(identifier: "en_US_POSIX")

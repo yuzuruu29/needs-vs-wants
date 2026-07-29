@@ -13,10 +13,15 @@ final class LogViewModel {
     var costText = ""
     var type: EntryType? = nil
 
-    private let repo: EntryRepository
+    private(set) var repo: EntryRepository?
 
-    init(repo: EntryRepository) {
-        self.repo = repo
+    /// Placeholder for @State initialization — the real repo is attached in .onAppear.
+    static var placeholder: LogViewModel { LogViewModel() }
+
+    private init() {}
+
+    func attach(repo: EntryRepository) {
+        if self.repo == nil { self.repo = repo }
     }
 
     // MARK: - Computed state
@@ -35,8 +40,8 @@ final class LogViewModel {
             && type != nil
     }
 
-    var isSheetFull: Bool { repo.isSheetFull }
-    var sheetCount: Int { repo.sheetCount }
+    var isSheetFull: Bool { repo?.isSheetFull ?? false }
+    var sheetCount: Int { repo?.sheetCount ?? 0 }
 
     // MARK: - Actions
 
@@ -44,7 +49,8 @@ final class LogViewModel {
     @discardableResult
     func sealIfPossible() -> Bool {
         guard canSeal, !isSheetFull,
-              let cents = costCents, let t = type else { return false }
+              let cents = costCents, let t = type,
+              let repo else { return false }
 
         let result = repo.insert(
             item: item.trimmingCharacters(in: .whitespaces),
@@ -67,7 +73,7 @@ final class LogViewModel {
 
     /// "Start new sheet" handoff (D4): clears all entries so a new 20-row sheet can begin.
     func startNewSheet() {
-        _ = repo.deleteAll()
+        _ = repo?.deleteAll()
         Haptics.success()
     }
 }

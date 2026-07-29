@@ -5,10 +5,9 @@ struct LogView: View {
     @Environment(EntryRepository.self) private var repo
     @AppStorage("currency") private var currencyRaw = CurrencyOption.default.rawValue
 
-    @State private var vm: LogViewModel?
+    @State private var vm = LogViewModel.placeholder
     @FocusState private var focus: Field?
 
-    // Sealed ledger — reactive via @Query
     @Query(sort: \Entry.dateUtc, order: .reverse) private var entries: [Entry]
 
     @State private var showDeleteAlert = false
@@ -25,7 +24,7 @@ struct LogView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     headerSection
-                    if vm?.isSheetFull == true {
+                    if vm.isSheetFull {
                         sheetFullPrompt
                     } else {
                         activeEntryCard
@@ -42,6 +41,9 @@ struct LogView: View {
                     Button("Done") { focus = nil }
                 }
             }
+            .onAppear {
+                vm.attach(repo: repo)
+            }
         }
     }
 
@@ -52,9 +54,7 @@ struct LogView: View {
             HStack {
                 Eyebrow(text: "TODAY · \(Entry.dayFormatter.string(from: Date()))")
                 Spacer()
-                if let vm {
-                    Eyebrow(text: "SHEET \(vm.sheetCount) / 20")
-                }
+                Eyebrow(text: "SHEET \(vm.sheetCount) / 20")
             }
             Text("LOG")
                 .font(AppTypography.displayMedium)
@@ -69,7 +69,7 @@ struct LogView: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Eyebrow(text: "ITEM")
-                TextField("What did you buy?", text: binding(\.item))
+                TextField("What did you buy?", text: $vm.item)
                     .textFieldStyle(.roundedBorder)
                     .focused($focus, equals: .item)
                     .submitLabel(.next)
@@ -79,7 +79,7 @@ struct LogView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Eyebrow(text: "COST")
-                TextField("0.00", text: binding(\.costText))
+                TextField("0.00", text: $vm.costText)
                     .textFieldStyle(.roundedBorder)
                     .keyboardType(.decimalPad)
                     .focused($focus, equals: .cost)
@@ -98,18 +98,18 @@ struct LogView: View {
         .background(AppColors.surfaceCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.divider, lineWidth: 1))
-        .onChange(of: vm?.canSeal) { _, canSeal in
-            if canSeal == true {
-                vm?.sealIfPossible()
+        .onChange(of: vm.canSeal) { _, canSeal in
+            if canSeal {
+                vm.sealIfPossible()
             }
         }
     }
 
     private func typeChip(_ t: EntryType, _ label: String, _ color: Color) -> some View {
-        let isSelected = vm?.type == t
+        let isSelected = vm.type == t
         return Button {
-            vm?.type = t
-            if vm?.canSeal == true { vm?.sealIfPossible() }
+            vm.type = t
+            if vm.canSeal { vm.sealIfPossible() }
         } label: {
             Text(label)
                 .font(.system(size: 14, weight: .semibold))
@@ -137,7 +137,7 @@ struct LogView: View {
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
             PrimaryButton(title: "Start new sheet") {
-                vm?.startNewSheet()
+                vm.startNewSheet()
             }
         }
         .padding(24)
@@ -184,14 +184,5 @@ struct LogView: View {
                 Text("Remove \(entry.item)?")
             }
         }
-    }
-
-    // MARK: - Binding helper (bridges optional vm to text fields)
-
-    private func binding(_ keyPath: ReferenceWritableKeyPath<LogViewModel, String>) -> Binding<String> {
-        Binding(
-            get: { vm?[keyPath: keyPath] ?? "" },
-            set: { vm?[keyPath: keyPath] = $0 }
-        )
     }
 }

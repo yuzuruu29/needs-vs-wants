@@ -1,13 +1,14 @@
 import SwiftUI
 
-/// Groups entries by day for sectioned display. Thin observable.
+/// Groups entries by day for sectioned display. Pure functions — no state.
 @MainActor
 @Observable
 final class HistoryViewModel {
-    private let repo: EntryRepository
 
-    init(repo: EntryRepository) {
-        self.repo = repo
+    /// Named tuple so callers can use .needs / .wants instead of .0 / .1.
+    struct DayTotals: Equatable {
+        let needs: Int64
+        let wants: Int64
     }
 
     /// Groups entries by dayKey (yyyy-MM-dd), newest first.
@@ -18,11 +19,11 @@ final class HistoryViewModel {
             .map { (key: $0.key, entries: $0.value) }
     }
 
-    func dayTotals(_ entries: [Entry]) -> (needs: Int64, wants: Int64) {
+    func dayTotals(_ entries: [Entry]) -> DayTotals {
         var needs: Int64 = 0, wants: Int64 = 0
         for e in entries {
             if e.type == .need { needs += e.costCents } else { wants += e.costCents }
         }
-        return (needs, wants)
+        return DayTotals(needs: needs, wants: wants)
     }
 }
