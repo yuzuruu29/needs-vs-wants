@@ -33,16 +33,16 @@ jobs:
         working-directory: ios-native
         run: xcodegen generate
 
-      - name: Compile (Any iOS Simulator Device — validates all Swift code)
+      - name: Compile (iphonesimulator SDK — validates all Swift code)
         working-directory: ios-native
         run: |
           set -o pipefail
           xcodebuild \
             -project NeedsVsWants.xcodeproj \
             -scheme NeedsVsWants \
-            -destination 'platform=iOS Simulator,name=Any iOS Simulator Device' \
-            -derivedDataPath build \
+            -sdk iphonesimulator \
             -configuration Debug \
+            ONLY_ACTIVE_ARCH=NO \
             build 2>&1 | tee build.log
 
       - name: Upload build logs
