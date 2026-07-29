@@ -1,0 +1,46 @@
+name: iOS Native
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-native.yml"
+  pull_request:
+    paths:
+      - "ios-native/**"
+
+jobs:
+  build-and-test:
+    name: Build & Test (iPhone 15, iOS 17)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios-native
+        run: xcodegen generate
+
+      - name: Build & Test
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NeedsVsWants.xcodeproj \
+            -scheme NeedsVsWants \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -derivedDataPath build \
+            -configuration Debug \
+            build test 2>&1 | tee build.log
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-build-logs
+          path: |
+            ios-native/build.log
+            ios-native/build
