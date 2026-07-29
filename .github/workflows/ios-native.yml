@@ -20,13 +20,10 @@ jobs:
       - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
 
-      - name: Show tool versions & available SDKs
+      - name: Show tool versions
         run: |
           xcodebuild -version
-          echo "--- SDKs ---"
           xcodebuild -showsdks
-          echo "--- Simulators ---"
-          xcrun simctl list devices available 2>&1 || true
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -35,26 +32,12 @@ jobs:
         working-directory: ios-native
         run: xcodegen generate
 
-      - name: Build (iphoneos SDK — compile check, no signing, no simulator runtime needed)
-        working-directory: ios-native
+      - name: Discover an available iPhone simulator
+        id: sim
         run: |
-          set -o pipefail
-          xcodebuild \
-            -project NeedsVsWants.xcodeproj \
-            -scheme NeedsVsWants \
-            -sdk iphoneos \
-            -configuration Debug \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tee build.log
-
-      - name: Test (if a simulator runtime is available)
-        working-directory: ios-native
-        run: |
-          set -o pipefail
-          # Find the first available iPhone simulator UDID
-          DEST=$(xcrun simctl list devices available -j 2>/dev/null | python3 -c "
+          echo "Available devices:"
+          xcrun simctl list devices available 2>&1 || true
+          UDID=$(xcrun simctl list devices available -j 2>/dev/null | python3 -c "
           import json, sys
           try:
               data = json.load(sys.stdin)
@@ -64,24 +47,34 @@ jobs:
                           udid = d.get('udid', d.get('id', ''))
                           if udid:
                               print(udid); sys.exit(0)
-          except Exception:
-              pass
+          except Exception as e:
+              print(f'ERR: {e}', file=sys.stderr)
           print('NONE')
           " 2>/dev/null || echo "NONE")
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Found simulator UDID: $UDID"
 
-          if [ "$DEST" = "NONE" ]; then
-            echo "::warning::No iPhone simulator available — skipping tests (build-only)."
-            exit 0
+      - name: Build & Test
+        working-directory: ios-native
+        env:
+          SIM_UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -o pipefail
+          if [ "$SIM_UDID" = "NONE" ] || [ -z "$SIM_UDID" ]; then
+            echo "::error::No iPhone simulator found — cannot build or test."
+            exit 1
           fi
-          echo "Using simulator: $DEST"
-          xcrun simctl boot "$DEST" 2>/dev/null || true
+          echo "Booting simulator: $SIM_UDID"
+          xcrun simctl boot "$SIM_UDID" 2>/dev/null || true
+          sleep 5
+
           xcodebuild \
             -project NeedsVsWants.xcodeproj \
             -scheme NeedsVsWants \
-            -destination "platform=iOS Simulator,id=$DEST" \
+            -destination "platform=iOS Simulator,id=$SIM_UDID" \
             -derivedDataPath build \
             -configuration Debug \
-            test 2>&1 | tee test.log
+            build test 2>&1 | tee build.log
 
       - name: Upload build logs
         if: always()
@@ -90,4 +83,4 @@ jobs:
           name: ios-native-build-logs
           path: |
             ios-native/build.log
-            ios-native/test.log
+            ios-native/build
