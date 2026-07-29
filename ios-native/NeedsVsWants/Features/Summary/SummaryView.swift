@@ -125,6 +125,7 @@ struct SummaryView: View {
 
     // MARK: - Stat cards
 
+    @ViewBuilder
     private var statCards: some View {
         if let vm {
             HStack(spacing: 12) {

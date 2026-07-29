@@ -13,7 +13,9 @@ final class HistoryViewModel {
     /// Groups entries by dayKey (yyyy-MM-dd), newest first.
     func grouped(entries: [Entry]) -> [(key: String, entries: [Entry])] {
         let grouped = Dictionary(grouping: entries, by: { $0.dayKey })
-        return grouped.sorted { $0.key > $1.key }
+        return grouped
+            .sorted { $0.key > $1.key }
+            .map { (key: $0.key, entries: $0.value) }
     }
 
     func dayTotals(_ entries: [Entry]) -> (needs: Int64, wants: Int64) {

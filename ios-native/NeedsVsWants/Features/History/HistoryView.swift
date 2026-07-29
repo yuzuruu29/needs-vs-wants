@@ -65,12 +65,12 @@ struct HistoryView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    if totals.needs > 0 {
-                        CurrencyText(cents: totals.needs, currency: currency)
+                    if totals.0 > 0 {
+                        CurrencyText(cents: totals.0, currency: currency)
                             .foregroundStyle(AppColors.need)
                     }
-                    if totals.wants > 0 {
-                        CurrencyText(cents: totals.wants, currency: currency)
+                    if totals.1 > 0 {
+                        CurrencyText(cents: totals.1, currency: currency)
                             .foregroundStyle(AppColors.want)
                     }
                 }
