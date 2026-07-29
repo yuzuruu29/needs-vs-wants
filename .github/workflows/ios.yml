@@ -1,0 +1,158 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_DIR: ios
+  SCHEME: NeedsVsWants
+  DESTINATION: 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+
+jobs:
+  build:
+    name: Build & Test (Simulator)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: xcodegen generate
+
+      - name: Build for Simulator
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          xcodebuild clean build \
+            -project NeedsVsWants.xcodeproj \
+            -scheme ${{ env.SCHEME }} \
+            -destination '${{ env.DESTINATION }}' \
+            -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package .app for artifacts
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          APP_PATH=$(find DerivedData -name '*.app' -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: .app bundle not found"
+            exit 1
+          fi
+          mkdir -p artifacts
+          cp -R "$APP_PATH" artifacts/
+          ls -la artifacts/
+
+      - name: Upload Simulator build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeedsVsWants-Simulator
+          path: ios/artifacts/*.app
+          retention-days: 30
+
+  # ---------------------------------------------------------------------------
+  # RELEASE BUILD — requires Apple Developer account
+  # ---------------------------------------------------------------------------
+  # Uncomment and configure the section below once you have:
+  #   1. An Apple Developer Program membership ($99/yr)
+  #   2. A signing certificate + provisioning profile exported as .p12
+  #   3. Secrets added to this GitHub repo:
+  #      - BUILD_CERTIFICATE_BASE64  (base64 of your .p12)
+  #      - P12_PASSWORD              (password for the .p12)
+  #      - BUILD_PROVISION_PROFILE   (base64 of .mobileprovision)
+  #      - DEVELOPMENT_TEAM          (your Apple Team ID, e.g. ABCD123456)
+  #
+  # Then the workflow will produce a signed .ipa ready for TestFlight or
+  # Ad-Hoc distribution.
+  # ---------------------------------------------------------------------------
+  # release:
+  #   name: Build Release .ipa
+  #   runs-on: macos-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main'
+  #
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Select Xcode 15
+  #       run: sudo xcode-select -s /Applications/Xcode_15.4.app
+  #
+  #     - name: Install XcodeGen
+  #       run: brew install xcodegen
+  #
+  #     - name: Install signing certificate
+  #       run: |
+  #         CERT_PATH=$RUNNER_TEMP/build_certificate.p12
+  #         KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+  #         echo -n "${{ secrets.BUILD_CERTIFICATE_BASE64 }}" | base64 --decode -o $CERT_PATH
+  #         security create-keychain -p "" $KEYCHAIN_PATH
+  #         security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+  #         security unlock-keychain -p "" $KEYCHAIN_PATH
+  #         security import $CERT_PATH -P "${{ secrets.P12_PASSWORD }}" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+  #         security list-keychain -d user -s $KEYCHAIN_PATH
+  #
+  #     - name: Install provisioning profile
+  #       run: |
+  #         PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+  #         echo -n "${{ secrets.BUILD_PROVISION_PROFILE }}" | base64 --decode -o $PP_PATH
+  #         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+  #         cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+  #
+  #     - name: Generate Xcode project
+  #       working-directory: ${{ env.PROJECT_DIR }}
+  #       run: xcodegen generate
+  #
+  #     - name: Archive
+  #       working-directory: ${{ env.PROJECT_DIR }}
+  #       run: |
+  #         xcodebuild clean archive \
+  #           -project NeedsVsWants.xcodeproj \
+  #           -scheme ${{ env.SCHEME }} \
+  #           -archivePath $RUNNER_TEMP/NeedsVsWants.xcarchive \
+  #           DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} \
+  #           CODE_SIGN_IDENTITY="iPhone Distribution"
+  #
+  #     - name: Export .ipa
+  #       working-directory: ${{ env.PROJECT_DIR }}
+  #       run: |
+  #         cat > $RUNNER_TEMP/ExportOptions.plist <<'EOF'
+  #         <?xml version="1.0" encoding="UTF-8"?>
+  #         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  #         <plist version="1.0">
+  #         <dict>
+  #           <key>method</key>
+  #           <string>app-store</string>
+  #           <key>teamID</key>
+  #           <string>${{ secrets.DEVELOPMENT_TEAM }}</string>
+  #           <key>uploadSymbols</key>
+  #           <true/>
+  #         </dict>
+  #         </plist>
+  #         EOF
+  #         xcodebuild -exportArchive \
+  #           -archivePath $RUNNER_TEMP/NeedsVsWants.xcarchive \
+  #           -exportPath $RUNNER_TEMP/NeedsVsWants-ipa \
+  #           -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist
+  #
+  #     - name: Upload .ipa artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: NeedsVsWants-Release
+  #         path: ${{ runner.temp }}/NeedsVsWants-ipa/*.ipa
+  #         retention-days: 30

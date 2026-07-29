@@ -1,0 +1,26 @@
+# Android / Gradle
+.gradle/
+build/
+*.apk
+*.aab
+local.properties
+.idea/
+*.iml
+
+# Android SDK (committed locally, not needed in repo)
+android-sdk/
+
+# Screenshots / design artifacts
+*.png
+*.jpg
+
+# iOS build artifacts
+ios/DerivedData/
+ios/*.xcodeproj/
+ios/*.xcworkspace/
+ios/artifacts/
+
+# OS
+.DS_Store
+Thumbs.db
+
