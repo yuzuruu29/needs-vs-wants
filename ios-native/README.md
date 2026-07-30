@@ -22,11 +22,14 @@ Data/
 Design/
   AppColors.swift            — Adaptive light/dark semantic tokens (D7 brand preserved)
   AppTypography.swift        — Hybrid: Playfair Display SC display + SF Pro body
+  AppMetrics.swift           — Shared card/input radii (16 / 12)
+  PremiumSurfaces.swift      — inkWash, giltGlow, AccentShareBar (Android parity)
   Haptics.swift              — Impact on seal, notification on delete/20-cap/wipe
 
 Components/
   DonutChart.swift           — Hand-rolled Canvas (D6: no chart libraries)
   LedgerHeader/Row.swift     — Shared column geometry (D8)
+  GiltRule, PeriodRotor, LegendChip — premium chrome + chart legend
   CurrencyText, NeedWantBadge, ShareBar, PrimaryButton, Eyebrow
 
 Features/
@@ -49,7 +52,8 @@ Features/
 | **Accessibility** | Rectangles + tap gestures, no VoiceOver tab semantics | Native `Button`s, `TabView` tab semantics, `@FocusState`, labels/hints |
 | **Currency** | Hand-rolled `\(symbol) \(whole).\(c2)` — wrong for JPY | `NumberFormatter(.currency)` per-locale — JPY correct |
 | **Tests** | Zero | 5 test files: CurrencyFormatter, StatsEngine, EntryRepository, LogViewModel, SummaryViewModel |
-| **Palette** | Light-only D7 | D7 brand as adaptive light/dark tokens |
+| **Palette** | Light-only D7 | D7 brand as adaptive light/dark tokens (dark is iOS-only for v1) |
+| **Surfaces** | inkWash / giltGlow / GiltRule | Same premium treatments (ported in surface-parity pass) |
 
 ## Build
 

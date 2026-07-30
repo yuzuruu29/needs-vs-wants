@@ -34,7 +34,7 @@ struct LogView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
             }
-            .background(AppColors.surface)
+            .inkWashBackground()
             .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .keyboard) {
@@ -50,16 +50,21 @@ struct LogView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Eyebrow(text: "TODAY · \(Entry.dayFormatter.string(from: Date()))")
+                Eyebrow(text: "TODAY · \(Entry.dayFormatter.string(from: Date()))", color: AppColors.crimson)
                 Spacer()
-                Eyebrow(text: "SHEET \(vm.sheetCount) / 20")
+                VStack(alignment: .trailing, spacing: 2) {
+                    Eyebrow(text: "SHEET")
+                    Text("\(vm.sheetCount) / 20")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(vm.sheetCount >= 18 ? AppColors.crimson : AppColors.textPrimary)
+                }
             }
             Text("LOG")
                 .font(AppTypography.displayMedium)
                 .foregroundStyle(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            GiltRule(width: 40)
         }
     }
 
@@ -96,8 +101,8 @@ struct LogView: View {
         }
         .padding(16)
         .background(AppColors.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.divider, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: AppMetrics.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: AppMetrics.cardRadius).stroke(AppColors.divider, lineWidth: 1))
         .onChange(of: vm.canSeal) { _, canSeal in
             if canSeal {
                 vm.sealIfPossible()
@@ -117,7 +122,7 @@ struct LogView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(isSelected ? color : color.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: AppMetrics.chipRadius))
         }
         .accessibilityLabel(label)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -127,10 +132,8 @@ struct LogView: View {
 
     private var sheetFullPrompt: some View {
         VStack(spacing: 12) {
-            Image(systemName: "tray.full")
-                .font(.system(size: 32))
-                .foregroundStyle(AppColors.gold)
-            Text("Sheet is full")
+            Eyebrow(text: "SHEET COMPLETE", color: AppColors.marketGreen)
+            Text("\(vm.sheetCount) / 20 entries sealed")
                 .font(AppTypography.displaySmall)
             Text("You've logged 20 entries. Start a new sheet to continue.")
                 .font(AppTypography.body)
@@ -142,8 +145,8 @@ struct LogView: View {
         }
         .padding(24)
         .background(AppColors.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppColors.gold, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: AppMetrics.cardRadius))
+        .overlay(RoundedRectangle(cornerRadius: AppMetrics.cardRadius).stroke(AppColors.gold, lineWidth: 1))
     }
 
     // MARK: - Sealed ledger

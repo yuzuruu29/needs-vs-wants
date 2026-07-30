@@ -13,7 +13,7 @@ struct PrimaryButton: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(AppColors.crimson)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: AppMetrics.inputRadius))
         }
         .accessibilityLabel(title)
     }

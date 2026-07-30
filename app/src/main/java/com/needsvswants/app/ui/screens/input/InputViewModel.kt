@@ -71,4 +71,9 @@ class InputViewModel @Inject constructor(
     fun deleteEntry(entry: Entry) {
         viewModelScope.launch { dao.delete(entry) }
     }
+
+    /** D4: wipe the 20-row sheet so logging can continue. Matches iOS `startNewSheet()`. */
+    fun startNewSheet() {
+        viewModelScope.launch { dao.deleteAll() }
+    }
 }
