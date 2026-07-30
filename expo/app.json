@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Needs vs. Wants",
+    "slug": "needs-vs-wants",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "needsvswants",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.needsvswants.expo"
+    },
+    "android": {
+      "package": "com.needsvswants.expo",
+      "adaptiveIcon": {
+        "backgroundColor": "#FAFAF7"
+      }
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FAFAF7"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "806e9252-c3d4-45ab-b0d8-de102e950599"
+      }
+    },
+    "owner": "yuzuruu29",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/806e9252-c3d4-45ab-b0d8-de102e950599"
+    }
+  }
+}
