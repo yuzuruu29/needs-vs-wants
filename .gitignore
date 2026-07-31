@@ -24,3 +24,7 @@ ios/artifacts/
 .DS_Store
 Thumbs.db
 
+.vercel
+
+# Brainstorm / agent session artifacts
+.superpowers/
