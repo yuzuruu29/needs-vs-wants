@@ -9,10 +9,12 @@ import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.SummaryStats
 import com.needsvswants.app.domain.SummaryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SummaryViewModel @Inject constructor(
     private val summaryUseCase: SummaryUseCase,
