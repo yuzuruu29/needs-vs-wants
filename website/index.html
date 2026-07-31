@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Needs vs Wants — Expense Tracker · Soft Launch</title>
+<title>Needs vs Wants — Expense Tracker</title>
 <meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want — decided in the moment, sealed instantly, kept for 35 days. No accounts. No analytics.">
+<meta name="theme-color" content="#FAFAF7">
+<meta name="color-scheme" content="light">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Needs vs Wants — Expense Tracker">
+<meta property="og:description" content="Offline-first expense trainer. Every purchase is a Need or a Want. No accounts. No analytics.">
+<meta property="og:site_name" content="Needs vs Wants">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Needs vs Wants — Expense Tracker">
+<meta name="twitter:description" content="Offline-first expense trainer. Every purchase is a Need or a Want.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@700&family=Inter:wght@400;500;600&family=Inter+Tight:wght@600&display=swap" rel="stylesheet">
@@ -82,7 +93,66 @@ header.scrolled{
   font:600 10px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;white-space:nowrap;
 }
 .chip-soft i{width:5px;height:5px;border-radius:50%;background:var(--gold);display:inline-block;box-shadow:0 0 0 3px rgba(232,169,42,.22)}
-@media (max-width:900px){.nav-links{display:none}.chip-soft{display:none}}
+.nav-toggle{
+  display:none;margin-left:auto;width:42px;height:42px;border:1px solid var(--divider-strong);
+  border-radius:var(--r-s);background:var(--card);color:var(--ink);align-items:center;justify-content:center;flex:none;
+}
+.nav-toggle svg{width:20px;height:20px}
+.mobile-nav{
+  display:none;border-top:1px solid var(--divider);background:rgba(250,250,247,.98);
+  backdrop-filter:blur(12px);padding:12px 24px 18px;
+}
+.mobile-nav.open{display:block}
+.mobile-nav a{
+  display:block;padding:14px 4px;text-decoration:none;font:500 15px/1.2 var(--body);
+  color:var(--ink);border-bottom:1px solid var(--divider);
+}
+.mobile-nav a:last-child{border-bottom:0;color:#fff;background:var(--crimson);text-align:center;
+  border-radius:var(--r-s);margin-top:12px;padding:14px}
+@media (max-width:900px){
+  .nav-links{display:none}
+  .chip-soft{display:none}
+  .nav .btn--sm{display:none}
+  .nav-toggle{display:inline-flex}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .nav{padding:10px 16px;gap:12px}
+  .wordmark{font-size:16px}
+  .hero{padding:36px 0 52px}
+  .display{font:700 clamp(36px,11vw,52px)/1.05 var(--display);letter-spacing:.8px}
+  .lede{font-size:15px}
+  .hero-cta{flex-direction:column;align-items:stretch}
+  .hero-cta .btn{width:100%}
+  .sheet{padding:18px 14px 14px;border-radius:var(--r-m);animation:none}
+  .sheet::before,.sheet::after{display:none}
+  .ledger-head,.l-row{grid-template-columns:40px minmax(0,1fr) 70px 46px;gap:6px}
+  .ledger-head span:nth-child(5),.l-row > .del{display:none}
+  .l-cost{font-size:12.5px}
+  .l-item{font-size:13px}
+  .ticker{margin:8px 0 0;transform:none;border-radius:0}
+  .panel{padding:24px 18px}
+  .rule-row{padding:28px 0}
+  .mini-stats{gap:16px 24px}
+  .mini-stat .n{font-size:26px}
+  .phone{max-width:340px;margin:0 auto;border-radius:28px;padding:10px;animation:none}
+  .phone:hover{transform:none}
+  .phone-slot--summary{grid-row:auto}
+  .bento{gap:36px 0}
+  .stat-grid{gap:8px}
+  .stat{padding:10px 8px}
+  .stat .v{font-size:12.5px}
+  .cta-panel{padding:28px 20px;border-radius:22px}
+  .cta-btns{flex-direction:column}
+  .cta-btns .btn{width:100%}
+  .cta-note{letter-spacing:1px;font-size:11px}
+  .foot-bottom{flex-direction:column;align-items:flex-start}
+  .mobile-nav{padding:12px 16px 18px}
+}
+@supports (padding: max(0px)){
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+  header{padding-top:env(safe-area-inset-top)}
+}
 
 /* ============ BUTTONS ============ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;text-decoration:none;
@@ -322,12 +392,13 @@ section{padding:clamp(64px,8vw,104px) 0}
   border:1px solid var(--divider);position:relative;
 }
 .phone-status{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px 18px 4px;font:600 10px/1 var(--money);color:var(--ink);letter-spacing:.3px;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  padding:12px 16px 6px;font:600 10px/1 var(--money);color:var(--ink);letter-spacing:.3px;
 }
+.phone-status > span:first-child{justify-self:start}
+.phone-status > span:last-child{justify-self:end}
 .phone-status .pill{
-  width:72px;height:18px;border-radius:999px;background:var(--ink);margin:0 auto;
-  position:absolute;left:50%;top:8px;transform:translateX(-50%);
+  width:72px;height:18px;border-radius:999px;background:var(--ink);justify-self:center;
 }
 .phone-body{padding:8px 14px 18px}
 .phone-cap{
@@ -465,6 +536,16 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <a href="#screens">The Screens</a>
     </nav>
     <a class="btn btn--primary btn--sm" href="#get">Get the app</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+  <div class="mobile-nav" id="mobileNav" hidden>
+    <a href="#rule">The Rule</a>
+    <a href="#how">How It Works</a>
+    <a href="#window">35 Days</a>
+    <a href="#screens">The Screens</a>
+    <a href="#get">Get the app</a>
   </div>
 </header>
 
@@ -799,7 +880,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <h2>Start tracking today.</h2>
         <p class="desc">Take control of your finances. Every expense counts — seal it as a Need or a Want, and keep a 35-day window of honest habits.</p>
         <div class="cta-btns">
-          <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-1.0.0.apk" download="needs-vs-wants-1.0.0.apk">
+          <a class="btn btn--invert" id="apkDownload" href="https://github.com/yuzuruu29/needs-vs-wants/releases/latest/download/needs-vs-wants-1.0.0.apk" download="needs-vs-wants-1.0.0.apk">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
             Download Android APK</a>
           <button class="btn btn--outline" id="iosSoon" type="button">
@@ -829,6 +910,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <li><a href="#how">How It Works</a></li>
           <li><a href="#window">The 35-Day Window</a></li>
           <li><a href="#get">Get the App</a></li>
+          <li><a href="https://github.com/yuzuruu29/needs-vs-wants/releases" rel="noopener">Android releases</a></li>
+          <li><a href="https://github.com/yuzuruu29/needs-vs-wants" rel="noopener">GitHub</a></li>
         </ul>
       </div>
       <div>
@@ -1050,6 +1133,23 @@ function toast(msg){
 }
 $('#wipeBtn').addEventListener('click', () => toast('Preview only — your diary is safe.'));
 $('#iosSoon').addEventListener('click', () => toast('iOS build coming soon — Android APK is available now.'));
+
+/* ---------- Mobile nav ---------- */
+const navToggle = $('#navToggle');
+const mobileNav = $('#mobileNav');
+function setMenu(open){
+  mobileNav.classList.toggle('open', open);
+  mobileNav.hidden = !open;
+  navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+}
+navToggle.addEventListener('click', () => setMenu(mobileNav.hidden));
+mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+
+/* ---------- APK download ---------- */
+/* Direct link to GitHub Releases asset. If the asset is missing, the browser 404s;
+   secondary: hold Alt/option is not needed — Releases index is linked in the footer. */
 
 $$('input[name="currency"]').forEach(r => r.addEventListener('change', () => {
   cur = r.value; applyCurrency();

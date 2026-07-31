@@ -3,6 +3,8 @@
 build/
 *.apk
 *.aab
+# Allow soft-launch APK under website/downloads when force-added
+!website/downloads/*.apk
 local.properties
 .idea/
 *.iml
