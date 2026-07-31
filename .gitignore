@@ -3,12 +3,14 @@
 build/
 *.apk
 *.aab
+# Allow soft-launch APK under website/downloads when force-added
+!website/downloads/*.apk
 local.properties
 .idea/
 *.iml
 
 # Android SDK (committed locally, not needed in repo)
-android-sdk/
+.android-sdk/
 
 # Screenshots / design artifacts
 *.png
@@ -19,6 +21,14 @@ ios/DerivedData/
 ios/*.xcodeproj/
 ios/*.xcworkspace/
 ios/artifacts/
+
+# iOS native rewrite (XcodeGen-generated)
+ios-native/*.xcodeproj/
+ios-native/*.xcworkspace/
+ios-native/build/
+ios-native/DerivedData/
+ios-native/build.log
+ios-native/NeedsVsWants/Info.plist
 
 # OS
 .DS_Store

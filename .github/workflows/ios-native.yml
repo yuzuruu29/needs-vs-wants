@@ -1,0 +1,54 @@
+name: iOS Native
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/ios-native.yml"
+  pull_request:
+    paths:
+      - "ios-native/**"
+
+jobs:
+  build:
+    name: Compile Check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+
+      - name: Show tool versions
+        run: |
+          xcodebuild -version
+          echo "--- SDKs ---"
+          xcodebuild -showsdks
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios-native
+        run: xcodegen generate
+
+      - name: Compile (iphonesimulator SDK — validates all Swift code)
+        working-directory: ios-native
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project NeedsVsWants.xcodeproj \
+            -scheme NeedsVsWants \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            ONLY_ACTIVE_ARCH=NO \
+            build 2>&1 | tee build.log
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-build-logs
+          path: |
+            ios-native/build.log
