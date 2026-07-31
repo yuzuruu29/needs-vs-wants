@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.summary
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.theme.*
@@ -41,6 +43,7 @@ fun SummaryScreen(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
+    val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     var showInstructions by remember { mutableStateOf(false) }
 
     if (showInstructions) {
@@ -124,6 +127,44 @@ fun SummaryScreen(
         }
 
         Spacer(Modifier.height(28.dp))
+
+        // Daily budget meter — Day period only, when budget is on
+        if (period == Period.DAY && budgetStatus is BudgetStatus.On) {
+            val on = budgetStatus as BudgetStatus.On
+            val over = on.remainingCents < 0
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = SurfaceCard,
+                border = BorderStroke(1.dp, if (over) Crimson.copy(alpha = 0.45f) else Divider),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Eyebrow("DAILY BUDGET", color = if (over) Crimson else Gilt)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "${on.spentCents.toMoney(symbol)} / ${on.budgetCents.toMoney(symbol)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { on.progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        color = if (over) Crimson else MarketGreen,
+                        trackColor = SurfaceRaised,
+                        strokeCap = StrokeCap.Round
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        if (over) "Over by ${(-on.remainingCents).toMoney(symbol)}"
+                        else "Remaining ${on.remainingCents.toMoney(symbol)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (over) Crimson else TextSecondary
+                    )
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
 
         // Hero donut with gilt glow backdrop
         Box(
