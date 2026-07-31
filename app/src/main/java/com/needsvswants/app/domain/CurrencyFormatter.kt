@@ -21,3 +21,17 @@ fun parseCents(input: String): Long? {
     } else 0
     return whole * 100 + cents
 }
+
+/** Keep digits and one decimal point; cap at two decimal places. Shared by Input and Settings. */
+fun filterAmountInput(input: String): String {
+    val cleaned = input.filter { it.isDigit() || it == '.' }
+    val parts = cleaned.split(".")
+    return if (parts.size <= 1) cleaned else parts[0] + "." + parts[1].take(2)
+}
+
+/** Render cents back into the amount-input format ("5000", "123.45") for prefill. */
+fun Long.toInputAmount(): String {
+    val whole = this / 100
+    val cents = (abs(this) % 100).toString().padStart(2, '0')
+    return if (cents == "00") whole.toString() else "$whole.$cents"
+}

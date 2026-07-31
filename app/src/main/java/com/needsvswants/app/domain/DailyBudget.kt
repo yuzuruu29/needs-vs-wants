@@ -25,4 +25,8 @@ object DailyBudgetMath {
 
     fun wouldExceed(spentCents: Long, budgetCents: Long, newCostCents: Long): Boolean =
         spentCents + newCostCents > budgetCents
+
+    /** How far a new seal would exceed the budget (0 when at or under). */
+    fun overBy(spentCents: Long, budgetCents: Long, newCostCents: Long): Long =
+        (spentCents + newCostCents - budgetCents).coerceAtLeast(0L)
 }

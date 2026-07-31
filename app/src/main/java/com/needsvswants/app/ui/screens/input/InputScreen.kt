@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.BudgetStatus
+import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
@@ -184,9 +185,10 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             }
         }
 
-        pendingOverspendCost?.let { _ ->
+        pendingOverspendCost?.let { pendingCost ->
             val on = budgetStatus as? BudgetStatus.On
             if (on != null) {
+                val overBy = DailyBudgetMath.overBy(on.spentCents, on.budgetCents, pendingCost)
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissOverspendConfirm() },
                     containerColor = InkElevated,
@@ -204,10 +206,19 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                         }
                     },
                     text = {
-                        Text(
-                            "This puts you over your daily budget of ${on.budgetCents.toMoney(symbol)}. Log anyway?",
-                            color = TextSecondary
-                        )
+                        Column {
+                            Text(
+                                "\"$item\" · ${pendingCost.toMoney(symbol)}",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "This puts you over by ${overBy.toMoney(symbol)}. Your daily budget is ${on.budgetCents.toMoney(symbol)}. Log anyway?",
+                                color = TextSecondary
+                            )
+                        }
                     },
                     confirmButton = {
                         Button(

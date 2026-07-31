@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -33,11 +34,7 @@ class SettingsViewModel @Inject constructor(
     val dailyBudgetCents: StateFlow<Long?> = preferences.dailyBudgetCents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    fun filterBudgetAmount(input: String): String {
-        val cleaned = input.filter { it.isDigit() || it == '.' }
-        val parts = cleaned.split(".")
-        return if (parts.size <= 1) cleaned else parts[0] + "." + parts[1].take(2)
-    }
+    fun filterBudgetAmount(input: String): String = filterAmountInput(input)
 
     fun saveDailyBudget(rawAmount: String): Boolean {
         val cents = parseCents(rawAmount) ?: return false

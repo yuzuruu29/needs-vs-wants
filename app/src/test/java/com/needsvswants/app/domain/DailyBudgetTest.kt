@@ -35,4 +35,19 @@ class DailyBudgetTest {
         assertTrue(DailyBudgetMath.wouldExceed(500_000, 500_000, 1))
         assertFalse(DailyBudgetMath.wouldExceed(0, 500_000, 500_000))
     }
+
+    @Test
+    fun overBy_isZeroWhenAtOrUnderLimit() {
+        assertEquals(0L, DailyBudgetMath.overBy(400_000, 500_000, 100_000)) // exact
+        assertEquals(0L, DailyBudgetMath.overBy(300_000, 500_000, 100_000))
+        assertEquals(0L, DailyBudgetMath.overBy(0, 500_000, 500_000))
+    }
+
+    @Test
+    fun overBy_isPositiveWhenStrictlyOver() {
+        assertEquals(1L, DailyBudgetMath.overBy(400_000, 500_000, 100_001))
+        assertEquals(25_000L, DailyBudgetMath.overBy(420_000, 500_000, 105_000))
+        assertEquals(60_000L, DailyBudgetMath.overBy(500_000, 500_000, 60_000))
+        assertEquals(1_000L, DailyBudgetMath.overBy(0, 500_000, 501_000))
+    }
 }

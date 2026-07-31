@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.screens.input.GoldUnderline
 import com.needsvswants.app.ui.theme.*
@@ -36,6 +37,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     var showWipeConfirm by remember { mutableStateOf(false) }
     var budgetAmount by remember { mutableStateOf("") }
     var budgetError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(dailyBudgetCents) {
+        val cents = dailyBudgetCents
+        if (cents != null && budgetAmount.isBlank()) {
+            budgetAmount = cents.toInputAmount()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(inkWash()).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 12.dp)) {
         Eyebrow("PREFERENCES", color = Crimson)
@@ -166,6 +174,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     },
                     text = "Save budget",
                     height = 46.dp,
+                    enabled = budgetAmount.isNotBlank(),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

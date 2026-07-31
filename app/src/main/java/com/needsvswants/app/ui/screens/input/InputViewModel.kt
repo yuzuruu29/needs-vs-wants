@@ -9,6 +9,7 @@ import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.DailyBudgetUseCase
+import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -46,11 +47,7 @@ class InputViewModel @Inject constructor(
     fun filterItem(input: String): String =
         input.filter { it.isLetterOrDigit() || it.isWhitespace() || it == '-' || it == '.' || it == '\'' || it == ',' }
 
-    fun filterCost(input: String): String {
-        val cleaned = input.filter { it.isDigit() || it == '.' }
-        val parts = cleaned.split(".")
-        return if (parts.size <= 1) cleaned else parts[0] + "." + parts[1].take(2)
-    }
+    fun filterCost(input: String): String = filterAmountInput(input)
 
     fun trySeal() {
         if (isSealing) return

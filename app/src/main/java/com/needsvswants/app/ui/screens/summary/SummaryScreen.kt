@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.*
@@ -132,6 +135,11 @@ fun SummaryScreen(
         if (period == Period.DAY && budgetStatus is BudgetStatus.On) {
             val on = budgetStatus as BudgetStatus.On
             val over = on.remainingCents < 0
+            val animatedProgress by animateFloatAsState(
+                targetValue = on.progress.coerceIn(0f, 1f),
+                animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+                label = "budgetProgress"
+            )
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = SurfaceCard,
@@ -148,7 +156,7 @@ fun SummaryScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(
-                        progress = { on.progress.coerceIn(0f, 1f) },
+                        progress = { animatedProgress },
                         modifier = Modifier.fillMaxWidth().height(8.dp),
                         color = if (over) Crimson else MarketGreen,
                         trackColor = SurfaceRaised,
