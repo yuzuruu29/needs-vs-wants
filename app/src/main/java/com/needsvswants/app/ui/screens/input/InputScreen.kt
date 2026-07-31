@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
@@ -41,6 +42,8 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val item by viewModel.activeItem.collectAsStateWithLifecycle()
     val cost by viewModel.activeCost.collectAsStateWithLifecycle()
     val type by viewModel.activeType.collectAsStateWithLifecycle()
+    val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
+    val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
@@ -177,6 +180,51 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                     symbol = symbol,
                     onDelete = { deleteTarget = entry },
                     showCard = true
+                )
+            }
+        }
+
+        pendingOverspendCost?.let { _ ->
+            val on = budgetStatus as? BudgetStatus.On
+            if (on != null) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissOverspendConfirm() },
+                    containerColor = InkElevated,
+                    tonalElevation = 0.dp,
+                    shape = RoundedCornerShape(20.dp),
+                    title = {
+                        Column {
+                            Eyebrow("DAILY BUDGET", color = Danger)
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "Over budget?",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                    },
+                    text = {
+                        Text(
+                            "This puts you over your daily budget of ${on.budgetCents.toMoney(symbol)}. Log anyway?",
+                            color = TextSecondary
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { viewModel.confirmOverspendSeal() },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Crimson.copy(alpha = 0.18f),
+                                contentColor = Crimson
+                            ),
+                            border = BorderStroke(1.dp, Crimson)
+                        ) { Text("Log anyway", fontWeight = FontWeight.SemiBold) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.dismissOverspendConfirm() }) {
+                            Text("Cancel", color = TextMuted)
+                        }
+                    }
                 )
             }
         }
