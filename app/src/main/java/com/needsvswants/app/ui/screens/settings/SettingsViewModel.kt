@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.domain.parseCents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -28,6 +29,26 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
     val currentCode: StateFlow<String> = preferences.currencyCode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "PHP")
+
+    val dailyBudgetCents: StateFlow<Long?> = preferences.dailyBudgetCents
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun filterBudgetAmount(input: String): String {
+        val cleaned = input.filter { it.isDigit() || it == '.' }
+        val parts = cleaned.split(".")
+        return if (parts.size <= 1) cleaned else parts[0] + "." + parts[1].take(2)
+    }
+
+    fun saveDailyBudget(rawAmount: String): Boolean {
+        val cents = parseCents(rawAmount) ?: return false
+        if (cents <= 0L) return false
+        viewModelScope.launch { preferences.setDailyBudgetCents(cents) }
+        return true
+    }
+
+    fun clearDailyBudget() {
+        viewModelScope.launch { preferences.clearDailyBudget() }
+    }
 
     fun setCurrency(symbol: String, code: String) {
         viewModelScope.launch { preferences.setCurrency(symbol, code) }

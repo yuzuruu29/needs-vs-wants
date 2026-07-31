@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
@@ -18,10 +19,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.screens.input.GoldUnderline
 import com.needsvswants.app.ui.theme.*
 
@@ -29,7 +32,10 @@ import com.needsvswants.app.ui.theme.*
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val currentSymbol by viewModel.currentSymbol.collectAsStateWithLifecycle()
     val currentCode by viewModel.currentCode.collectAsStateWithLifecycle()
+    val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     var showWipeConfirm by remember { mutableStateOf(false) }
+    var budgetAmount by remember { mutableStateOf("") }
+    var budgetError by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().background(inkWash()).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 12.dp)) {
         Eyebrow("PREFERENCES", color = Crimson)
@@ -79,6 +85,89 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     }
                     if (i < currencies.lastIndex) HorizontalDivider(color = InkDivider, modifier = Modifier.padding(horizontal = 12.dp), thickness = 1.dp)
                 }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabel("DAILY BUDGET")
+        Spacer(Modifier.height(10.dp))
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = InkElevated,
+            border = BorderStroke(1.dp, InkDivider)
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Text(
+                    "Optional. Off until you set an amount.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+                dailyBudgetCents?.let { currentCents ->
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Eyebrow("ACTIVE LIMIT", color = Gilt)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                currentCents.toMoney(currentSymbol),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        TextButton(onClick = { viewModel.clearDailyBudget() }) {
+                            Text("Turn off", color = Danger, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = budgetAmount,
+                    onValueChange = {
+                        budgetAmount = viewModel.filterBudgetAmount(it)
+                        budgetError = false
+                    },
+                    label = { Text("AMOUNT", style = MaterialTheme.typography.labelSmall) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = budgetError,
+                    supportingText = if (budgetError) {
+                        { Text("Enter a valid amount", color = Danger) }
+                    } else null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedBorderColor = Crimson,
+                        unfocusedBorderColor = DividerStrong,
+                        cursorColor = Crimson,
+                        focusedLabelColor = Crimson,
+                        unfocusedLabelColor = TextMuted,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(Modifier.height(12.dp))
+                GiltButton(
+                    onClick = {
+                        if (viewModel.saveDailyBudget(budgetAmount)) {
+                            budgetAmount = ""
+                            budgetError = false
+                        } else {
+                            budgetError = true
+                        }
+                    },
+                    text = "Save budget",
+                    height = 46.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
