@@ -19,12 +19,12 @@ val BodyFont = FontFamily(
 )
 
 // Editorial label style — wide letter-spaced uppercase for eyebrows / micro labels.
+// Colors come from callers / AppTheme so dark & high-contrast work.
 private val eyebrow = TextStyle(
     fontFamily = BodyFont,
     fontWeight = FontWeight.SemiBold,
     fontSize = 11.sp,
-    letterSpacing = 2.4.sp,
-    color = TextSecondary
+    letterSpacing = 2.4.sp
 )
 
 val AppTypography = Typography(
@@ -32,50 +32,43 @@ val AppTypography = Typography(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
         fontSize = 30.sp,
-        letterSpacing = 1.sp,
-        color = TextPrimary
+        letterSpacing = 1.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        letterSpacing = 1.4.sp,
-        color = TextPrimary
+        letterSpacing = 1.4.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
-        letterSpacing = 1.2.sp,
-        color = TextPrimary
+        letterSpacing = 1.2.sp
     ),
     titleMedium = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 15.sp,
-        letterSpacing = 0.4.sp,
-        color = TextPrimary
+        letterSpacing = 0.4.sp
     ),
     titleSmall = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
-        letterSpacing = 0.3.sp,
-        color = TextPrimary
+        letterSpacing = 0.3.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
-        letterSpacing = 0.15.sp,
-        color = TextPrimary
+        letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        letterSpacing = 0.1.sp,
-        color = TextPrimary
+        letterSpacing = 0.1.sp
     ),
     labelLarge = eyebrow.copy(fontSize = 12.sp),
     labelSmall = eyebrow,

@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Needs vs Wants — Expense Tracker · Official Launch</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="./favicon-48.png" sizes="48x48" type="image/png">
+<link rel="icon" href="./favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want — decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@700&family=Inter:wght@400;500;600&family=Inter+Tight:wght@600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --surface:#FAFAF7; --card:#FFFFFF; --raised:#F3F1EA; --sunken:#F7F4EC;
+  --divider:#E8E5DC; --divider-strong:#D6D2C6;
+  --crimson:#C8102E; --crimson-deep:#A40E25; --crimson-soft:#E25C6F;
+  --green:#0B6B3A; --green-deep:#084F2A; --green-soft:#3E9D6E;
+  --gold:#E8A92A; --gold-soft:#F4C968; --gold-deep:#B9881E;
+  --ink:#1A1A1A; --sub:#5A5A5A; --muted:#8A8A8A;
+  --display:'Playfair Display SC', Georgia, 'Times New Roman', serif;
+  --body:'Inter', -apple-system, 'Segoe UI', Helvetica, sans-serif;
+  --money:'Inter Tight','Inter', ui-monospace, 'SF Mono', Menlo, monospace;
+  --r-xs:6px; --r-s:8px; --r-m:16px; --r-l:20px; --r-xl:28px;
+  --shadow-card:0 18px 40px -28px rgba(26,26,26,.28);
+  --shadow-phone:0 28px 56px -32px rgba(26,26,26,.42), 0 8px 18px -12px rgba(26,26,26,.18);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-soft:cubic-bezier(.4,0,.2,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--body); color:var(--ink); background:var(--surface);
+  background-image:
+    radial-gradient(1100px 520px at 88% -6%, rgba(232,169,42,.09), transparent 62%),
+    radial-gradient(900px 640px at -12% 34%, rgba(11,107,58,.05), transparent 58%),
+    repeating-linear-gradient(180deg, rgba(214,210,198,.13) 0 1px, transparent 1px 40px);
+  -webkit-font-smoothing:antialiased; line-height:1.6; overflow-x:hidden;
+}
+@media (min-width:1240px){
+  body::after{content:'';position:fixed;top:0;bottom:0;left:84px;width:1px;
+    background:rgba(200,16,46,.14);box-shadow:5px 0 0 rgba(200,16,46,.07);z-index:0;pointer-events:none}
+}
+::selection{background:var(--crimson);color:#fff}
+img,svg{display:block}
+a{color:inherit}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+.money{font-family:var(--money);font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.2px}
+.eyebrow{font:600 11px/1.4 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--sub)}
+.eyebrow--gold{color:var(--gold-deep)}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:var(--r-xs);z-index:99}
+.skip:focus{left:8px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ============ HEADER ============ */
+header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(250,250,247,.72);
+  backdrop-filter:blur(14px) saturate(1.2);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid transparent;
+  transition:border-color .35s var(--ease-soft), box-shadow .35s var(--ease-soft), background .35s var(--ease-soft);
+}
+header.scrolled{
+  border-color:var(--divider);
+  background:rgba(250,250,247,.9);
+  box-shadow:0 10px 24px -18px rgba(26,26,26,.25);
+}
+.nav{display:flex;align-items:center;gap:20px;padding:14px 24px;max-width:1180px;margin:0 auto}
+.wordmark{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 18px/1 var(--display);letter-spacing:.8px}
+.wordmark svg{width:22px;height:22px;color:var(--gold-deep)}
+.wordmark b{color:var(--gold-deep);font-weight:700}
+.nav-links{display:flex;gap:26px;margin-left:auto}
+.nav-links a{text-decoration:none;font:500 13.5px/1 var(--body);color:var(--sub);padding:6px 0;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav-links a:hover{color:var(--ink);border-color:var(--gold)}
+.chip-soft{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(11,107,58,.10);border:1px solid rgba(8,79,42,.32);
+  color:var(--green-deep);border-radius:999px;padding:6px 11px;
+  font:600 10px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;white-space:nowrap;
+}
+.chip-soft i{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 0 3px rgba(11,107,58,.22);animation:live-pulse 2.4s ease-in-out infinite}
+@keyframes live-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.92)}}
+@media (max-width:900px){.nav-links{display:none}.chip-soft{display:none}}
+
+/* ============ BUTTONS ============ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;text-decoration:none;
+  font:600 14px/1 var(--body);letter-spacing:.3px;padding:14px 24px;border-radius:var(--r-s);
+  transition:transform .22s var(--ease-out), background .18s, border-color .18s, box-shadow .22s var(--ease-out);
+  position:relative;overflow:hidden}
+.btn svg{width:16px;height:16px}
+.btn:active{transform:translateY(1px)}
+.btn--primary{
+  background:var(--crimson);color:#fff;
+  box-shadow:0 12px 24px -14px rgba(200,16,46,.6);
+}
+.btn--primary::after{
+  content:'';position:absolute;inset:0;left:-40%;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.22) 48%,transparent 62%);
+  transform:skewX(-18deg) translateX(-120%);
+  transition:transform .55s var(--ease-out);
+}
+.btn--primary:hover{background:var(--crimson-deep);transform:translateY(-2px);box-shadow:0 16px 28px -14px rgba(200,16,46,.7)}
+.btn--primary:hover::after{transform:skewX(-18deg) translateX(220%)}
+.btn--ghost{background:transparent;color:var(--crimson);border:1px solid var(--divider-strong)}
+.btn--ghost:hover{border-color:var(--crimson);transform:translateY(-2px)}
+.btn--sm{padding:11px 18px;font-size:13px}
+.btn--invert{background:#fff;color:var(--crimson-deep)}
+.btn--invert:hover{background:var(--gold-soft);transform:translateY(-2px)}
+.btn--outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+.btn--outline:hover{background:rgba(255,255,255,.12);transform:translateY(-2px)}
+
+/* ============ HERO ============ */
+.hero{padding:clamp(52px,8vw,104px) 0 76px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(36px,5vw,64px);align-items:start}
+.hero-copy{padding-top:clamp(18px,4vw,48px)}
+@media (max-width:940px){.hero-grid{grid-template-columns:1fr}.hero-copy{padding-top:0}}
+.hero-copy .eyebrow{display:flex;align-items:center;gap:12px}
+.hero-copy .eyebrow::before{content:'';width:26px;height:1px;background:var(--gold-deep)}
+.display{font:700 clamp(48px,7.2vw,78px)/1.02 var(--display);letter-spacing:1.2px;margin:18px 0 6px}
+.display .vs{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:.56em;color:var(--gold-deep);letter-spacing:0;padding:0 .1em;vertical-align:.1em}
+.kicker{font:600 12px/1 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--crimson);margin-bottom:14px}
+.rule-sweep{width:190px;height:2px;margin:6px 0 22px;background:linear-gradient(90deg,var(--gold),var(--gold-soft),transparent);transform-origin:left}
+.lede{font-size:16px;line-height:1.75;color:var(--sub);max-width:52ch}
+.lede strong{color:var(--ink);font-weight:600}
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 26px}
+.proof{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font:600 11px/1 var(--body);letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
+.proof .cur{font-family:var(--money);letter-spacing:.5px;font-size:12px}
+.proof .dot{color:var(--gold-deep);font-size:8px}
+
+/* Hero staggered entrance */
+.hero-in{opacity:0;transform:translateY(18px);animation:heroIn .9s var(--ease-out) forwards}
+.hero-in-1{animation-delay:.05s}
+.hero-in-2{animation-delay:.16s}
+.hero-in-3{animation-delay:.28s}
+.hero-in-4{animation-delay:.4s}
+.hero-in-5{animation-delay:.52s}
+.hero-in-6{animation-delay:.64s}
+.hero-in-sheet{animation-delay:.42s}
+@keyframes heroIn{to{opacity:1;transform:none}}
+.rule-sweep.hero-in{animation:sweep 1.05s .35s var(--ease-out) both}
+@keyframes sweep{from{transform:scaleX(0);opacity:1}to{transform:scaleX(1);opacity:1}}
+
+/* ---- Ledger pad (left-bound + StPageFlip / FlatRenderer) ---- */
+.sheet-wrap{position:relative;width:100%;max-width:460px;margin:0 auto}
+.notepad{
+  position:relative;width:100%;
+  --pad-board:#0B6B3A; --pad-spine:#C8102E; --pad-gold:#E8A92A;
+}
+.pad-board{
+  position:relative;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 28%),
+    linear-gradient(90deg,rgba(0,0,0,.18),transparent 12%),
+    var(--pad-board);
+  border-radius:4px 12px 14px 8px;
+  padding:14px 16px 18px 22px;
+  box-shadow:
+    0 22px 40px -24px rgba(11,107,58,.55),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+.pad-board::before{
+  content:'';position:absolute;left:10px;top:18px;bottom:22px;width:2px;
+  background:repeating-linear-gradient(180deg,#084F2A 0 4px,transparent 4px 8px);
+  opacity:.55;pointer-events:none;
+}
+.pad-spine{
+  position:absolute;left:0;top:8px;bottom:12px;width:14px;z-index:4;
+  background:linear-gradient(90deg,#8e0c20,#C8102E 40%,#a40e25 70%,#6e0918);
+  border-radius:3px 0 0 3px;
+  box-shadow:3px 0 8px -2px rgba(0,0,0,.35), inset -1px 0 0 rgba(255,255,255,.15);
+}
+.pad-spine::after{
+  content:'';position:absolute;inset:10px 5px;border-left:1px dashed rgba(255,255,255,.22);
+}
+.pad-stack{
+  position:absolute;right:10px;bottom:12px;top:22px;width:18px;pointer-events:none;z-index:1;
+}
+.pad-stack i{
+  position:absolute;right:0;left:0;bottom:0;top:0;
+  border-radius:0 6px 8px 0;
+  background:
+    linear-gradient(90deg,rgba(200,16,46,.05) 0 2px,transparent 2px),
+    repeating-linear-gradient(180deg,#f7f5ef 0 28px,rgba(26,26,26,.04) 28px 29px);
+  border:1px solid rgba(26,26,26,.12);
+  box-shadow:2px 3px 0 rgba(0,0,0,.06);
+  transition:transform .5s cubic-bezier(.22,1,.36,1), opacity .4s cubic-bezier(.22,1,.36,1);
+}
+.pad-stack i:nth-child(1){transform:translate(3px,4px);opacity:.95}
+.pad-stack i:nth-child(2){transform:translate(6px,8px);opacity:.85}
+.pad-stack i:nth-child(3){transform:translate(9px,12px);opacity:.72}
+/* During flip: under-pages peel further so the stack "breathes" convincingly */
+.notepad.is-flipping .pad-stack i:nth-child(1){transform:translate(5px,7px)}
+.notepad.is-flipping .pad-stack i:nth-child(2){transform:translate(9px,12px)}
+.notepad.is-flipping .pad-stack i:nth-child(3){transform:translate(13px,17px)}
+.pad-board{transition:box-shadow .5s cubic-bezier(.22,1,.36,1)}
+.notepad.is-flipping .pad-board{
+  box-shadow:
+    0 30px 52px -20px rgba(11,107,58,.65),
+    0 6px 16px -8px rgba(11,107,58,.2),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+.pad-spine{transition:box-shadow .4s cubic-bezier(.22,1,.36,1)}
+.notepad.is-flipping .pad-spine{
+  box-shadow:4px 0 16px -1px rgba(0,0,0,.5), inset -1px 0 0 rgba(255,255,255,.18);
+}
+.pad-stage-wrap{
+  position:relative;z-index:2;
+  width:100%;max-width:460px;
+  aspect-ratio:3/4;
+  min-height:340px;
+  margin:0 auto;
+  overflow:hidden;
+  border-radius:2px 8px 10px 2px;
+}
+.pad-stage{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  perspective:1800px;
+  perspective-origin:58% 32%;
+  -webkit-transform-style:preserve-3d;transform-style:preserve-3d;
+}
+/* ---- Two-face paper turn (left-bound spine) ---- */
+.pflip{
+  position:absolute;inset:0;
+  transform-style:preserve-3d;
+  transform-origin:left center;
+  will-change:transform;
+}
+.pflip__face{
+  position:absolute;inset:0;
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
+  overflow:hidden;
+  border-radius:2px 8px 10px 2px;
+  background:var(--card);
+  box-shadow:
+    0 18px 36px -16px rgba(26,26,26,.45),
+    0 4px 10px -4px rgba(26,26,26,.2);
+}
+.pflip__face--front{z-index:2}
+.pflip__face--back{
+  transform:rotateY(180deg);
+  background:
+    repeating-linear-gradient(180deg,#FAFAF7 0 28px,rgba(26,26,26,.04) 28px 29px),
+    var(--card);
+}
+/* right-edge sheet thickness + faint grain so turns read as stacked paper */
+.pflip__face::after{
+  content:'';position:absolute;top:0;bottom:0;right:0;width:16px;z-index:6;pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(26,26,26,.05) 40%,rgba(255,255,255,.18) 72%,rgba(26,26,26,.1) 100%);
+  box-shadow:inset -1px 0 0 rgba(26,26,26,.1);
+  opacity:.85;mix-blend-mode:multiply;
+}
+.pflip__face::before{
+  content:'';position:absolute;inset:0;z-index:5;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(180deg,rgba(26,26,26,.018) 0 1px,transparent 1px 5px),
+    radial-gradient(120% 90% at 20% 0%,rgba(232,169,42,.05),transparent 55%),
+    radial-gradient(80% 60% at 90% 100%,rgba(26,26,26,.03),transparent 50%);
+  mix-blend-mode:multiply;opacity:.75;
+}
+/* fold crease: darkens near the spine as the leaf lifts, then clears past vertical */
+.pflip__crease{
+  position:absolute;left:0;top:0;bottom:0;width:44px;z-index:5;pointer-events:none;
+  background:linear-gradient(90deg,rgba(26,26,26,.34),rgba(26,26,26,.12) 55%,rgba(26,26,26,0));
+  opacity:0;
+}
+.pflip.is-turn .pflip__face--front .pflip__crease{animation:pflipCrease var(--flip) cubic-bezier(.32,.72,.25,1) both}
+.pflip.is-turn .pflip__face--back .pflip__crease{animation:pflipCreaseBack var(--flip) cubic-bezier(.32,.72,.25,1) both}
+/* light sheen sweeps across the paper as it turns */
+.pflip__sheen{
+  position:absolute;top:-14%;bottom:-14%;left:0;width:60%;z-index:4;pointer-events:none;
+  background:linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.5) 45%,rgba(255,255,255,.78) 50%,rgba(255,255,255,.5) 55%,rgba(255,255,255,0) 100%);
+  transform:translateX(-140%) skewX(-10deg);
+  opacity:0;
+  mix-blend-mode:screen;
+}
+.pflip.is-turn .pflip__sheen{animation:pflipSheen var(--flip) cubic-bezier(.32,.72,.25,1) both}
+.pflip.is-turn-prev .pflip__sheen{animation:pflipSheenBack var(--flip) cubic-bezier(.32,.72,.25,1) both}
+/* cast shadow: the pad beneath darkens as the leaf lifts, clears as it lands */
+.pflip-shadow{
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
+  background:radial-gradient(120% 70% at 34% 50%,rgba(0,0,0,.30),rgba(0,0,0,0) 70%);
+}
+.notepad.is-flipping .pflip-shadow{animation:pflipCast var(--flip) cubic-bezier(.32,.72,.25,1) both}
+@keyframes pflipSheen{
+  0%{opacity:0;transform:translateX(-140%) skewX(-10deg)}
+  18%{opacity:.55}
+  55%{opacity:.45}
+  100%{opacity:0;transform:translateX(360%) skewX(-10deg)}
+}
+@keyframes pflipSheenBack{
+  0%{opacity:0;transform:translateX(360%) skewX(-10deg)}
+  18%{opacity:.55}
+  55%{opacity:.45}
+  100%{opacity:0;transform:translateX(-140%) skewX(-10deg)}
+}
+@keyframes pflipCrease{
+  0%{opacity:0}
+  45%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes pflipCreaseBack{
+  0%{opacity:0}
+  60%{opacity:.9}
+  100%{opacity:0}
+}
+@keyframes pflipCast{
+  0%{opacity:0}
+  35%{opacity:1}
+  100%{opacity:0}
+}
+/* Live form dims during flip (not a hard cut), then paper-drops back in on settle */
+.live-overlay{
+  position:absolute;inset:0;z-index:8;
+  border-radius:2px 8px 10px 2px;
+  overflow:auto;
+  background:transparent;
+  pointer-events:auto;
+  opacity:1;
+  transform:translate3d(0,0,0) scale(1);
+  transition:opacity .34s cubic-bezier(.22,1,.36,1), transform .4s cubic-bezier(.22,1,.36,1), visibility 0s;
+  will-change:opacity, transform;
+}
+.live-overlay.is-hidden{
+  visibility:hidden;pointer-events:none;
+  opacity:0;
+  transform:translate3d(0,4px,0) scale(.991);
+  transition:opacity .12s cubic-bezier(.22,1,.36,1), transform .12s cubic-bezier(.22,1,.36,1), visibility 0s linear .12s;
+}
+/* During flip: dim to ghost so the form bridges the turn rather than vanishing */
+.notepad.is-flipping .live-overlay{
+  opacity:.12 !important;
+  pointer-events:none;
+  transform:translate3d(0,0,0) scale(1) !important;
+  visibility:visible !important;
+  transition:opacity .25s cubic-bezier(.22,1,.36,1) !important;
+}
+/* Paper-drop landing: subtle scale settle after flip completes */
+.live-overlay.is-landing{
+  transform:translate3d(0,0,0) scale(1.012);
+  transition:opacity .4s cubic-bezier(.22,1,.36,1), transform .45s cubic-bezier(.22,1,.36,1), visibility 0s !important;
+}
+.pad-leaf{
+  position:relative;
+  background:var(--card);
+  border:1px solid var(--divider);
+  border-radius:2px 8px 10px 2px;
+  overflow:hidden;
+  box-shadow:
+    0 18px 36px -16px rgba(26,26,26,.45),
+    0 4px 10px -4px rgba(26,26,26,.2),
+    1px 0 0 rgba(26,26,26,.04);
+  -webkit-transform:translateZ(0);transform:translateZ(0);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+/* right-edge sheet thickness + faint paper grain so flips read as stacked paper */
+.pad-leaf::after{
+  content:'';position:absolute;top:0;bottom:0;right:0;width:16px;z-index:6;pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(26,26,26,.05) 40%,rgba(255,255,255,.18) 72%,rgba(26,26,26,.1) 100%);
+  box-shadow:inset -1px 0 0 rgba(26,26,26,.1);
+  opacity:.85;mix-blend-mode:multiply;
+}
+.pad-leaf::before{
+  content:'';position:absolute;inset:0;z-index:5;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(180deg,rgba(26,26,26,.018) 0 1px,transparent 1px 5px),
+    radial-gradient(120% 90% at 20% 0%,rgba(232,169,42,.05),transparent 55%),
+    radial-gradient(80% 60% at 90% 100%,rgba(26,26,26,.03),transparent 50%);
+  mix-blend-mode:multiply;opacity:.75;
+}
+/* Left binding crease — library leaves + live overlay (notepad, not free-floating card) */
+.sheet::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:10px;z-index:4;pointer-events:none;
+  background:linear-gradient(90deg,rgba(26,26,26,.07),rgba(26,26,26,.02) 55%,transparent);
+}
+.pad-flat-root{position:relative;width:100%;height:100%;min-height:340px}
+.pad-flat-root .pad-leaf{
+  position:absolute;inset:0;display:none;
+  height:100%;
+  transition:opacity .15s cubic-bezier(.22,1,.36,1);
+}
+.pad-flat-root .pad-leaf.is-current{display:block;z-index:2}
+.pad-flat-root.is-crossfade .pad-leaf.is-leaving{
+  display:block;z-index:3;opacity:0;pointer-events:none;
+}
+.sheet{
+  position:relative;height:100%;min-height:100%;
+  background:
+    linear-gradient(90deg,rgba(200,16,46,.08) 0 2px,transparent 2px),
+    repeating-linear-gradient(180deg,#FAFAF7 0 28px,rgba(26,26,26,.045) 28px 29px),
+    var(--card);
+  padding:18px 18px 14px 22px;
+  box-sizing:border-box;
+  display:flex;flex-direction:column;
+}
+.sheet.is-static{pointer-events:none}
+.sheet.is-static input,.sheet.is-static button:not(.dog-ear):not(.page-full-cta){pointer-events:none}
+.dog-ear{
+  position:absolute;top:0;right:0;width:48px;height:48px;z-index:5;
+  border:0;padding:0;cursor:pointer;background:transparent;
+}
+.dog-ear::before{
+  content:'';position:absolute;top:0;right:0;width:0;height:0;
+  border-style:solid;border-width:0 48px 48px 0;
+  border-color:transparent var(--pad-gold) transparent transparent;
+  filter:drop-shadow(-2px 2px 3px rgba(0,0,0,.12));
+  transition:transform .18s cubic-bezier(.22,1,.36,1), filter .18s;
+  transform-origin:100% 0;
+}
+.dog-ear::after{
+  content:'';position:absolute;top:10px;right:10px;width:10px;height:10px;
+  border-top:2px solid rgba(26,26,26,.35);border-right:2px solid rgba(26,26,26,.35);
+  transform:rotate(45deg);opacity:.55;
+}
+.dog-ear:hover::before{transform:translateY(-3px);filter:drop-shadow(-3px 4px 5px rgba(0,0,0,.18))}
+.dog-ear:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.dog-ear:disabled,.dog-ear[aria-disabled="true"]{opacity:.35;cursor:not-allowed;pointer-events:none}
+.dog-ear:disabled:hover::before,.dog-ear[aria-disabled="true"]:hover::before{transform:none}
+.pad-tabs{
+  position:absolute;right:-2px;top:28%;bottom:28%;z-index:6;
+  display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;
+}
+.pad-tab{
+  pointer-events:auto;
+  writing-mode:vertical-rl;text-orientation:mixed;
+  transform:rotate(180deg);
+  min-height:72px;min-width:36px;padding:10px 6px;
+  border:1px solid var(--divider-strong);border-right:0;
+  border-radius:8px 0 0 8px;
+  background:var(--card);color:var(--ink);
+  font:700 11px/1 var(--display);letter-spacing:1.4px;text-transform:uppercase;
+  box-shadow:-4px 2px 10px -6px rgba(26,26,26,.35);
+  transition:transform .18s cubic-bezier(.22,1,.36,1), border-color .18s, color .18s, opacity .18s;
+}
+.pad-tab:hover:not(:disabled){transform:rotate(180deg) translateX(-2px);border-color:var(--pad-gold);color:var(--pad-gold)}
+.pad-tab:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.pad-tab:disabled,.pad-tab[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.pad-tab:disabled:hover,.pad-tab[aria-disabled="true"]:hover{transform:rotate(180deg)}
+.pad-nav{
+  display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+  margin-top:12px;padding:2px 4px 0;
+}
+.pad-nav .btn-page{display:none}
+.page-dots{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center}
+.page-dot{
+  width:12px;height:12px;border-radius:999px;border:1.5px solid var(--crimson);
+  background:transparent;padding:0;cursor:pointer;
+  transition:transform .18s cubic-bezier(.22,1,.36,1), background .18s, border-color .18s;
+}
+.page-dot.is-active{background:var(--pad-gold);border-color:var(--pad-gold);transform:scale(1.15)}
+.page-dot:hover:not(:disabled){transform:scale(1.1)}
+.page-dot:disabled{opacity:.4;cursor:not-allowed}
+.page-dot:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.page-progress{
+  position:relative;width:min(180px,42vw);height:4px;border-radius:999px;
+  background:rgba(200,16,46,.22);overflow:hidden;
+}
+.page-progress-mark{
+  position:absolute;top:50%;width:10px;height:10px;border-radius:50%;
+  background:var(--pad-gold);border:1px solid var(--gold-deep);
+  transform:translate(-50%,-50%);transition:left .2s cubic-bezier(.22,1,.36,1);
+}
+.pad-status{
+  margin-top:8px;text-align:center;
+  font:600 11px/1.2 var(--body);letter-spacing:1.4px;text-transform:uppercase;color:var(--sub);
+}
+.pad-status b{color:var(--ink);font-weight:600}
+.btn-page{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 16px;border-radius:var(--r-s);
+  border:1px solid var(--divider-strong);background:var(--card);color:var(--ink);
+  font:600 12.5px/1 var(--body);letter-spacing:.3px;
+  box-shadow:0 1px 0 rgba(26,26,26,.04);transition:transform .18s cubic-bezier(.22,1,.36,1), background .18s, border-color .18s;
+}
+.btn-page:hover:not(:disabled){transform:translateY(-1px);border-color:var(--gold-deep)}
+.btn-page:disabled{opacity:.45;cursor:not-allowed}
+.btn-page:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.btn-page--flip{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn-page--flip:hover:not(:disabled){background:var(--crimson);border-color:var(--crimson);color:#fff}
+.sheet-ghost{
+  font:500 12.5px/1.45 var(--body);color:var(--muted);font-style:italic;
+  padding:10px 4px 14px;border-bottom:1px dashed var(--divider);
+  margin-bottom:6px;
+}
+.page-full-cta{
+  display:block;width:100%;margin:4px 0 12px;padding:12px 10px;
+  border:0;background:transparent;color:var(--crimson);
+  font:600 13px/1.35 var(--body);text-align:left;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px;
+}
+.page-full-cta:hover{color:var(--crimson-deep)}
+.page-full-cta:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px;border-radius:4px}
+.l-row.row-new{animation:rowIn .18s cubic-bezier(.22,1,.36,1) both}
+.l-row .l-type{transition:transform .15s cubic-bezier(.22,1.4,.36,1)}
+.l-row.row-new .l-type{animation:sealPop .15s cubic-bezier(.22,1.4,.36,1) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes sealPop{from{transform:scale(1.02)}to{transform:scale(1)}}
+@media (max-width:560px){
+  .pad-tabs{display:none}
+  .pad-nav .btn-page{display:inline-flex}
+  .pad-board{padding:12px 12px 14px 18px}
+  .sheet{padding:16px 14px 12px 16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .l-row.row-new,.l-row.row-new .l-type{animation:none !important}
+  .pad-flat-root .pad-leaf{transition:none !important}
+  .page-dot,.pad-tab,.dog-ear::before{transition:none !important}
+  .live-overlay,.live-overlay.is-hidden,.live-overlay.is-dimmed,.live-overlay.is-landing{transition:none !important;transform:none !important;opacity:1 !important}
+  .pad-stack i,.pad-board,.pad-spine{transition:none !important}
+  .notepad.is-flipping .pad-stack i:nth-child(1),
+  .notepad.is-flipping .pad-stack i:nth-child(2),
+  .notepad.is-flipping .pad-stack i:nth-child(3){transform:none}
+  .pflip{transform:none !important}
+  .pflip__sheen,.pflip__crease,.pflip-shadow{animation:none !important;opacity:0 !important}
+}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.sheet-head h3{font:700 22px/1 var(--display);letter-spacing:1.2px;margin-top:8px}
+.counter{display:inline-flex;align-items:center;gap:7px;background:var(--raised);border:1px solid var(--divider);
+  border-radius:var(--r-xs);padding:7px 11px;font:600 11px/1 var(--body);letter-spacing:1.8px;color:var(--sub)}
+.counter svg{width:13px;height:13px;color:var(--gold-deep)}
+.field{margin-bottom:12px}
+.field label{display:block;font:600 10px/1 var(--body);letter-spacing:2.2px;color:var(--sub);text-transform:uppercase;margin-bottom:7px}
+.field input{width:100%;background:var(--sunken);border:1px solid var(--divider);border-radius:var(--r-s);
+  padding:12px 14px;font:400 15px/1.3 var(--body);color:var(--ink);transition:border-color .2s, box-shadow .2s}
+.field input::placeholder{color:var(--muted)}
+.field input:focus{outline:none;border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(232,169,42,.18)}
+.cost-wrap{display:flex;align-items:center;background:var(--sunken);border:1px solid var(--divider);border-radius:var(--r-s);transition:border-color .2s, box-shadow .2s}
+.cost-wrap:focus-within{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(232,169,42,.18)}
+.cost-wrap .cur-sym{font:600 15px var(--money);color:var(--sub);padding:0 4px 0 14px}
+.cost-wrap input{flex:1;background:transparent;border:0;padding:12px 14px 12px 2px;font:600 15px var(--money);color:var(--ink)}
+.cost-wrap input:focus{outline:none;box-shadow:none}
+.type-row{display:flex;gap:10px;margin:4px 0 6px}
+.type-chip{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 10px;
+  background:var(--raised);border:1px solid var(--divider);border-radius:var(--r-xs);
+  font:600 12px/1 var(--body);letter-spacing:1.8px;color:var(--sub);transition:all .18s var(--ease-out)}
+.type-chip svg{width:14px;height:14px;opacity:.55;transition:opacity .18s}
+.type-chip:hover{transform:translateY(-1px);border-color:var(--divider-strong)}
+.type-chip[aria-pressed="true"].chip-need{background:var(--green);border-color:var(--green-deep);color:#fff}
+.type-chip[aria-pressed="true"].chip-want{background:var(--crimson);border-color:var(--crimson-deep);color:#fff}
+.type-chip[aria-pressed="true"] svg{opacity:1}
+.seal-hint{font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:14px}
+.ledger-head,.l-row{display:grid;grid-template-columns:46px minmax(0,1fr) 88px 48px 30px;gap:8px;align-items:center}
+.ledger-head{border-top:2px solid var(--divider-strong);border-bottom:1px solid var(--divider);padding:8px 0}
+.ledger-head span{font:600 9.5px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.ledger-head .r,.l-cost{text-align:right}
+.ledger-rows{max-height:236px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--divider-strong) transparent}
+.ledger-rows::-webkit-scrollbar{width:7px}
+.ledger-rows::-webkit-scrollbar-thumb{background:var(--divider-strong);border-radius:4px}
+.l-row{position:relative;padding:9px 0;border-bottom:1px solid var(--divider);transition:background .2s}
+.l-row:hover{background:var(--sunken)}
+.l-time{font:600 12px var(--money);color:var(--muted)}
+.l-item{font:500 13.5px/1.3 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l-cost{font-size:13.5px}
+.l-type{font:700 9px/1 var(--body);letter-spacing:1.2px;text-align:center;padding:4px 0;border-radius:var(--r-xs)}
+.t-n{color:var(--green);background:rgba(11,107,58,.10)}
+.t-w{color:var(--crimson);background:rgba(200,16,46,.10)}
+.del{width:28px;height:28px;display:grid;place-items:center;border:0;background:transparent;color:var(--muted);border-radius:var(--r-xs);opacity:0;transition:all .18s}
+.l-row:hover .del,.del:focus-visible{opacity:1}
+.del:hover{color:var(--crimson);background:rgba(200,16,46,.08)}
+.del svg{width:15px;height:15px}
+@media (hover:none){.del{opacity:.65}}
+.row-new{animation:sealFlash 1.5s ease-out}
+.row-new::after{content:'';position:absolute;left:0;right:0;top:-1px;height:1px;background:var(--gold);transform-origin:left;animation:hairline .5s ease-out both}
+.row-new .stamp{position:absolute;right:104px;top:50%;transform:translateY(-50%) rotate(-7deg);
+  font:700 9px/1 var(--display);letter-spacing:2px;color:var(--gold-deep);border:1px solid var(--gold-deep);
+  border-radius:3px;padding:3px 6px;background:rgba(232,169,42,.12);animation:stampFade 1.7s ease-out both;pointer-events:none}
+@keyframes sealFlash{0%{background:rgba(232,169,42,.26)}100%{background:transparent}}
+@keyframes hairline{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes stampFade{0%{opacity:0;transform:translateY(-50%) rotate(-7deg) scale(1.35)}18%{opacity:1;transform:translateY(-50%) rotate(-7deg) scale(1)}75%{opacity:1}100%{opacity:0}}
+.ledger-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 10px;color:var(--muted)}
+.ledger-empty svg{width:26px;height:26px}
+.ledger-empty p{font-size:12.5px;letter-spacing:.3px}
+.sheet-full{border:1px solid var(--gold);background:rgba(232,169,42,.10);border-radius:var(--r-m);padding:22px;text-align:center}
+.sheet-full h4{font:700 18px var(--display);letter-spacing:1px}
+.sheet-full p{font-size:12.5px;color:var(--sub);margin:6px 0 16px}
+
+/* ============ TICKER ============ */
+.ticker{transform:rotate(-1.1deg);margin:6px -24px 0;background:var(--card);border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);box-shadow:0 14px 28px -24px rgba(26,26,26,.35);overflow:hidden;position:relative;z-index:1}
+.ticker-track{display:flex;width:max-content;padding:13px 0;animation:tick 48s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+@keyframes tick{to{transform:translateX(-50%)}}
+.tk{display:flex;align-items:center;gap:10px;padding:0 20px;font:600 11.5px/1 var(--body);letter-spacing:1.8px;text-transform:uppercase;color:var(--sub);white-space:nowrap}
+.tk .money{color:var(--ink);font-size:12.5px}
+.tk-n{font-style:normal;color:var(--green)}
+.tk-w{font-style:normal;color:var(--crimson)}
+.sep{color:var(--gold-deep);font-size:8px;display:flex;align-items:center}
+
+/* ============ SECTIONS ============ */
+section{padding:clamp(64px,8vw,104px) 0}
+.sec-head{display:grid;grid-template-columns:1fr auto;gap:20px 48px;align-items:end;margin-bottom:clamp(32px,4vw,52px)}
+.sec-head p{max-width:38ch;font-size:14.5px;color:var(--sub);text-align:right}
+@media (max-width:760px){.sec-head{grid-template-columns:1fr}.sec-head p{text-align:left}}
+.title{font:700 clamp(26px,3.6vw,36px)/1.15 var(--display);letter-spacing:1px;margin-top:14px;max-width:22ch}
+
+/* ---- Binary ---- */
+.diptych{display:grid;grid-template-columns:1fr 76px 1fr;align-items:stretch}
+@media (max-width:880px){.diptych{grid-template-columns:1fr}}
+.panel{position:relative;background:var(--card);border:1px solid var(--divider);border-radius:var(--r-m);padding:32px 28px 28px;overflow:hidden;transition:transform .28s var(--ease-out), box-shadow .28s var(--ease-out)}
+.panel:hover{transform:translateY(-4px);box-shadow:var(--shadow-card)}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:5px}
+.panel--need::before{background:var(--green)}
+.panel--want::before{background:var(--crimson)}
+.panel h3{display:flex;align-items:center;gap:12px;font:700 22px/1 var(--display);letter-spacing:1.4px;margin-bottom:12px}
+.panel--need h3{color:var(--green-deep)}
+.panel--want h3{color:var(--crimson-deep)}
+.panel h3 svg{width:22px;height:22px}
+.panel .def{font-size:14.5px;color:var(--sub);line-height:1.7}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.ex-chip{display:inline-flex;align-items:center;gap:0;background:var(--raised);border:1px solid var(--divider-strong);border-radius:var(--r-xs);padding:8px 13px;font:500 13px/1 var(--body);color:var(--ink);transition:all .18s var(--ease-out)}
+.ex-chip svg{width:0;height:13px;opacity:0;transition:all .22s ease}
+.ex-chip:hover{transform:translateY(-2px)}
+.panel--need .ex-chip:hover{border-color:var(--green)}
+.panel--want .ex-chip:hover{border-color:var(--crimson)}
+.ex-chip.sealed{background:#fff}
+.panel--need .ex-chip.sealed{border-color:var(--green);color:var(--green-deep)}
+.panel--want .ex-chip.sealed{border-color:var(--crimson);color:var(--crimson-deep)}
+.ex-chip.sealed svg{width:13px;opacity:1;margin-right:6px}
+.vs-col{display:grid;place-items:center}
+.vs-seal{width:58px;height:58px;border-radius:50%;background:var(--card);border:1px solid var(--gold);
+  box-shadow:0 0 0 5px var(--surface),0 0 0 6px var(--gold-soft),0 10px 22px -12px rgba(26,26,26,.35);
+  display:grid;place-items:center;font:700 15px var(--display);letter-spacing:1px;color:var(--gold-deep);z-index:2}
+@media (max-width:880px){.vs-col{padding:0}.vs-seal{margin:-8px auto}}
+.diptych-note{margin-top:22px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.diptych-note svg{width:14px;height:14px;color:var(--gold-deep)}
+
+/* ---- How it works ---- */
+.rule-row{display:grid;grid-template-columns:110px 64px 1fr;gap:26px;padding:36px 0;border-top:1px solid var(--divider);align-items:start;transition:background .25s}
+.rule-row:last-child{border-bottom:1px solid var(--divider)}
+.rule-num{font:700 46px/1 var(--display);color:var(--divider-strong);transition:color .3s}
+.rule-row:hover .rule-num{color:var(--gold-deep)}
+.rule-ic{width:52px;height:52px;border-radius:50%;background:var(--sunken);border:1px solid var(--divider);display:grid;place-items:center;transition:transform .28s var(--ease-out)}
+.rule-row:hover .rule-ic{transform:scale(1.06)}
+.rule-ic svg{width:22px;height:22px}
+.rule-row h3{font:700 22px/1.2 var(--display);letter-spacing:1px}
+.rule-row p{margin-top:9px;font-size:15px;color:var(--sub);max-width:58ch}
+.rule-steps{counter-reset:rs;list-style:none;margin-top:14px;display:grid;gap:9px}
+.rule-steps li{counter-increment:rs;position:relative;padding-left:28px;font-size:14.5px;color:var(--sub);line-height:1.65;max-width:60ch}
+.rule-steps li::before{content:counter(rs);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;border:1px solid var(--crimson);color:var(--crimson);font:700 10px/16px var(--display);text-align:center;background:var(--card)}
+.rule-steps li b{color:var(--ink);font-weight:600}
+@media (max-width:700px){.rule-row{grid-template-columns:1fr;gap:14px}.rule-num{font-size:34px}.rule-row>div:first-child{display:flex;align-items:center;gap:16px}}
+
+/* ---- 35-day window ---- */
+.window-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,5vw,64px);align-items:center}
+@media (max-width:880px){.window-grid{grid-template-columns:1fr}}
+.window-copy p{font-size:15.5px;color:var(--sub);line-height:1.75;margin-top:18px;max-width:52ch}
+.window-copy p b{color:var(--ink)}
+.mini-stats{display:flex;flex-wrap:wrap;gap:14px 34px;margin-top:30px}
+.mini-stat .n{font:700 30px/1 var(--display);color:var(--ink)}
+.mini-stat .n i{font-style:normal;color:var(--gold-deep);font-size:22px}
+.mini-stat .l{font:600 10.5px/1.5 var(--body);letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.dial{position:relative;width:min(340px,84vw);aspect-ratio:1;margin:0 auto}
+.dial svg{width:100%;height:100%}
+.dial-hand{position:absolute;inset:0;animation:spin 12s linear infinite}
+.dial-hand::before{content:'';position:absolute;left:calc(50% - 1px);top:5%;width:2px;height:45%;border-radius:2px;background:linear-gradient(to bottom,rgba(232,169,42,0),var(--gold-deep))}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dial-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.dial-center .n{font:700 52px/1 var(--display);letter-spacing:1px}
+.dial-center .l{font:600 10.5px/1 var(--body);letter-spacing:2.6px;color:var(--gold-deep);margin-top:8px}
+
+/* ---- Screens: phone frames ---- */
+.bento{display:grid;grid-template-columns:1.12fr .88fr;gap:28px 22px;align-items:start}
+@media (max-width:880px){.bento{grid-template-columns:1fr}}
+.phone-slot{display:flex;flex-direction:column;gap:14px}
+.phone-slot--summary{grid-row:span 2}
+.phone{
+  background:#1A1A1A;border-radius:36px;padding:12px;
+  box-shadow:var(--shadow-phone);
+  animation:phoneFloat 6.2s ease-in-out infinite;
+  transition:transform .3s var(--ease-out), box-shadow .3s var(--ease-out);
+}
+.phone:hover{animation-play-state:paused;transform:translateY(-6px);box-shadow:0 34px 64px -30px rgba(26,26,26,.48)}
+.phone-slot--summary .phone{animation-delay:.4s}
+.phone-slot:nth-child(3) .phone{animation-delay:.8s}
+@keyframes phoneFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+.phone-bezel{
+  background:var(--card);border-radius:28px;overflow:hidden;
+  border:1px solid var(--divider);position:relative;
+}
+.phone-status{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px 4px;font:600 10px/1 var(--money);color:var(--ink);letter-spacing:.3px;
+}
+.phone-status .pill{
+  width:72px;height:18px;border-radius:999px;background:var(--ink);margin:0 auto;
+  position:absolute;left:50%;top:8px;transform:translateX(-50%);
+}
+.phone-body{padding:8px 14px 18px}
+.phone-cap{
+  font-size:13px;color:var(--sub);line-height:1.55;max-width:36ch;
+  padding-left:4px;
+}
+.phone-cap b{color:var(--ink);font:700 13px/1.4 var(--display);letter-spacing:.8px;display:block;margin-bottom:4px}
+
+.app-tag{display:inline-block;background:var(--raised);border:1px solid var(--divider);border-radius:var(--r-xs);padding:5px 10px;font:600 9.5px/1 var(--body);letter-spacing:2px;color:var(--sub);text-transform:uppercase;margin-bottom:12px}
+.app-inner h3{font:700 18px/1 var(--display);letter-spacing:1.2px}
+.app-cap{font-size:11.5px;color:var(--muted);margin-top:5px}
+.rotor{display:flex;background:var(--raised);border:1px solid var(--divider);border-radius:var(--r-l);padding:4px;margin:16px 0 6px}
+.rotor button{flex:1;border:0;background:transparent;border-radius:var(--r-m);padding:9px 6px;font:600 12px/1 var(--body);letter-spacing:.6px;color:var(--sub);transition:all .2s}
+.rotor button[aria-pressed="true"]{background:linear-gradient(180deg,var(--crimson),var(--crimson-deep));color:#fff;box-shadow:0 6px 14px -8px rgba(200,16,46,.7)}
+.period-line{display:flex;justify-content:space-between;align-items:baseline;font:600 11px/1 var(--body);letter-spacing:2px;text-transform:uppercase;margin-top:10px}
+.period-line .pl{color:var(--crimson)}
+.period-line .rl{color:var(--muted);letter-spacing:.6px;text-transform:none;font-weight:500;font-size:11.5px}
+.donut{position:relative;width:186px;margin:18px auto 8px}
+.donut svg{width:100%;height:100%}
+.donut circle{fill:none;stroke-width:22;transition:stroke-dasharray .9s var(--ease-soft), stroke-dashoffset .9s var(--ease-soft)}
+.donut-center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.donut-center .e{font:600 9px/1 var(--body);letter-spacing:2.4px;color:var(--muted)}
+.donut-center .money{font-size:19px;margin-top:6px}
+.legend{display:flex;justify-content:center;gap:18px;font-size:12.5px;color:var(--sub);margin-bottom:16px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.legend .dn{background:var(--green)}
+.legend .dw{background:var(--crimson)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--sunken);border:1px solid var(--divider);border-radius:var(--r-s);padding:12px 11px}
+.stat .e{font:600 9px/1 var(--body);letter-spacing:1.8px;color:var(--muted);text-transform:uppercase}
+.stat .v{font-size:14.5px;margin-top:7px}
+.stat .s{font-size:10.5px;color:var(--muted);margin-top:3px}
+.v-need{color:var(--green-deep)}
+.v-want{color:var(--crimson-deep)}
+.v-gold{color:var(--gold-deep)}
+.share{height:6px;border-radius:3px;background:var(--raised);margin-top:8px;overflow:hidden}
+.share i{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .9s var(--ease-soft)}
+.phone-body .btn{width:100%;margin-top:16px}
+/* daily budget meter — Summary Day view (mirrors the app) */
+.budget-meter{margin:14px 0 4px;border:1px solid var(--divider);border-radius:var(--r-m);background:var(--card);padding:12px 13px;transition:border-color .25s}
+.budget-meter[hidden]{display:none}
+.budget-meter .eyebrow{font-size:9px;letter-spacing:2.2px}
+.budget-meter .bm-line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:7px}
+.budget-meter .bm-line .money{font-size:15px;color:var(--ink)}
+.budget-meter .bm-line .bm-budget{font-size:11.5px;color:var(--muted)}
+.budget-meter .bm-track{height:6px;border-radius:3px;background:var(--raised);margin-top:9px;overflow:hidden}
+.budget-meter .bm-fill{display:block;height:100%;width:0;background:var(--green);border-radius:3px;transition:width .9s var(--ease-soft)}
+.budget-meter .bm-remain{font-size:11px;color:var(--sub);margin-top:7px;letter-spacing:.3px}
+.budget-meter.is-over{border-color:rgba(200,16,46,.45)}
+.budget-meter.is-over .bm-fill{background:var(--crimson)}
+.budget-meter.is-over .bm-line .money{color:var(--crimson)}
+.budget-meter.is-over .bm-remain{color:var(--crimson);font-weight:600}
+/* daily budget actions — Log preview (Change / Turn off) */
+.budget-actions{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin:2px 0 0}
+.budget-actions button{background:transparent;border:0;padding:6px 8px;color:var(--sub);font:600 11px/1 var(--body);cursor:pointer}
+.budget-actions button:hover{color:var(--ink)}
+.budget-actions button.ba-off{color:var(--crimson)}
+.budget-actions button.ba-off:hover{color:var(--crimson-deep)}
+/* Settings: text size sample + theme swatches */
+.font-sample{margin:4px 10px 10px;padding:10px 12px;border-radius:var(--r-s);background:var(--sunken);border:1px solid var(--divider);font:500 13px/1.35 var(--body);color:var(--ink);letter-spacing:.2px}
+.theme-swatches{display:inline-flex;gap:3px;align-items:center;margin-right:6px}
+.theme-swatches i{display:block;width:12px;height:12px;border-radius:3px;border:1px solid var(--divider)}
+.theme-swatches .ts-bg{background:#FAFAF7}
+.theme-swatches .ts-need{background:var(--green);border-color:transparent}
+.theme-swatches .ts-want{background:var(--crimson);border-color:transparent}
+.theme-swatches.ts-dark .ts-bg{background:#1C1E1A;border-color:#33362F}
+.theme-swatches.ts-dark .ts-need{background:#3E9D6E}
+.theme-swatches.ts-dark .ts-want{background:#E25C6F}
+/* history compact inside phone */
+.day-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:14px 0 6px;border-top:2px solid var(--divider-strong);margin-top:12px}
+.day-head:first-of-type{margin-top:16px}
+.day-head b{font:600 10.5px/1.4 var(--body);letter-spacing:1.6px}
+.day-head .meta{font-size:10.5px;color:var(--muted)}
+.day-totals{font-size:11px;white-space:nowrap}
+.day-totals .money{font-size:11px}
+.ink-line{display:flex;align-items:center;gap:9px;border-top:1px solid var(--divider);margin-top:14px;padding-top:13px;font-size:12px;color:var(--muted)}
+.ink-line svg{width:15px;height:15px;color:var(--gold-deep)}
+.phone .l-row{grid-template-columns:40px minmax(0,1fr) 72px 44px}
+.phone .l-row .del{display:none}
+/* settings */
+.grp{font:600 9.5px/1 var(--body);letter-spacing:2.2px;color:var(--muted);text-transform:uppercase;margin:16px 0 6px}
+.grp:first-of-type{margin-top:14px}
+.cur-row{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:var(--r-s);cursor:pointer;transition:background .18s}
+.cur-row:hover{background:var(--sunken)}
+.cur-row input{position:absolute;opacity:0;width:1px;height:1px}
+.cur-row .rdot{width:16px;height:16px;border:1.5px solid var(--divider-strong);border-radius:50%;display:grid;place-items:center;transition:border-color .18s;flex:none}
+.cur-row .rdot::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--crimson);transform:scale(0);transition:transform .18s}
+.cur-row input:checked ~ .rdot{border-color:var(--crimson)}
+.cur-row input:checked ~ .rdot::after{transform:scale(1)}
+.cur-row input:focus-visible ~ .rdot{outline:2px solid var(--gold-deep);outline-offset:2px}
+.cur-row .csym{font:600 13.5px var(--money);width:30px;color:var(--ink)}
+.cur-row .ccd{font:600 13px/1 var(--body)}
+.cur-row .cnm{font-size:11px;color:var(--muted);margin-left:auto}
+.wipe-row{display:flex;align-items:flex-start;gap:11px;padding:10px;border-radius:var(--r-s);border:0;background:transparent;width:100%;text-align:left;transition:background .18s}
+.wipe-row:hover{background:rgba(200,16,46,.06)}
+.wipe-row svg{width:16px;height:16px;color:var(--crimson);margin-top:2px}
+.wipe-row b{display:block;font:600 13.5px/1.3 var(--body);color:var(--crimson)}
+.wipe-row span{font-size:11px;color:var(--muted)}
+.about-name{font:600 13px/1.4 var(--body)}
+.about-v{font-size:11.5px;color:var(--muted);margin-top:2px}
+.about-d{font-size:11.5px;color:var(--sub);margin-top:5px}
+
+/* ============ CTA ============ */
+/* ONLY the red panel (.cta-panel) rolls down/up. QR stays fixed on the right — no QR motion. */
+.cta-panel{position:relative;overflow:hidden;border-radius:var(--r-xl);color:#fff;
+  background:linear-gradient(165deg,var(--crimson) 0%,var(--crimson-deep) 80%);
+  padding:clamp(36px,6vw,72px);box-shadow:0 44px 88px -52px rgba(164,14,37,.6);
+  transform-origin:top center}
+/* Gold hairline rides the red rectangle as its height rolls */
+.cta-panel::before{content:'';position:absolute;inset:10px;border:1px solid rgba(244,201,104,.55);border-radius:var(--r-l);pointer-events:none;z-index:4}
+.cta-panel::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.045) 0 1px,transparent 1px 14px);pointer-events:none;z-index:0}
+.cta-panel.is-rolling::after{
+  background:
+    linear-gradient(to bottom,transparent 0%,transparent 70%,rgba(255,236,200,.08) 86%,rgba(0,0,0,.1) 100%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.045) 0 1px,transparent 1px 14px);
+}
+.cta-inner{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(28px,4vw,48px);align-items:start}
+/* QR fixed on the right when open — same slot every toggle */
+.cta-panel.is-qr-open .cta-inner{grid-template-columns:minmax(0,1.15fr) auto}
+.cta-copy{max-width:58ch;min-width:0}
+.cta-panel .eyebrow{color:var(--gold-soft)}
+.cta-panel h2{font:700 clamp(30px,4.5vw,46px)/1.1 var(--display);letter-spacing:1px;margin:16px 0 20px}
+.cta-panel .desc{font-size:15.5px;line-height:1.8;color:rgba(255,255,255,.9)}
+.cta-btns{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
+/* Sit under the seal; no entrance motion on the QR itself */
+.apk-qr-panel{margin:0;justify-self:end;align-self:start;margin-top:clamp(72px,9vw,108px);margin-right:clamp(8px,1.5vw,18px);z-index:3}
+.apk-qr-panel[hidden]{display:none}
+.apk-qr-card{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  width:min(100%,248px);
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.38);
+  border-radius:var(--r-m);padding:20px 18px 16px;
+  backdrop-filter:blur(6px);
+}
+.apk-qr-card canvas{display:block;width:200px;height:200px;border-radius:var(--r-s);background:#fff;padding:10px;box-shadow:0 14px 32px -18px rgba(0,0,0,.4)}
+.apk-qr-cap{font:500 12.5px/1.5 var(--body);color:rgba(255,255,255,.92);text-align:center;max-width:22ch;margin:0}
+.apk-qr-cap strong{font-weight:600}
+.apk-qr-url{font:500 10.5px/1.4 var(--body);color:rgba(255,255,255,.58);word-break:break-all;text-align:center;max-width:200px;margin:0}
+.cta-note{display:flex;align-items:center;gap:9px;margin-top:26px;font:600 11.5px/1.5 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.75)}
+.cta-note svg{width:15px;height:15px;color:var(--gold-soft);flex:none}
+.stamp-rot{position:absolute;top:22px;right:22px;width:118px;height:118px;opacity:.9;z-index:1;pointer-events:none;animation:stampIn 1s .35s var(--ease-out) both}
+.stamp-rot .stamp-spin{transform-origin:60px 60px;animation:stampSpin 28s linear infinite}
+.stamp-rot .stamp-pulse{transform-origin:60px 60px;animation:stampPulse 3.6s var(--ease-soft) infinite}
+@keyframes stampIn{from{opacity:0;transform:scale(1.28)}to{opacity:.9;transform:scale(1)}}
+@keyframes stampSpin{to{transform:rotate(360deg)}}
+@keyframes stampPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media (max-width:860px){
+  .cta-panel.is-qr-open .cta-inner{grid-template-columns:1fr}
+  .apk-qr-panel{justify-self:start;margin-top:12px;margin-right:0}
+  .stamp-rot{display:none}
+}
+@media (max-width:760px){.stamp-rot{display:none}}
+
+/* ============ DEVELOPED BY / STUDIO ============ */
+#studio{padding:28px 0 8px;position:relative;z-index:1}
+.studio-card{
+  display:block;text-decoration:none;color:inherit;
+  background:var(--card);border:1px solid var(--divider);border-radius:var(--r-m);
+  padding:28px 26px 26px;position:relative;overflow:hidden;
+  box-shadow:0 18px 40px -28px rgba(26,26,26,.28);
+  transition:transform .28s var(--ease-out), box-shadow .28s var(--ease-out), border-color .2s;
+}
+.studio-card::before{
+  content:'';position:absolute;left:26px;right:26px;top:0;height:2px;
+  background:linear-gradient(90deg,var(--gold),transparent 85%);
+}
+.studio-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 22px 44px -24px rgba(26,26,26,.38);
+  border-color:var(--divider-strong);
+}
+.studio-card:focus-visible{outline:2px solid #1f6bff;outline-offset:3px}
+.studio-eyebrow{
+  font:600 10px/1 var(--body);letter-spacing:2.2px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:16px;
+}
+.studio-row{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.studio-brand{display:flex;align-items:center;gap:14px;min-width:0}
+.studio-mark{
+  width:44px;height:44px;border-radius:12px;flex:none;
+  background:#05060a;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(31,107,255,.35);
+}
+.studio-mark svg{width:20px;height:20px;display:block}
+.studio-name{font:700 18px/1.15 var(--body);color:var(--ink);letter-spacing:.01em}
+.studio-sub{font:400 13px/1.45 var(--body);color:var(--sub);margin-top:4px;display:block}
+.studio-body{margin-top:16px;padding-top:14px;border-top:1px solid var(--divider);
+  font:400 13.5px/1.65 var(--body);color:var(--sub);max-width:62ch}
+.studio-cta{
+  font:600 12px/1 var(--body);letter-spacing:1.2px;text-transform:uppercase;
+  color:#1f6bff;white-space:nowrap;
+}
+.studio-card:hover .studio-cta{text-decoration:underline;text-underline-offset:3px}
+.foot-bottom-left{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.foot-credit{font-size:12px;color:var(--muted);line-height:1.55}
+.foot-credit a{
+  color:var(--sub);text-decoration:none;border-bottom:1px solid transparent;
+  transition:color .2s, border-color .2s;
+}
+.foot-credit a:hover{color:#1f6bff;border-bottom-color:#1f6bff}
+@media (max-width:760px){
+  .studio-card{padding:22px 18px 20px}
+  .studio-card::before{left:18px;right:18px}
+  .studio-name{font-size:16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .studio-card,.studio-card:hover{transition:none;transform:none}
+}
+
+/* ============ FOOTER ============ */
+footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative;z-index:1}
+.foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:32px}
+@media (max-width:760px){.foot-grid{grid-template-columns:1fr}}
+.foot-grid .wordmark{font-size:16px;margin-bottom:10px}
+.foot-tag{font-size:12.5px;color:var(--muted);max-width:34ch;line-height:1.7}
+.foot-h{font:600 10px/1 var(--body);letter-spacing:2.2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.foot-links{list-style:none}
+.foot-links li{margin-bottom:9px}
+.foot-links a{text-decoration:none;font-size:13.5px;color:var(--sub);transition:color .2s}
+.foot-links a:hover{color:var(--crimson)}
+.foot-meta{font-size:12.5px;color:var(--sub);line-height:2}
+.foot-meta .money{font-size:12px}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--divider);margin-top:34px;padding-top:22px;flex-wrap:wrap}
+.foot-bottom small{font-size:12px;color:var(--muted);max-width:62ch;line-height:1.55}
+.motto{font:700 13px var(--display);letter-spacing:1px;color:var(--gold-deep)}
+
+/* ============ MOTION / MISC ============ */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .75s var(--ease-out), transform .75s var(--ease-out)}
+.reveal.in{opacity:1;transform:none}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--ink);color:var(--surface);
+  font:500 13px/1.4 var(--body);padding:11px 18px;border-radius:var(--r-s);box-shadow:0 18px 36px -18px rgba(26,26,26,.5);
+  opacity:0;pointer-events:none;transition:opacity .3s, transform .3s;z-index:99;max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  .reveal,.hero-in{opacity:1;transform:none;animation:none}
+  .ticker-track,.sheet,.phone,.dial-hand,.stamp-rot .stamp-spin,.stamp-rot .stamp-pulse{animation:none !important}
+  .pad-leaf,.sheet,.pad-stack i{transition:none !important}
+  .cta-panel{transition:none !important}
+  .btn--primary::after{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- ================= HEADER ================= -->
+<header id="siteHeader">
+  <div class="nav">
+    <a class="wordmark" href="#top" aria-label="Needs vs Wants — home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+      Needs <b>vs</b> Wants
+    </a>
+    <span class="chip-soft" title="Official launch · Version 1.4.0"><i aria-hidden="true"></i>Official</span>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#rule">The Rule</a>
+      <a href="#how">How It Works</a>
+      <a href="#window">35 Days</a>
+      <a href="#screens">The Screens</a>
+    </nav>
+    <a class="btn btn--primary btn--sm" href="#get">Get the app</a>
+  </div>
+</header>
+
+<main id="main">
+<!-- ================= HERO + LIVE DEMO ================= -->
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow hero-in hero-in-1">A 35-Day Trainer · Offline-First</p>
+      <h1 class="display hero-in hero-in-2">Needs <span class="vs">vs</span><br>Wants</h1>
+      <p class="kicker hero-in hero-in-3">Expense Tracker</p>
+      <div class="rule-sweep hero-in" aria-hidden="true"></div>
+      <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong> — and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
+      <div class="hero-cta hero-in hero-in-5">
+        <button class="btn btn--primary" id="heroCta" type="button">Log your first expense</button>
+        <a class="btn btn--ghost" href="#how">See how it works
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6 12l6 6 6-6"/></svg>
+        </a>
+      </div>
+      <p class="proof hero-in hero-in-6">
+        <span>Official launch</span><span class="dot" aria-hidden="true">◆</span>
+        <span>Offline-first</span><span class="dot" aria-hidden="true">◆</span>
+        <span>No accounts</span><span class="dot" aria-hidden="true">◆</span>
+        <span>Optional daily budget</span><span class="dot" aria-hidden="true">◆</span>
+        <span class="cur">₱ $ € ¥ S$</span>
+      </p>
+    </div>
+
+                                            <div class="sheet-wrap hero-in hero-in-sheet">
+      <div class="notepad" id="notepad" role="group" aria-label="Expense log notepad">
+        <div class="pad-board">
+          <div class="pad-spine" aria-hidden="true"></div>
+          <div class="pad-stack" id="padStack" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </div>
+          <div class="pad-stage" id="padStage"></div>
+          <div class="pad-tabs">
+            <button type="button" class="pad-tab" id="pagePrevTab" aria-label="Previous page">‹ Prev</button>
+            <button type="button" class="pad-tab" id="pageNextTab" aria-label="Next page">Next ›</button>
+          </div>
+        </div>
+        <div class="pad-nav" role="navigation" aria-label="Notepad pages">
+          <button class="btn-page" id="pagePrev" type="button" aria-label="Previous page">‹ Prev</button>
+          <div class="page-dots" id="pageDots" role="tablist" aria-label="Jump to page"></div>
+          <button class="btn-page btn-page--flip" id="pageNext" type="button" aria-label="Next page">Next ›</button>
+        </div>
+        <p class="pad-status" id="padStatus" aria-live="polite">
+          Page <b id="pagePos">1</b> of <b id="pageTotal">2</b>
+        </p>
+        <span id="todayLabel" class="vh" aria-hidden="true"></span>
+        <p class="vh" role="status" aria-live="polite" id="live"></p>
+      </div>
+    </div>
+  </div><!-- .wrap.hero-grid -->
+</section>
+
+<!-- ================= RECEIPT TICKER ================= -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- ================= THE RULE ================= -->
+<section id="rule">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow eyebrow--gold">The Rule</p>
+        <h2 class="title">Every expense is a Need or a Want.</h2>
+      </div>
+      <p>One line, two columns. You decide which side of the page your money lands on — in the aisle, at the counter, in the moment.</p>
+    </div>
+    <div class="diptych reveal">
+      <article class="panel panel--need">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l7-8 7 8"/><path d="M6.5 11v8.5h11V11"/><path d="M10 19.5v-5h4v5"/></svg>
+          Need
+        </h3>
+        <p class="def">Something you must have to live and work. Honest, necessary, unavoidable — the spending you defend without hesitation.</p>
+        <div class="chips">
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Rice &amp; groceries</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Rent</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Transit fare</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Medicine</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Utilities</button>
+        </div>
+      </article>
+      <div class="vs-col"><span class="vs-seal" aria-hidden="true">VS</span></div>
+      <article class="panel panel--want">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.1 4.6 4.9.6-3.6 3.4 1 4.9-4.4-2.5-4.4 2.5 1-4.9-3.6-3.4 4.9-.6z"/></svg>
+          Want
+        </h3>
+        <p class="def">Something you would like to have. Pleasant, optional, often impulsive — the spending that deserves a second look.</p>
+        <div class="chips">
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Coffee runs</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Sneakers</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Streaming</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Dessert</button>
+          <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Gadgets</button>
+        </div>
+      </article>
+    </div>
+    <p class="diptych-note reveal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+      Tap an example to seal it — the same one-tap choice the app asks of you.
+    </p>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow eyebrow--gold">How It Works</p>
+        <h2 class="title">Four rules. No fine print.</h2>
+      </div>
+      <p>The whole method fits on one page of a diary. The daily budget is optional — set it when you want the guardrail.</p>
+    </div>
+
+    <div class="rule-row reveal">
+      <div><span class="rule-num">01</span></div>
+      <div class="rule-ic" style="color:var(--crimson)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3.5h2l2.3 11.7a1.6 1.6 0 0 0 1.6 1.3h7.6a1.6 1.6 0 0 0 1.6-1.3L20 7.5H6"/><circle cx="9.5" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/></svg>
+      </div>
+      <div>
+        <h3>Every expense is a Need or a Want</h3>
+        <p>Each purchase forces a single binary choice. You confront impulse spending in real time, not at month-end.</p>
+      </div>
+    </div>
+
+    <div class="rule-row reveal">
+      <div><span class="rule-num">02</span></div>
+      <div class="rule-ic" style="color:var(--green)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+      </div>
+      <div>
+        <h3>The diary keeps 35 days</h3>
+        <p>Entries older than 35 days are automatically removed. This is a trainer, not an archive.</p>
+      </div>
+    </div>
+
+    <div class="rule-row reveal">
+      <div><span class="rule-num">03</span></div>
+      <div class="rule-ic" style="color:var(--gold-deep)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+      </div>
+      <div>
+        <h3>Rows seal themselves</h3>
+        <p>The moment you enter item, cost, and type, the row seals — stamped with the current time and saved instantly.</p>
+      </div>
+    </div>
+
+    <div class="rule-row reveal">
+      <div><span class="rule-num">04</span></div>
+      <div class="rule-ic" style="color:var(--crimson)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M4 8.5h16M8 3.5v3M16 3.5v3"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+      </div>
+      <div>
+        <h3>An optional daily budget</h3>
+        <p>Set a limit on <b>Log</b> — the meter there (and Summary Day) shows today's spend, remaining budget, and when you're over. Logging would push you over? The diary asks before you seal — you still decide.</p>
+        <ol class="rule-steps">
+          <li><b>Set it on Log.</b> Open <b>Log</b>, enter your daily limit — say ₱1,500 — and <b>Save budget</b>.</li>
+          <li><b>Watch the meter.</b> On <b>Log</b> and Summary <b>Day</b>, see spent vs budget and what's left. Green keeps you on track; red tells you you're over.</li>
+          <li><b>Seal past the line?</b> The diary asks <b>“Log anyway?”</b> first. Cancel keeps your draft; Log seals it — your call, every time.</li>
+          <li><b>Change or turn off anytime.</b> On Log, tap <b>Change</b> to update the limit, or <b>Turn off</b> to drop the guardrail. The trainer stays.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 35-DAY WINDOW ================= -->
+<section id="window">
+  <div class="wrap window-grid">
+    <div class="window-copy reveal">
+      <p class="eyebrow eyebrow--gold">The Window</p>
+      <h2 class="title">The diary keeps 35 days.</h2>
+      <p>Entries older than 35 days are automatically removed. <b>This is a trainer, not an archive.</b></p>
+      <p>Once per launch, the diary quietly lets go of anything behind the window — no cleanup chore, no ever-growing ledger, no old guilt. The lessons stay recent; the page stays light.</p>
+      <div class="mini-stats">
+        <div class="mini-stat"><div class="n">35<i>&nbsp;/</i></div><div class="l">Days retained</div></div>
+        <div class="mini-stat"><div class="n">20<i>&nbsp;/</i></div><div class="l">Entries per sheet</div></div>
+        <div class="mini-stat"><div class="n">1<i>&nbsp;/</i></div><div class="l">Binary choice</div></div>
+        <div class="mini-stat"><div class="n">0<i>&nbsp;/</i></div><div class="l">Accounts required</div></div>
+        <div class="mini-stat"><div class="n"><i style="font-size:26px">₱</i></div><div class="l">Optional daily budget</div></div>
+      </div>
+    </div>
+    <div class="dial reveal" role="img" aria-label="A dial of 35 day-ticks with a slow gold sweep, representing the rolling 35-day window">
+      <svg viewBox="0 0 220 220" aria-hidden="true">
+        <circle cx="110" cy="110" r="104" fill="none" stroke="var(--divider)" stroke-width="1"/>
+        <g id="ticks"></g>
+      </svg>
+      <div class="dial-hand" aria-hidden="true"></div>
+      <div class="dial-center"><span class="n">35</span><span class="l">Days</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= THE SCREENS ================= -->
+<section id="screens">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow eyebrow--gold">Inside the Diary</p>
+        <h2 class="title">Four pages. One honest habit.</h2>
+      </div>
+      <p>A summary, a sheet, a history, and a settings page — set your optional daily budget on Log; enlarge text and switch light/dark themes in Settings. Nothing else to learn, nothing else to manage.</p>
+    </div>
+
+    <div class="bento">
+      <!-- SUMMARY -->
+      <div class="phone-slot phone-slot--summary reveal">
+        <div class="phone" aria-label="Summary screen preview">
+          <div class="phone-bezel">
+            <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
+            <div class="phone-body app-inner">
+              <span class="app-tag">Summary</span>
+              <p class="eyebrow">A 35-Day Trainer</p>
+              <h3 style="margin-top:8px">Needs vs Wants</h3>
+              <div class="period-line"><span class="pl" id="periodLabel">All 35 Days</span><span class="rl" id="rangeLabel">—</span></div>
+              <div class="rotor" role="group" aria-label="Summary period">
+                <button type="button" data-period="day" aria-pressed="false">Day</button>
+                <button type="button" data-period="week" aria-pressed="false">Week</button>
+                <button type="button" data-period="all" aria-pressed="true">All (35d)</button>
+              </div>
+              <div class="budget-meter" id="budgetMeter" hidden>
+                <p class="eyebrow">Daily Budget</p>
+                <div class="bm-line"><span class="money" id="bmSpent" data-cents="0">₱0.00</span><span class="money bm-budget" id="bmBudget" data-cents="0">of ₱0.00</span></div>
+                <div class="bm-track"><i class="bm-fill" id="bmFill"></i></div>
+                <p class="bm-remain" id="bmRemain">Remaining ₱0.00</p>
+              </div>
+              <div class="donut">
+                <svg viewBox="0 0 200 200" aria-hidden="true">
+                  <circle cx="100" cy="100" r="80" stroke="var(--raised)"/>
+                  <circle id="arcWant" cx="100" cy="100" r="80" pathLength="100" stroke="var(--crimson)" stroke-dasharray="0 100" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+                  <circle id="arcNeed" cx="100" cy="100" r="80" pathLength="100" stroke="var(--green)" stroke-dasharray="0 100" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+                </svg>
+                <div class="donut-center"><span class="e">Total</span><span class="money" id="donutTotal" data-cents="0">₱0.00</span></div>
+              </div>
+              <div class="legend">
+                <span><i class="dn" aria-hidden="true"></i>Need <b class="money" id="needPct">0%</b></span>
+                <span><i class="dw" aria-hidden="true"></i>Want <b class="money" id="wantPct">0%</b></span>
+              </div>
+              <div class="stat-grid">
+                <div class="stat"><span class="e">Needs</span><div class="v money v-need" id="statNeed" data-cents="0">₱0.00</div><div class="s" id="statNeedN">0 entries</div></div>
+                <div class="stat"><span class="e">Wants</span><div class="v money v-want" id="statWant" data-cents="0">₱0.00</div><div class="s" id="statWantN">0 entries</div></div>
+                <div class="stat"><span class="e">Need %</span><div class="v money v-gold" id="statPct">0%</div><div class="share"><i id="shareFill"></i></div></div>
+              </div>
+              <button class="btn btn--primary btn--sm" type="button" data-focus-demo>Log an expense</button>
+            </div>
+          </div>
+        </div>
+        <p class="phone-cap"><b>Summary</b> Your 35-day diary at a glance — Need / Want split, period rotor, totals — plus a live daily-budget meter on the Day view.</p>
+      </div>
+
+      <!-- LOG -->
+      <div class="phone-slot reveal">
+        <div class="phone" aria-label="Log screen preview">
+          <div class="phone-bezel">
+            <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
+            <div class="phone-body app-inner">
+              <span class="app-tag">Log</span>
+              <p class="eyebrow">Today · Aug 2, 2026</p>
+              <h3 style="margin-top:8px">LOG</h3>
+              <div class="budget-meter" style="margin-top:10px">
+                <p class="eyebrow">Daily Budget</p>
+                <div class="bm-line"><span class="money" data-cents="420000">₱4,200.00</span><span class="money bm-budget" data-cents="500000">of ₱5,000.00</span></div>
+                <div class="bm-track"><i class="bm-fill" style="width:84%"></i></div>
+                <p class="bm-remain">Remaining ₱800.00</p>
+              </div>
+              <div class="budget-actions">
+                <button type="button" id="logBudgetChange">Change</button>
+                <button type="button" id="logBudgetTurnOff" class="ba-off">Turn off</button>
+              </div>
+              <p class="grp" style="margin-top:12px">Sheet</p>
+              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱125.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">12:40</span><span class="l-item">Lunch</span><b class="money l-cost" data-cents="180000">₱1,800.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱85.00</b><i class="l-type t-w">WANT</i></div>
+            </div>
+          </div>
+        </div>
+        <p class="phone-cap"><b>Log</b> Seal today's sheet — set, change, or turn off your daily budget here, with spent and remaining under the header when a limit is on.</p>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="phone-slot reveal">
+        <div class="phone" aria-label="History screen preview">
+          <div class="phone-bezel">
+            <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
+            <div class="phone-body app-inner">
+              <span class="app-tag">History</span>
+              <p class="eyebrow">History</p>
+              <h3 style="margin-top:8px">Ledger</h3>
+              <p class="app-cap" id="histRange">Jun 27 — Jul 31, 2026</p>
+
+              <div class="day-head">
+                <span><b>Thu, Jul 30</b> &nbsp;<span class="meta">3</span></span>
+                <span class="day-totals"><span class="money v-need" data-cents="36500">₱365.00</span> · <span class="money v-want" data-cents="8500">₱85.00</span></span>
+              </div>
+              <div class="l-row"><span class="l-time">07:55</span><span class="l-item">Bus fare</span><b class="money l-cost" data-cents="4500">₱45.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱85.00</b><i class="l-type t-w">WANT</i></div>
+              <div class="l-row"><span class="l-time">18:42</span><span class="l-item">Dinner</span><b class="money l-cost" data-cents="32000">₱320.00</b><i class="l-type t-n">NEED</i></div>
+
+              <div class="day-head">
+                <span><b>Wed, Jul 29</b> &nbsp;<span class="meta">2</span></span>
+                <span class="day-totals"><span class="money v-need" data-cents="12500">₱125.00</span> · <span class="money v-want" data-cents="18000">₱180.00</span></span>
+              </div>
+              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱125.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">10:03</span><span class="l-item">Coffee</span><b class="money l-cost" data-cents="18000">₱180.00</b><i class="l-type t-w">WANT</i></div>
+
+              <p class="ink-line">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17H7.5A2.5 2.5 0 0 0 5 21.5v-17z"/><path d="M19 17H7.5a2.5 2.5 0 0 0-2.5 2.5"/></svg>
+                The page waits for ink.
+              </p>
+            </div>
+          </div>
+        </div>
+        <p class="phone-cap"><b>History</b> 35-day ledger, grouped by day — with Need and Want totals.</p>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="phone-slot reveal">
+        <div class="phone" aria-label="Settings screen preview">
+          <div class="phone-bezel">
+            <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
+            <div class="phone-body app-inner">
+              <span class="app-tag">Settings</span>
+              <p class="grp">Currency</p>
+              <div role="radiogroup" aria-label="Currency">
+                <label class="cur-row"><input type="radio" name="currency" value="PHP" checked><span class="rdot"></span><span class="csym">₱</span><span class="ccd">PHP</span><span class="cnm">Peso</span></label>
+                <label class="cur-row"><input type="radio" name="currency" value="USD"><span class="rdot"></span><span class="csym">$</span><span class="ccd">USD</span><span class="cnm">Dollar</span></label>
+                <label class="cur-row"><input type="radio" name="currency" value="EUR"><span class="rdot"></span><span class="csym">€</span><span class="ccd">EUR</span><span class="cnm">Euro</span></label>
+              </div>
+              <p class="grp">Text size</p>
+              <div role="radiogroup" aria-label="Text size">
+                <label class="cur-row"><input type="radio" name="fontSize" value="default"><span class="rdot"></span><span class="cnm">Default</span></label>
+                <label class="cur-row"><input type="radio" name="fontSize" value="large" checked><span class="rdot"></span><span class="cnm">Large</span></label>
+                <label class="cur-row"><input type="radio" name="fontSize" value="xl"><span class="rdot"></span><span class="cnm">Extra large</span></label>
+              </div>
+              <p class="font-sample" id="fontSample">Sample: ₱1,250.00 · Need</p>
+              <p class="grp">Appearance</p>
+              <div role="radiogroup" aria-label="Appearance">
+                <label class="cur-row"><input type="radio" name="theme" value="light" checked><span class="rdot"></span><span class="theme-swatches" aria-hidden="true"><i class="ts-bg"></i><i class="ts-need"></i><i class="ts-want"></i></span><span class="cnm">Market light</span></label>
+                <label class="cur-row"><input type="radio" name="theme" value="dark"><span class="rdot"></span><span class="theme-swatches ts-dark" aria-hidden="true"><i class="ts-bg"></i><i class="ts-need"></i><i class="ts-want"></i></span><span class="cnm">Market dark</span></label>
+                <label class="cur-row"><input type="radio" name="theme" value="system"><span class="rdot"></span><span class="cnm">System</span></label>
+                <label class="cur-row"><input type="radio" name="theme" value="hc"><span class="rdot"></span><span class="cnm">High contrast</span></label>
+              </div>
+              <p class="grp">Data</p>
+              <button class="wipe-row" type="button" id="wipeBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5h15M9.5 6V4.5h5V6M7 6.5l.8 13h8.4l.8-13"/></svg>
+                <span><b>Wipe diary</b><span>Delete all entries &amp; reset</span></span>
+              </button>
+              <p class="grp">About</p>
+              <p class="about-name">Needs vs. Wants</p>
+              <p class="about-v">Version 1.4.0</p>
+              <p class="about-d">An offline-first trainer for honest spenders.</p>
+            </div>
+          </div>
+        </div>
+        <p class="phone-cap"><b>Settings</b> Currency, larger text for readability, light/dark themes — daily budget lives on Log.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SOFT LAUNCH CTA ================= -->
+<section id="get" style="padding-top:24px">
+  <div class="wrap">
+    <div class="cta-panel reveal">
+      <svg class="stamp-rot" viewBox="0 0 120 120" aria-hidden="true">
+        <defs><path id="stampPath" d="M60,60 m-45,0 a45,45 0 1,1 90,0 a45,45 0 1,1 -90,0"/></defs>
+        <g class="stamp-spin">
+          <circle cx="60" cy="60" r="57" fill="none" stroke="var(--gold-soft)" stroke-width="1.4"/>
+          <circle cx="60" cy="60" r="33" fill="none" stroke="var(--gold-soft)" stroke-width="1" stroke-dasharray="2 3"/>
+          <text fill="var(--gold-soft)" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" letter-spacing="2.6">
+            <textPath href="#stampPath">OFFICIAL · VERSION 1.4.0 · NEEDS VS WANTS ·</textPath>
+          </text>
+        </g>
+        <g class="stamp-pulse">
+          <text x="60" y="66" text-anchor="middle" fill="var(--gold-soft)" font-family="'Playfair Display SC', serif" font-size="15" font-weight="700">₱</text>
+        </g>
+      </svg>
+      <div class="cta-inner">
+        <div class="cta-copy">
+          <p class="eyebrow">Official Launch · <span id="launchDate">Version 1.4.0</span></p>
+          <h2>Start tracking today.</h2>
+          <p class="desc">Take control of your finances. Every expense counts — seal it as a Need or a Want, keep a 35-day window of honest habits, and let an optional daily budget keep today in check.</p>
+          <div class="cta-btns">
+            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-1.4.0.apk" download="needs-vs-wants-1.4.0.apk">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
+              Download Android APK</a>
+            <button class="btn btn--outline" id="apkQrToggle" type="button" aria-expanded="false" aria-controls="apkQrPanel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM17 17h3v3h-3zM14 17v3h3"/></svg>
+              Scan QR code</button>
+            <button class="btn btn--outline" id="iosSoon" type="button">
+              iOS coming soon</button>
+          </div>
+          <p class="cta-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+            No accounts · No analytics · No network — your diary never leaves your device.
+          </p>
+        </div>
+        <div class="apk-qr-panel" id="apkQrPanel" hidden>
+          <div class="apk-qr-card">
+            <canvas id="apkQrCanvas" width="200" height="200" role="img" aria-label="QR code linking to the Android APK download"></canvas>
+            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-1.4.0.apk</strong></p>
+            <p class="apk-qr-url" id="apkQrUrl"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DEVELOPED BY ================= -->
+<section id="studio" aria-label="Developed by ACEU AI Solutions">
+  <div class="wrap">
+    <a class="studio-card reveal"
+       href="https://aceu-ai-solutions-portfolio.netlify.app"
+       target="_blank" rel="noopener noreferrer">
+      <p class="studio-eyebrow">Developed by</p>
+      <div class="studio-row">
+        <div class="studio-brand">
+          <span class="studio-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1f6bff" fill-rule="evenodd" d="M12 2.5 2.5 21h19Zm0 7-3.7 8h7.4Z"/></svg>
+          </span>
+          <span>
+            <span class="studio-name">ACEU AI Solutions</span>
+            <span class="studio-sub">Founder-led AI studio · Intelligence, engineered.</span>
+          </span>
+        </div>
+        <span class="studio-cta">Visit studio →</span>
+      </div>
+      <p class="studio-body">Needs vs Wants ships as a studio product — offline-first, built to change how you spend.</p>
+    </a>
+  </div>
+</section>
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <span class="wordmark">Needs <b>vs</b> Wants</span>
+        <p class="foot-tag">Expense Tracker — a 35-day diary for honest spenders. Official launch · v1.4.0.</p>
+      </div>
+      <div>
+        <p class="foot-h">Explore</p>
+        <ul class="foot-links">
+          <li><a href="#rule">The Rule</a></li>
+          <li><a href="#how">How It Works</a></li>
+          <li><a href="#window">The 35-Day Window</a></li>
+          <li><a href="#get">Get the App</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="foot-h">Details</p>
+        <p class="foot-meta">
+          Version 1.4.0<br>
+          <span class="money">₱ $ € ¥ S$</span> · currency-aware<br>
+          <span id="footDate">Friday, July 31, 2026</span>
+        </p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <div class="foot-bottom-left">
+        <small>© 2026 Needs vs Wants. Offline-first. Android APK is a direct download — not yet on Google Play or the App Store.</small>
+        <small class="foot-credit">Developed by
+          <a href="https://aceu-ai-solutions-portfolio.netlify.app" target="_blank" rel="noopener noreferrer">ACEU AI Solutions</a>
+        </small>
+      </div>
+      <span class="motto">Every expense counts.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js" crossorigin="anonymous"></script>
+<script>
+(function(){
+"use strict";
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* ---------- Currency ---------- */
+const CUR = { PHP:{s:'₱',d:2}, USD:{s:'$',d:2}, EUR:{s:'€',d:2}, JPY:{s:'¥',d:0}, SGD:{s:'S$',d:2} };
+let cur = 'PHP';
+function fmt(cents){
+  const c = CUR[cur], v = cents/100;
+  const num = c.d === 0
+    ? Math.round(v).toLocaleString('en-US')
+    : v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  return c.s + num;
+}
+function applyCurrency(){
+  $$('[data-cents]').forEach(el => el.textContent = fmt(+el.dataset.cents));
+  $$('.cur-sym').forEach(el => el.textContent = CUR[cur].s);
+  renderTicker();
+  renderBudgetMeter(currentPeriod, currentDaySpent);
+}
+
+/* ---------- Ticker ---------- */
+const TICKS = [
+  {n:'Rice',c:9500,t:'NEED'},{n:'Coffee',c:18000,t:'WANT'},{n:'Rent',c:850000,t:'NEED'},
+  {n:'Sneakers',c:329900,t:'WANT'},{n:'Eggs',c:12000,t:'NEED'},{n:'Streaming',c:14900,t:'WANT'},
+  {n:'Medicine',c:26000,t:'NEED'},{n:'Dessert',c:9500,t:'WANT'},{n:'Bus fare',c:4500,t:'NEED'},
+  {n:'Concert',c:250000,t:'WANT'}
+];
+function renderTicker(){
+  const one = TICKS.map(t =>
+    `<span class="tk"><span>${t.n}</span><b class="money">${fmt(t.c)}</b><i class="${t.t==='NEED'?'tk-n':'tk-w'}">${t.t}</i></span><span class="sep">◆</span>`
+  ).join('');
+  $('#tickerTrack').innerHTML = one + one;
+}
+
+/* ---------- Demo sheet: PadController + FlatRenderer + FlipRenderer (CSS 3D two-face turn) ---------- */
+const MAX_ROWS = 20;
+const PAGE_CAP = 12;
+/* 700ms reads as a weighted paper turn — the edge lifts, sweeps past vertical, settles. */
+const FLIP_MS = 700;
+const FLIP_SAFETY_PAD = 250;
+const FLIP_FREEZE_DELAY = 180; /* ms into flip before dimming overlay (let lift phase show first) */
+const reducePaper = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const notepad = $('#notepad');
+let padStage = $('#padStage');
+const pageDots = $('#pageDots');
+const pagePrev = $('#pagePrev');
+const pageNext = $('#pageNext');
+const pagePrevTab = $('#pagePrevTab');
+const pageNextTab = $('#pageNextTab');
+const trashSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6.5h15M9.5 6V4.5h5V6M7 6.5l.8 13h8.4l.8-13"/></svg>';
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+/* PageIdxAdapter: portrait single-leaf ⇒ library pageIndex === sheet index (locked Step 4) */
+const adapter = {
+  toPageIdx(sheet){ return sheet; },
+  sheetFromPageIdx(pageIdx){ return pageIdx; }
+};
+
+let pages = [
+  [
+    {t:'12:05', n:'Bus fare',    c:4500,  y:'NEED'},
+    {t:'09:47', n:'Coffee',      c:18000, y:'WANT'},
+    {t:'08:12', n:'Rice & eggs', c:12500, y:'NEED'}
+  ],
+  []
+];
+let pageIndex = 0;
+let type = null;
+let flipping = false;
+let mode = 'flat'; /* 'flat' | 'flip' */
+let flipLeaves = [];
+let flipAnim = null;
+let flatRoot = null;
+let focusAfterFlip = false;
+let formDraft = { item:'', cost:'', type:null };
+let flipGen = 0;
+let flipSafetyTimer = null;
+let pendingFlipTarget = null;
+
+function rows(){ return pages[pageIndex] || []; }
+function setRows(next){ pages[pageIndex] = next; }
+
+function dateLabel(){
+  const el = $('#todayLabel');
+  return el ? el.textContent : '';
+}
+
+function announce(msg){
+  const l = $('#live'); if (!l) return;
+  l.textContent = '';
+  setTimeout(() => { l.textContent = msg; }, 40);
+}
+
+function renderSheetMarkup(sheetIdx, live){
+  const list = pages[sheetIdx] || [];
+  const full = list.length >= MAX_ROWS;
+  const empty = list.length === 0;
+  const pageNo = sheetIdx + 1;
+  const rowsHtml = list.map((r,i) =>
+    `<div class="l-row${live && i===0 && r._fresh ? ' row-new' : ''}" data-i="${i}">
+       <span class="l-time">${r.t}</span>
+       <span class="l-item">${esc(r.n)}</span>
+       <b class="money l-cost" data-cents="${r.c}">${fmt(r.c)}</b>
+       <i class="l-type ${r.y==='NEED'?'t-n':'t-w'}">${r.y}</i>
+       ${live ? `<button class="del" type="button" data-i="${i}" aria-label="Delete entry: ${esc(r.n)}">${trashSVG}</button>` : '<span></span>'}
+     </div>`).join('');
+  let body;
+  if (full){
+    body = live
+      ? `<button type="button" class="page-full-cta" data-action="next-page">Page full — turn to a fresh sheet →</button>`
+      : `<p class="page-full-cta" aria-hidden="true">Page full — turn to a fresh sheet →</p>`;
+  } else if (live){
+    body = `<div class="demo-form" data-live-form>
+      ${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+      <div class="field">
+        <label for="fItem">Item</label>
+        <input id="fItem" type="text" autocomplete="off" placeholder="What did you just buy?" maxlength="40" value="${esc(formDraft.item)}">
+      </div>
+      <div class="field">
+        <label for="fCost">Cost</label>
+        <div class="cost-wrap">
+          <span class="cur-sym" aria-hidden="true">${CUR[cur].s}</span>
+          <input id="fCost" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Cost" value="${esc(formDraft.cost)}">
+        </div>
+      </div>
+      <div class="type-row" role="group" aria-label="Classify this expense">
+        <button class="type-chip chip-need" type="button" data-type="NEED" aria-pressed="${formDraft.type==='NEED'?'true':'false'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>NEED</button>
+        <button class="type-chip chip-want" type="button" data-type="WANT" aria-pressed="${formDraft.type==='WANT'?'true':'false'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>WANT</button>
+      </div>
+      <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+    </div>`;
+  } else {
+    const snapItem = formDraft.item && sheetIdx === pageIndex ? esc(formDraft.item) : '';
+    const snapCost = formDraft.cost && sheetIdx === pageIndex ? esc(formDraft.cost) : '';
+    body = `${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+      <div class="demo-form-snap" inert>
+        <div class="field"><label>Item</label><input type="text" readonly tabindex="-1" value="${snapItem}" placeholder="What did you just buy?"></div>
+        <div class="field"><label>Cost</label><div class="cost-wrap"><span class="cur-sym">${CUR[cur].s}</span><input type="text" readonly tabindex="-1" value="${snapCost}" placeholder="0.00"></div></div>
+        <div class="type-row"><span class="type-chip chip-need" aria-hidden="true">NEED</span><span class="type-chip chip-want" aria-hidden="true">WANT</span></div>
+        <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+      </div>`;
+  }
+  const hideDog = (pages.length >= PAGE_CAP && sheetIdx >= pages.length - 1 && full);
+  const dogEar = live && !hideDog
+    ? `<button class="dog-ear" type="button" data-action="next-page" aria-label="Flip to next page" title="Next page"></button>`
+    : '';
+  return `<div class="sheet ${live ? 'is-live' : 'is-static'}" data-sheet="${sheetIdx}" ${live ? '' : 'inert'}>
+    <div class="sheet-head">
+      <div>
+        <p class="eyebrow">Today · <span class="today-label">${esc(dateLabel())}</span> · Page <span class="sheet-page-no">${pageNo}</span></p>
+        <h3>Log</h3>
+      </div>
+      <span class="counter" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
+        SHEET&nbsp;<b class="sheet-count">${list.length}</b>&nbsp;/&nbsp;20
+      </span>
+    </div>
+    ${body}
+    <div class="ledger-head" aria-hidden="true">
+      <span>Time</span><span>Item</span><span class="r">Cost</span><span style="text-align:center">Type</span><span></span>
+    </div>
+    <div class="ledger-rows">${rowsHtml}</div>
+    ${dogEar}
+  </div>`;
+}
+
+function captureDraft(){
+  const itemEl = $('#fItem');
+  const costEl = $('#fCost');
+  formDraft = {
+    item: itemEl ? itemEl.value : formDraft.item,
+    cost: costEl ? costEl.value : formDraft.cost,
+    type
+  };
+}
+
+function wireLiveForm(root){
+  const itemEl = root.querySelector('#fItem');
+  const costEl = root.querySelector('#fCost');
+  if (itemEl){
+    itemEl.addEventListener('input', () => {
+      let v = itemEl.value.replace(/[^A-Za-z0-9\s\-'\.,]/g,'');
+      if (v !== itemEl.value) itemEl.value = v;
+      formDraft.item = itemEl.value;
+      trySeal();
+    });
+  }
+  if (costEl){
+    costEl.addEventListener('input', () => {
+      let v = costEl.value.replace(/[^\d.]/g,'');
+      const p = v.split('.');
+      if (p.length > 2) v = p[0] + '.' + p.slice(1).join('');
+      if (p[1] && p[1].length > 2) v = p[0] + '.' + p[1].slice(0,2);
+      if (v !== costEl.value) costEl.value = v;
+      formDraft.cost = costEl.value;
+      trySeal();
+    });
+  }
+  root.querySelectorAll('.type-chip').forEach(ch => ch.addEventListener('click', () => {
+    type = ch.dataset.type;
+    formDraft.type = type;
+    root.querySelectorAll('.type-chip').forEach(c => c.setAttribute('aria-pressed', c === ch ? 'true' : 'false'));
+    trySeal();
+  }));
+  const ledger = root.querySelector('.ledger-rows');
+  if (ledger){
+    ledger.addEventListener('click', e => {
+      const b = e.target.closest('.del'); if (!b) return;
+      const list = rows().slice();
+      const r = list[+b.dataset.i];
+      list.splice(+b.dataset.i, 1);
+      setRows(list);
+      hydrateLiveSheet(pageIndex, false);
+      announce('Deleted: ' + r.n);
+    });
+  }
+  root.querySelectorAll('[data-action="next-page"]').forEach(btn => {
+    btn.addEventListener('click', () => go(1));
+  });
+}
+
+function updateChrome(){
+  const total = pages.length;
+  const pos = pageIndex + 1;
+  const pp = $('#pagePos'); const pt = $('#pageTotal');
+  if (pp) pp.textContent = String(pos);
+  if (pt) pt.textContent = String(total);
+  const nextDisabled = flipping || (pages.length >= PAGE_CAP && pageIndex >= pages.length - 1 && rows().length >= MAX_ROWS);
+  const prevDisabled = flipping || pageIndex <= 0;
+  [pagePrev, pagePrevTab].forEach(el => {
+    if (!el) return;
+    el.disabled = prevDisabled;
+    el.setAttribute('aria-disabled', prevDisabled ? 'true' : 'false');
+  });
+  [pageNext, pageNextTab].forEach(el => {
+    if (!el) return;
+    el.disabled = nextDisabled;
+    el.setAttribute('aria-disabled', nextDisabled ? 'true' : 'false');
+    el.title = nextDisabled ? 'Ledger full — 12 pages.' : 'Next page';
+  });
+  if (pageDots){
+    if (total > 8){
+      const pct = total <= 1 ? 0 : (pageIndex / (total - 1)) * 100;
+      pageDots.innerHTML = `<div class="page-progress" role="progressbar" aria-valuenow="${pos}" aria-valuemin="1" aria-valuemax="${total}" aria-label="Page progress"><span class="page-progress-mark" style="left:${pct}%"></span></div>`;
+    } else {
+      pageDots.innerHTML = pages.map((_, i) =>
+        `<button type="button" class="page-dot${i===pageIndex?' is-active':''}" data-page="${i}"
+          aria-label="Go to page ${i+1}" aria-current="${i===pageIndex?'page':'false'}"
+          ${flipping?'disabled':''}></button>`
+      ).join('');
+    }
+  }
+  const stack = $('#padStack');
+  if (stack){
+    const remaining = Math.max(0, pages.length - pageIndex - 1);
+    stack.querySelectorAll('i').forEach((el, i) => {
+      el.style.opacity = i < Math.min(3, remaining) ? '' : '0';
+    });
+  }
+}
+
+function pruneTrailingEmpty(){
+  while (pages.length > 1){
+    const last = pages.length - 1;
+    if (last === pageIndex) break;
+    if ((pages[last] || []).length === 0) pages.pop();
+    else break;
+  }
+}
+
+function liveOverlay(){ return $('#liveOverlay'); }
+
+function clearFlipSafety(){
+  if (flipSafetyTimer){ clearTimeout(flipSafetyTimer); flipSafetyTimer = null; }
+}
+
+/** Dim the live overlay so the form ghosts through the flip — bridges the turn
+ *  instead of vanishing and reappearing as a hard cut. */
+function freezeLiveSheet(){
+  captureDraft();
+  if (notepad) notepad.classList.add('is-flipping');
+  /* schedule the dim so the first ~180ms shows the full page lifting off */
+  setTimeout(() => {
+    const ov = liveOverlay();
+    if (ov && flipping){
+      ov.classList.add('is-dimmed');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  }, FLIP_FREEZE_DELAY);
+}
+
+/**
+ * @param {number} idx
+ * @param {{ land?: boolean }} [opts] land=true: soft paper-drop after flip (event settle)
+ */
+function hydrateLiveSheet(idx, opts){
+  const land = !!(opts && opts.land) && mode === 'flip' && !reducePaper;
+  pageIndex = idx;
+  if (mode === 'flat' && flatRoot){
+    if (flatRoot.children.length !== pages.length){
+      buildFlat(false);
+      return;
+    }
+    flatRoot.querySelectorAll('.pad-leaf').forEach((leaf, i) => {
+      leaf.classList.toggle('is-current', i === pageIndex);
+      leaf.classList.remove('is-leaving');
+      leaf.innerHTML = renderSheetMarkup(i, i === pageIndex);
+    });
+    const liveLeaf = flatRoot.querySelector('.pad-leaf.is-current');
+    if (liveLeaf) wireLiveForm(liveLeaf);
+  } else if (mode === 'flip'){
+    /* Library pages stay static; interactive form rides in overlay on settled page */
+    const ov = liveOverlay();
+    if (ov){
+      /* Clear freeze dim + initial hide, then land with paper-drop animation */
+      ov.classList.remove('is-hidden', 'is-dimmed');
+      ov.innerHTML = renderSheetMarkup(pageIndex, true);
+      wireLiveForm(ov);
+      if (land){
+        ov.classList.add('is-landing');
+        ov.setAttribute('aria-hidden', 'false');
+        if (notepad) notepad.classList.remove('is-flipping');
+        /* two rAFs: first paint at scale(1.012), then settle to scale(1) */
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (pageIndex !== idx) return;
+            ov.classList.remove('is-landing');
+          });
+        });
+      } else {
+        ov.classList.remove('is-landing');
+        ov.setAttribute('aria-hidden', 'false');
+        if (notepad) notepad.classList.remove('is-flipping');
+      }
+    } else if (notepad){
+      notepad.classList.remove('is-flipping');
+    }
+  }
+  pages.forEach(list => list.forEach(r => { delete r._fresh; }));
+  updateChrome();
+  const scope = mode === 'flip' ? liveOverlay() : padStage;
+  if (scope){
+    scope.querySelectorAll('[data-cents]').forEach(el => el.textContent = fmt(+el.dataset.cents));
+    scope.querySelectorAll('.cur-sym').forEach(el => el.textContent = CUR[cur].s);
+  }
+}
+
+/** Finish a programmatic flip: sync index, clear freeze dim, land overlay with paper-drop */
+function settleFlip(libTarget, gen){
+  if (gen !== flipGen || !flipping) return;
+  clearFlipSafety();
+  if (flipAnim){
+    try { flipAnim.cancel(); } catch(_){}
+    flipAnim = null;
+  }
+  flipping = false;
+  pendingFlipTarget = null;
+  pageIndex = adapter.sheetFromPageIdx(libTarget);
+  pruneTrailingEmpty();
+  /* quiet-refresh static snapshots under the new page so reverse flip shows correct ink */
+  try { syncStaticFlipPagesQuiet(); } catch(_){}
+  poseAllLeaves();
+  hydrateLiveSheet(pageIndex, { land: true });
+  announce('Page ' + (pageIndex + 1) + ' of ' + pages.length);
+  if (focusAfterFlip){
+    focusAfterFlip = false;
+    const fi = $('#fItem');
+    if (fi){
+      /* wait for land frame so focus outline doesn't flash mid-scale */
+      setTimeout(() => { if (fi.isConnected) fi.focus({preventScroll:true}); }, 60);
+    }
+  }
+}
+
+function trySeal(){
+  if (flipping) return;
+  const itemEl = $('#fItem');
+  const costEl = $('#fCost');
+  if (!itemEl || !costEl) return;
+  const list = rows();
+  if (list.length >= MAX_ROWS) return;
+  const name = itemEl.value.trim();
+  const cents = Math.round(parseFloat(costEl.value) * 100);
+  if (!name || !costEl.value || !(cents > 0) || !type) return;
+  const sealedType = type;
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const next = [{t, n:name, c:cents, y:sealedType, _fresh:true}, ...list];
+  setRows(next);
+  formDraft = { item:'', cost:'', type:null };
+  type = null;
+  hydrateLiveSheet(pageIndex);
+  announce('Sealed: ' + name + ', ' + fmt(cents) + ', ' + sealedType.toLowerCase());
+  const fi = $('#fItem');
+  if (fi) fi.focus();
+  if (next.length >= MAX_ROWS) announce('Page full — turn to a fresh sheet');
+}
+
+function ensureStage(){
+  let stage = $('#padStage');
+  const wrap = $('#padStageWrap');
+  if (!stage && wrap){
+    stage = document.createElement('div');
+    stage.id = 'padStage';
+    stage.className = 'pad-stage';
+    wrap.insertBefore(stage, wrap.firstChild);
+  }
+  if (!stage){
+    const board = notepad && notepad.querySelector('.pad-board');
+    const w = document.createElement('div');
+    w.id = 'padStageWrap';
+    w.className = 'pad-stage-wrap';
+    stage = document.createElement('div');
+    stage.id = 'padStage';
+    stage.className = 'pad-stage';
+    const ov = document.createElement('div');
+    ov.id = 'liveOverlay';
+    ov.className = 'live-overlay is-hidden';
+    ov.setAttribute('aria-hidden', 'true');
+    w.appendChild(stage);
+    w.appendChild(ov);
+    if (board) board.insertBefore(w, board.querySelector('.pad-tabs'));
+  } else if (!$('#liveOverlay')){
+    /* markup ships a bare #padStage (not wrapped) — lift it into a stage-wrap
+       so the live overlay + clipped 3D turn both work */
+    const board = notepad && notepad.querySelector('.pad-board');
+    const w = document.createElement('div');
+    w.id = 'padStageWrap';
+    w.className = 'pad-stage-wrap';
+    const ov = document.createElement('div');
+    ov.id = 'liveOverlay';
+    ov.className = 'live-overlay is-hidden';
+    ov.setAttribute('aria-hidden', 'true');
+    if (stage.parentNode && stage.parentNode !== w){
+      stage.parentNode.insertBefore(w, stage);
+    }
+    w.appendChild(stage);
+    w.appendChild(ov);
+    if (board && w.parentNode !== board) board.insertBefore(w, board.querySelector('.pad-tabs'));
+  }
+  padStage = stage;
+  return stage;
+}
+
+const PFLIP_FACE = `<span class="pflip__crease" aria-hidden="true"></span><span class="pflip__sheen" aria-hidden="true"></span>`;
+
+function buildFlipLeaves(){
+  const stage = ensureStage();
+  stage.innerHTML = '';
+  stage.className = 'pad-stage pflip-stage';
+  stage.style.setProperty('--flip', FLIP_MS + 'ms');
+  const shadow = document.createElement('div');
+  shadow.className = 'pflip-shadow';
+  shadow.setAttribute('aria-hidden', 'true');
+  stage.appendChild(shadow);
+  flipLeaves = pages.map((_, i) => {
+    const leaf = document.createElement('div');
+    leaf.className = 'pflip';
+    leaf.dataset.sheet = i;
+    const front = document.createElement('div');
+    front.className = 'pflip__face pflip__face--front';
+    front.innerHTML = PFLIP_FACE + renderSheetMarkup(i, false);
+    const back = document.createElement('div');
+    back.className = 'pflip__face pflip__face--back';
+    back.innerHTML = PFLIP_FACE;
+    leaf.appendChild(front);
+    leaf.appendChild(back);
+    stage.appendChild(leaf);
+    return leaf;
+  });
+  poseAllLeaves();
+  hydrateLiveSheet(pageIndex);
+  window.__pflipMode = 'flip';
+}
+
+function poseAllLeaves(){
+  if (!flipLeaves.length) return;
+  flipLeaves.forEach((leaf, i) => {
+    leaf.classList.remove('is-turn', 'is-turn-next', 'is-turn-prev');
+    const angle = i < pageIndex ? -180 : 0;
+    leaf.style.zIndex = 100 - i;
+    leaf.style.transform = `rotateY(${angle}deg)`;
+  });
+}
+
+function syncStaticFlipPagesQuiet(){
+  if (!flipLeaves.length) return;
+  flipLeaves.forEach((leaf, i) => {
+    if (i >= pages.length) return;
+    const front = leaf.querySelector('.pflip__face--front');
+    if (!front) return;
+    const crease = front.querySelector('.pflip__crease');
+    const sheen = front.querySelector('.pflip__sheen');
+    front.innerHTML = renderSheetMarkup(i, false);
+    if (sheen) front.insertBefore(sheen, front.firstChild);
+    if (crease) front.insertBefore(crease, front.firstChild);
+  });
+}
+
+function buildFlat(crossfade){
+  if (flipAnim){
+    try { flipAnim.cancel(); } catch(_){}
+    flipAnim = null;
+  }
+  let stage = $('#padStage');
+  if (!stage){
+    const board = notepad && notepad.querySelector('.pad-board');
+    stage = document.createElement('div');
+    stage.id = 'padStage';
+    stage.className = 'pad-stage';
+    if (board) board.appendChild(stage);
+  }
+  stage.innerHTML = '';
+  stage.className = 'pad-stage';
+  padStage = stage;
+  flipLeaves = [];
+  flatRoot = document.createElement('div');
+  flatRoot.className = 'pad-flat-root' + (crossfade ? ' is-crossfade' : '');
+  pages.forEach((_, i) => {
+    const leaf = document.createElement('div');
+    leaf.className = 'pad-leaf' + (i === pageIndex ? ' is-current' : '');
+    leaf.innerHTML = renderSheetMarkup(i, i === pageIndex);
+    flatRoot.appendChild(leaf);
+  });
+  stage.appendChild(flatRoot);
+  const liveLeaf = flatRoot.querySelector('.pad-leaf.is-current');
+  if (liveLeaf) wireLiveForm(liveLeaf);
+  updateChrome();
+}
+
+function go(delta){
+  if (flipping) return;
+  const active = document.activeElement;
+  const wantFocus = !!(active && notepad && notepad.contains(active) && (active.tagName === 'INPUT' || active.classList.contains('type-chip')));
+  let target = pageIndex + delta;
+
+  if (delta > 0){
+    if (pageIndex >= pages.length - 1){
+      if (pages.length >= PAGE_CAP){
+        announce('Ledger full — 12 pages.');
+        updateChrome();
+        return;
+      }
+      pages.push([]);
+      target = pages.length - 1;
+    }
+  } else if (target < 0){
+    return;
+  }
+
+  if (mode === 'flat'){
+    const useCrossfade = false;
+    if (useCrossfade && flatRoot){
+      const curLeaf = flatRoot.querySelector('.pad-leaf.is-current');
+      if (curLeaf) curLeaf.classList.add('is-leaving');
+    }
+    pageIndex = target;
+    pruneTrailingEmpty();
+    if (!flatRoot || flatRoot.children.length !== pages.length) buildFlat(!!useCrossfade);
+    else hydrateLiveSheet(pageIndex);
+    announce('Page ' + (pageIndex + 1) + ' of ' + pages.length);
+    updateChrome();
+    if (wantFocus){
+      const fi = $('#fItem');
+      if (fi) fi.focus({preventScroll:true});
+    }
+    return;
+  }
+
+  /* Flip mode: dim live overlay, turn a CSS 3D leaf, land overlay on settle */
+  captureDraft();
+  focusAfterFlip = wantFocus;
+  const targetSheet = target;
+  if (!flipLeaves.length || flipLeaves.length !== pages.length){
+    buildFlipLeaves();
+  }
+  freezeLiveSheet();
+  flipping = true;
+  clearFlipSafety();
+  const gen = ++flipGen;
+  updateChrome();
+  const libTarget = adapter.toPageIdx(targetSheet);
+  pendingFlipTarget = libTarget;
+  /* Dog-ear is top-right: peel next from top; reverse from bottom for readable curl */
+  const corner = delta > 0 ? 'top' : 'bottom';
+  flipTo(libTarget, gen, corner);
+}
+
+function jumpTo(sheet){
+  if (flipping || sheet === pageIndex || sheet < 0 || sheet >= pages.length) return;
+  if (mode === 'flat'){
+    pageIndex = sheet;
+    pruneTrailingEmpty();
+    hydrateLiveSheet(pageIndex);
+    announce('Page ' + (pageIndex + 1) + ' of ' + pages.length);
+    return;
+  }
+  if (!flipLeaves.length) return;
+  focusAfterFlip = false;
+  freezeLiveSheet();
+  flipping = true;
+  clearFlipSafety();
+  const gen = ++flipGen;
+  updateChrome();
+  const libTarget = adapter.toPageIdx(sheet);
+  pendingFlipTarget = libTarget;
+  const corner = sheet > pageIndex ? 'top' : 'bottom';
+  flipTo(libTarget, gen, corner);
+}
+
+/**
+ * Animate the turning leaf with WAAPI. Forward turns the current leaf 0 -> -180
+ * around the left spine; reverse turns the target leaf -180 -> 0 back over the top.
+ * Sheen/crease/cast run off the .is-turn class (CSS `--flip` duration).
+ */
+function flipTo(libTarget, gen, corner){
+  const dir = libTarget > pageIndex ? 1 : -1;
+  const moving = flipLeaves[dir > 0 ? pageIndex : libTarget];
+  if (!moving){ settleFlip(libTarget, gen); return; }
+  /* settle every non-moving leaf to its final pose instantly so the turning
+     leaf is the only thing in motion (multi-page jumps snap beneath it) */
+  flipLeaves.forEach((leaf, i) => {
+    if (leaf === moving) return;
+    const angle = i < libTarget ? -180 : 0;
+    leaf.style.zIndex = 100 - i;
+    leaf.style.transform = `rotateY(${angle}deg)`;
+  });
+  moving.style.zIndex = 1000;
+  moving.classList.add('is-turn', dir > 0 ? 'is-turn-next' : 'is-turn-prev');
+  const from = dir > 0 ? 0 : -180;
+  const to = dir > 0 ? -180 : 0;
+  if (flipAnim){ try { flipAnim.cancel(); } catch(_){} flipAnim = null; }
+  /* apex translateZ lifts the free edge off the stack mid-turn (paper flex) */
+  flipAnim = moving.animate([
+    { transform: `rotateY(${from}deg) translateZ(0px)` },
+    { transform: `rotateY(${(from + to) / 2}deg) translateZ(30px)`, offset: .5 },
+    { transform: `rotateY(${to}deg) translateZ(0px)` }
+  ], {
+    duration: FLIP_MS,
+    easing: 'cubic-bezier(.32,.72,.25,1)',
+    fill: 'both'
+  });
+  flipAnim.onfinish = () => settleFlip(libTarget, gen);
+  flipSafetyTimer = setTimeout(() => settleFlip(libTarget, gen), FLIP_MS + FLIP_SAFETY_PAD);
+}
+
+function bindNav(){
+  const onPrev = () => go(-1);
+  const onNext = () => go(1);
+  if (pagePrev) pagePrev.addEventListener('click', onPrev);
+  if (pageNext) pageNext.addEventListener('click', onNext);
+  if (pagePrevTab) pagePrevTab.addEventListener('click', onPrev);
+  if (pageNextTab) pageNextTab.addEventListener('click', onNext);
+  if (pageDots) pageDots.addEventListener('click', e => {
+    const dot = e.target.closest('.page-dot');
+    if (!dot || flipping) return;
+    jumpTo(+dot.dataset.page);
+  });
+  if (notepad){
+    notepad.addEventListener('keydown', e => {
+      if (!notepad.contains(e.target) && e.target !== notepad) return;
+      if (e.target.matches('input, textarea')) return; /* don't steal typing */
+      if (e.key === 'ArrowLeft'){ e.preventDefault(); go(-1); }
+      if (e.key === 'ArrowRight'){ e.preventDefault(); go(1); }
+    });
+  }
+}
+
+function initPad(){
+  const canFlip = !reducePaper && typeof Element.prototype.animate === 'function';
+  mode = canFlip ? 'flip' : 'flat';
+  bindNav();
+  if (mode === 'flip'){
+    try {
+      buildFlipLeaves();
+      console.info('[pad] FlipRenderer active (CSS 3D two-face turn, WAAPI). Adapter: sheetIndex === pageIndex (portrait).');
+    } catch (err){
+      console.warn('[pad] Flip init failed, FlatRenderer fallback', err);
+      mode = 'flat';
+      buildFlat(false);
+    }
+  } else {
+    buildFlat(false);
+    console.info('[pad] FlatRenderer active', reducePaper ? '(reduced-motion)' : '(no WAAPI)');
+  }
+  updateChrome();
+}
+
+function renderRows(){ hydrateLiveSheet(pageIndex); }
+
+/* ---------- Focus-the-demo CTAs ---------- */
+function focusDemo(){
+  const card = notepad || $('.sheet');
+  if (card) card.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(() => { const fi = $('#fItem'); if (fi) fi.focus({preventScroll:true}); }, 450);
+}
+$('#heroCta').addEventListener('click', focusDemo);
+$$('[data-focus-demo]').forEach(b => b.addEventListener('click', focusDemo));
+/* ---------- Summary donut + period rotor ---------- */
+/* ---------- Summary donut + period rotor ---------- */
+const STATS = {
+  day:  {n:23500,  nc:3,  w:18000,  wc:1},
+  week: {n:284500, nc:12, w:193000, wc:8},
+  all:  {n:1124000,nc:46, w:861000, wc:31}
+};
+const PNAME = {day:'Today', week:'This Week', all:'All 35 Days'};
+const dOff = n => { const d = new Date(); d.setDate(d.getDate()+n); return d; };
+const dStr = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const CAPTIONS = {
+  day:  dStr(dOff(0)),
+  week: dStr(dOff(-6)) + ' – ' + dStr(dOff(0)),
+  all:  dStr(dOff(-34)) + ' – ' + dStr(dOff(0))
+};
+let currentPeriod = 'all';
+let currentDaySpent = 0;
+function setPeriod(p){
+  currentPeriod = p;
+  $$('.rotor button').forEach(b => b.setAttribute('aria-pressed', b.dataset.period === p ? 'true' : 'false'));
+  const s = STATS[p], total = s.n + s.w;
+  if (p === 'day') currentDaySpent = total;
+  const pct = Math.round(s.n / total * 100), wpct = 100 - pct;
+  $('#arcNeed').setAttribute('stroke-dasharray', `${pct} ${wpct}`);
+  $('#arcNeed').setAttribute('stroke-dashoffset', '0');
+  $('#arcWant').setAttribute('stroke-dasharray', `${wpct} ${pct}`);
+  $('#arcWant').setAttribute('stroke-dashoffset', `${-pct}`);
+  const dt = $('#donutTotal'); dt.dataset.cents = total; dt.textContent = fmt(total);
+  $('#needPct').textContent = pct + '%';
+  $('#wantPct').textContent = wpct + '%';
+  const sn = $('#statNeed'); sn.dataset.cents = s.n; sn.textContent = fmt(s.n);
+  const sw = $('#statWant'); sw.dataset.cents = s.w; sw.textContent = fmt(s.w);
+  $('#statNeedN').textContent = s.nc + ' entries';
+  $('#statWantN').textContent = s.wc + ' entries';
+  $('#statPct').textContent = pct + '%';
+  $('#shareFill').style.width = pct + '%';
+  $('#periodLabel').textContent = PNAME[p];
+  $('#rangeLabel').textContent = `${CAPTIONS[p]} · ${s.nc + s.wc} entries`;
+  renderBudgetMeter(p, s.n + s.w);
+}
+function renderBudgetMeter(p, daySpentCents){
+  const meter = $('#budgetMeter');
+  if (!meter) return;
+  if (p !== 'day'){
+    meter.hidden = true;
+    return;
+  }
+  const budgetCents = 500000; /* demo: ₱5,000.00 */
+  const spent = Math.min(daySpentCents, budgetCents);
+  const remain = budgetCents - daySpentCents;
+  const over = remain < 0;
+  meter.hidden = false;
+  meter.classList.toggle('is-over', over);
+  const spentEl = $('#bmSpent'); spentEl.dataset.cents = spent; spentEl.textContent = fmt(spent);
+  const budgetEl = $('#bmBudget'); budgetEl.dataset.cents = budgetCents; budgetEl.textContent = 'of ' + fmt(budgetCents);
+  $('#bmFill').style.width = Math.min(100, Math.round(daySpentCents / budgetCents * 100)) + '%';
+  $('#bmRemain').textContent = over
+    ? 'Over by ' + fmt(-remain)
+    : 'Remaining ' + fmt(Math.max(remain, 0));
+}
+$$('.rotor button').forEach(b => b.addEventListener('click', () => setPeriod(b.dataset.period)));
+
+let donutSeen = false;
+new IntersectionObserver((ents, io) => {
+  ents.forEach(en => { if (en.isIntersecting && !donutSeen){ donutSeen = true; setPeriod('all'); io.disconnect(); } });
+},{threshold:.35}).observe($('.donut'));
+
+/* ---------- 35-day dial ticks ---------- */
+(function buildDial(){
+  const g = $('#ticks'); const NS = 'http://www.w3.org/2000/svg';
+  for (let i = 0; i < 35; i++){
+    const a = (i/35) * Math.PI*2 - Math.PI/2;
+    const major = (i+1) % 7 === 0;
+    const r1 = major ? 85 : 92, r2 = 100;
+    const l = document.createElementNS(NS,'line');
+    l.setAttribute('x1', 110 + Math.cos(a)*r1); l.setAttribute('y1', 110 + Math.sin(a)*r1);
+    l.setAttribute('x2', 110 + Math.cos(a)*r2); l.setAttribute('y2', 110 + Math.sin(a)*r2);
+    l.setAttribute('stroke', major ? 'var(--gold-deep)' : 'var(--divider-strong)');
+    l.setAttribute('stroke-width', major ? 2.2 : 1.2);
+    l.setAttribute('stroke-linecap','round');
+    g.appendChild(l);
+    if (major){
+      const t = document.createElementNS(NS,'text');
+      t.setAttribute('x', 110 + Math.cos(a)*72); t.setAttribute('y', 110 + Math.sin(a)*72);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('fill','var(--muted)');
+      t.setAttribute('style','font:600 9px Inter, sans-serif; letter-spacing:.5px');
+      t.textContent = i+1;
+      g.appendChild(t);
+    }
+  }
+})();
+
+/* ---------- Scroll reveals ---------- */
+const io = new IntersectionObserver(ents => {
+  ents.forEach(en => { if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+},{threshold:.14});
+$$('.reveal').forEach(el => io.observe(el));
+
+/* ---------- Header ---------- */
+const hdr = $('#siteHeader');
+addEventListener('scroll', () => hdr.classList.toggle('scrolled', scrollY > 8), {passive:true});
+
+/* ---------- Seal-able example chips ---------- */
+$$('.ex-chip').forEach(c => c.addEventListener('click', () => {
+  const on = c.classList.toggle('sealed');
+  c.setAttribute('aria-pressed', on);
+}));
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
+}
+$('#wipeBtn').addEventListener('click', () => toast('Preview only — your diary is safe.'));
+$('#logBudgetChange')?.addEventListener('click', () => toast('Preview only — set or change your budget on Log in the app.'));
+$('#logBudgetTurnOff')?.addEventListener('click', () => toast('Preview only — turn the budget off on Log in the app.'));
+$('#iosSoon').addEventListener('click', () => toast('iOS build coming soon — Android APK is available now.'));
+// Settings phone preview: text size sample scales; theme radios are preview-only.
+const fontSample = $('#fontSample');
+const fontScaleMap = { default: '13px', large: '15px', xl: '17px' };
+$$('input[name="fontSize"]').forEach(r => r.addEventListener('change', () => {
+  if (fontSample) fontSample.style.fontSize = fontScaleMap[r.value] || '13px';
+  toast('Preview only — set text size in the app Settings.');
+}));
+$$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
+  toast('Preview only — choose Market light, dark, System, or High contrast in the app.');
+}));
+
+/* ---------- APK QR download ---------- */
+/* Animate ONLY the red .cta-panel height (roll down open / roll up close).
+   QR stays in a fixed right-side slot — no QR motion animations.
+   Desktop side-by-side often keeps the same height; we force a min roll delta
+   so the red rectangle always visibly rolls down and back up. */
+(function initApkQr(){
+  const toggle = $('#apkQrToggle');
+  const panel = $('#apkQrPanel');
+  const canvas = $('#apkQrCanvas');
+  const urlEl = $('#apkQrUrl');
+  const cta = panel && panel.closest('.cta-panel');
+  if (!toggle || !panel || !canvas || !cta) return;
+  let built = false;
+  let animating = false;
+  let open = false;
+  let closedH = 0;
+  let openH = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  const MS_DOWN = 850;
+  const MS_UP = 700;
+  /* Minimum red-panel growth so roll-up is never a no-op on desktop */
+  const MIN_ROLL = 180;
+
+  function apkUrl(){
+    return new URL($('#apkDownload').getAttribute('href'), location.href).href;
+  }
+  function buildQr(){
+    if (built) return;
+    const url = apkUrl();
+    urlEl.textContent = url.replace(/^https?:\/\//, '');
+    if (typeof QRCode === 'undefined'){
+      toast('QR unavailable — use Download Android APK.');
+      return;
+    }
+    QRCode.toCanvas(canvas, url, {
+      width: 200,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#1A1A1A', light: '#FFFFFF' }
+    }, err => {
+      if (err){ toast('Could not build QR — use the download button.'); return; }
+      built = true;
+    });
+  }
+
+  function clearRollStyles(){
+    cta.style.height = '';
+    cta.style.minHeight = '';
+    cta.style.overflow = '';
+    cta.style.transition = '';
+    cta.classList.remove('is-rolling');
+  }
+
+  /** Roll red rectangle height. from < to = down; from > to = up. Always animates when delta ≥ 2. */
+  function rollRedPanel(from, to, ms){
+    return new Promise(resolve => {
+      from = Math.round(from);
+      to = Math.round(to);
+      if (reduceMotion){
+        clearRollStyles();
+        resolve();
+        return;
+      }
+      if (Math.abs(to - from) < 2){
+        clearRollStyles();
+        resolve();
+        return;
+      }
+      cta.classList.add('is-rolling');
+      cta.style.overflow = 'hidden';
+      cta.style.transition = 'none';
+      cta.style.height = from + 'px';
+      cta.style.minHeight = '0';
+      /* double rAF so the browser commits the start height before transitioning */
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          cta.style.transition = 'height ' + ms + 'ms ' + EASE;
+          cta.style.height = to + 'px';
+        });
+      });
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        cta.removeEventListener('transitionend', onEnd);
+        resolve();
+      };
+      const onEnd = e => {
+        if (e.target === cta && e.propertyName === 'height') finish();
+      };
+      cta.addEventListener('transitionend', onEnd);
+      /* tight fallback — do not outlive the roll by much */
+      setTimeout(finish, ms + 40);
+    });
+  }
+
+  async function openPanel(){
+    if (animating || open) return;
+    animating = true;
+    closedH = Math.round(cta.getBoundingClientRect().height);
+
+    /* Mount QR in fixed right slot immediately (no QR motion) */
+    panel.hidden = false;
+    panel.classList.add('is-open');
+    cta.classList.add('is-qr-open');
+    buildQr();
+    void cta.offsetHeight;
+
+    let naturalOpen = Math.ceil(cta.scrollHeight);
+    /* Side-by-side often matches closed height — force a real roll delta */
+    openH = Math.max(naturalOpen, closedH + MIN_ROLL);
+
+    await rollRedPanel(closedH, openH, MS_DOWN);
+
+    /* Hold the taller red frame while open so close has a real roll-up */
+    cta.style.height = openH + 'px';
+    cta.style.minHeight = openH + 'px';
+    cta.style.overflow = '';
+    cta.style.transition = '';
+    cta.classList.remove('is-rolling');
+
+    open = true;
+    toggle.setAttribute('aria-expanded', 'true');
+    animating = false;
+  }
+
+  async function closePanel(){
+    if (animating || !open) return;
+    animating = true;
+
+    const from = Math.round(cta.getBoundingClientRect().height) || openH || Math.round(cta.scrollHeight);
+    let to = closedH > 40 ? closedH : 0;
+
+    /* 1) Lock open height so removing QR cannot snap the panel */
+    cta.style.transition = 'none';
+    cta.style.overflow = 'hidden';
+    cta.style.minHeight = '0';
+    cta.style.height = from + 'px';
+    void cta.offsetHeight;
+
+    /* 2) Hide QR immediately on press — no wait for roll-up to finish */
+    panel.hidden = true;
+    panel.classList.remove('is-open');
+    cta.classList.remove('is-qr-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    open = false;
+    openH = 0;
+
+    if (!to || to < 40){
+      /* Remeasure closed height while height is still locked at `from` */
+      const prevH = cta.style.height;
+      cta.style.height = 'auto';
+      to = Math.round(cta.getBoundingClientRect().height);
+      cta.style.height = prevH;
+    }
+    if (from - to < MIN_ROLL) to = Math.max(80, from - MIN_ROLL);
+
+    /* 3) Red panel rolls up alone (QR already gone) */
+    await rollRedPanel(from, to, MS_UP);
+    clearRollStyles();
+
+    animating = false;
+  }
+
+  toggle.addEventListener('click', () => {
+    if (animating) return;
+    if (open) closePanel();
+    else openPanel();
+  });
+})();
+
+/* ---------- Currency radios ---------- */
+$$('input[name="currency"]').forEach(r => r.addEventListener('change', () => {
+  cur = r.value; applyCurrency();
+}));
+
+/* ---------- Dates ---------- */
+const now = new Date();
+$('#todayLabel').textContent = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+$('#launchDate').textContent = 'Version 1.4.0 · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+$('#footDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+$('#histRange').textContent = `${dStr(dOff(-34))} — ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${now.getFullYear()}`;
+
+/* ---------- Init ---------- */
+function bootPad(){
+  initPad();
+}
+if (document.readyState === 'complete') bootPad();
+else window.addEventListener('load', bootPad);
+renderTicker();
+setPeriod('all');
+$('#arcNeed').setAttribute('stroke-dasharray','0 100');
+$('#arcWant').setAttribute('stroke-dasharray','100 0');
+$('#arcWant').setAttribute('stroke-dashoffset','0');
+})();
+</script>
+</body>
+</html>

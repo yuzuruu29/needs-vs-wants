@@ -22,14 +22,20 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -42,34 +48,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.toMoney
 
 /** Soft vertical wash used on every screen — light top → slightly warmer raised base. */
-fun inkWash(top: Color = Surface, bottom: Color = SurfaceRaised) = Brush.verticalGradient(
+fun inkWash(top: Color, bottom: Color) = Brush.verticalGradient(
     colors = listOf(top, bottom)
 )
 
-/** Faint gold radial glow used behind hero elements (donut, stat hero). */
-fun giltGlow(alpha: Float = 0.16f) = Brush.radialGradient(
-    colors = listOf(Gold.copy(alpha = alpha), Color.Transparent)
-)
+/** Themed background wash (reads current [AppTheme] palette). */
+@Composable
+fun themedInkWash(): Brush {
+    val c = AppTheme.colors
+    return inkWash(c.background, c.surfaceRaised)
+}
 
-/** Horizontal gold stroke gradient used to crown premium cards. */
-private fun topStrokeGradient() = BorderStroke(1.dp, Brush.horizontalGradient(
-    listOf(Color.Transparent, Gold.copy(alpha = 0.55f), Color.Transparent)
-))
+/** Faint gold radial glow used behind hero elements (donut, stat hero). */
+fun giltGlow(gold: Color, alpha: Float = 0.16f) = Brush.radialGradient(
+    colors = listOf(gold.copy(alpha = alpha), Color.Transparent)
+)
 
 /** Eyebrow label — wide-spaced uppercase micro heading. */
 @Composable
 fun Eyebrow(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = Crimson,
+    color: Color? = null,
     size: Int = 11,
     align: TextAlign? = null,
     softWrap: Boolean = true,
     maxLines: Int = Int.MAX_VALUE
 ) {
+    val resolved = color ?: AppTheme.colors.crimson
     val baseStyle = MaterialTheme.typography.labelSmall.copy(
         fontSize = size.sp,
         letterSpacing = (size * 0.12f).sp
@@ -77,26 +87,72 @@ fun Eyebrow(
     Text(
         text = text.uppercase(),
         style = if (align != null) baseStyle.copy(textAlign = align) else baseStyle,
-        color = color,
+        color = resolved,
         modifier = modifier,
         softWrap = softWrap,
         maxLines = maxLines
     )
 }
 
-/** The short gold rule used under section titles. */
+/** The short AppTheme.colors.gold rule used under section titles. */
 @Composable
 fun GiltRule(modifier: Modifier = Modifier, width: Dp = 32.dp, height: Dp = 1.5.dp) {
     Box(modifier = modifier
         .width(width)
         .height(height)
-        .background(Gold)
+        .background(AppTheme.colors.gold)
     )
 }
 
 /** Backwards-compatible name originally used by screens. */
 @Composable
 fun GoldUnderline() = GiltRule(width = 28.dp)
+
+/** Spent / budget meter with Remaining or Over-by line — Summary Day and Log when budget is on. */
+@Composable
+fun DailyBudgetMeter(
+    status: BudgetStatus.On,
+    symbol: String,
+    modifier: Modifier = Modifier
+) {
+    val over = status.remainingCents < 0
+    val animatedProgress by animateFloatAsState(
+        targetValue = status.progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "budgetProgress"
+    )
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = AppTheme.colors.surfaceCard,
+        border = BorderStroke(1.dp, if (over) AppTheme.colors.crimson.copy(alpha = 0.45f) else AppTheme.colors.divider),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Eyebrow("DAILY BUDGET", color = if (over) AppTheme.colors.crimson else AppTheme.colors.gilt)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "${status.spentCents.toMoney(symbol)} / ${status.budgetCents.toMoney(symbol)}",
+                style = MaterialTheme.typography.titleMedium,
+                color = AppTheme.colors.textPrimary
+            )
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = if (over) AppTheme.colors.crimson else AppTheme.colors.marketGreen,
+                trackColor = AppTheme.colors.surfaceRaised,
+                strokeCap = StrokeCap.Round
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (over) "Over by ${(-status.remainingCents).toMoney(symbol)}"
+                else "Remaining ${status.remainingCents.toMoney(symbol)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (over) AppTheme.colors.crimson else AppTheme.colors.textSecondary
+            )
+        }
+    }
+}
 
 /**
  * Shrink a money string's font so it always fits its container instead of
@@ -114,7 +170,7 @@ fun adaptiveMoneySize(text: String, base: TextUnit): TextUnit {
     return (base.value * factor).sp
 }
 
-/** Premium card — white surface, hairline border, optional gold top glow. */
+/** Premium card — white AppTheme.colors.background, hairline border, optional AppTheme.colors.gold top glow. */
 @Composable
 fun GiltCard(
     modifier: Modifier = Modifier,
@@ -125,8 +181,8 @@ fun GiltCard(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, Divider)
+        color = AppTheme.colors.surfaceCard,
+        border = BorderStroke(1.dp, AppTheme.colors.divider)
     ) {
         Column {
             content()
@@ -151,10 +207,10 @@ fun GiltButton(
         enabled = enabled,
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Crimson,
-            contentColor = SurfaceCard,
-            disabledContainerColor = Crimson.copy(alpha = 0.35f),
-            disabledContentColor = SurfaceCard.copy(alpha = 0.6f)
+            containerColor = AppTheme.colors.crimson,
+            contentColor = AppTheme.colors.surfaceCard,
+            disabledContainerColor = AppTheme.colors.crimson.copy(alpha = 0.35f),
+            disabledContentColor = AppTheme.colors.surfaceCard.copy(alpha = 0.6f)
         ),
         modifier = modifier.height(height)
     ) {
@@ -194,7 +250,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
         Text(
             text = "TIME",
             style = ledgerHeaderStyle(),
-            color = TextMuted,
+            color = AppTheme.colors.textMuted,
             modifier = Modifier.width(LedgerCols.Time),
             maxLines = 1,
             softWrap = false
@@ -203,7 +259,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
         Text(
             text = "ITEM",
             style = ledgerHeaderStyle(),
-            color = TextMuted,
+            color = AppTheme.colors.textMuted,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             softWrap = false
@@ -212,7 +268,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
         Text(
             text = "COST",
             style = ledgerHeaderStyle(),
-            color = TextMuted,
+            color = AppTheme.colors.textMuted,
             modifier = Modifier.width(LedgerCols.Cost),
             textAlign = TextAlign.End,
             maxLines = 1,
@@ -222,7 +278,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
         Text(
             text = "TYPE",
             style = ledgerHeaderStyle(letterSpacing = 0.55.sp),
-            color = TextMuted,
+            color = AppTheme.colors.textMuted,
             modifier = Modifier.width(LedgerCols.Type),
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -245,7 +301,7 @@ fun EntryLedgerRow(
     modifier: Modifier = Modifier,
     showCard: Boolean = false
 ) {
-    val typeColor = if (entry.type == EntryType.NEED) Need else Want
+    val typeColor = if (entry.type == EntryType.NEED) AppTheme.colors.need else AppTheme.colors.want
     val money = entry.costCents.toMoney(symbol)
     val content: @Composable () -> Unit = {
         Row(
@@ -264,7 +320,7 @@ fun EntryLedgerRow(
                     letterSpacing = 0.2.sp,
                     fontFeatureSettings = "tnum"
                 ),
-                color = TextMuted,
+                color = AppTheme.colors.textMuted,
                 modifier = Modifier.width(LedgerCols.Time),
                 maxLines = 1,
                 softWrap = false
@@ -273,7 +329,7 @@ fun EntryLedgerRow(
             Text(
                 text = entry.item,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary,
+                color = AppTheme.colors.textPrimary,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
@@ -286,7 +342,7 @@ fun EntryLedgerRow(
                     fontFeatureSettings = "tnum",
                     fontSize = adaptiveMoneySize(money, 13.sp)
                 ),
-                color = TextPrimary,
+                color = AppTheme.colors.textPrimary,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.width(LedgerCols.Cost),
                 textAlign = TextAlign.End,
@@ -328,7 +384,7 @@ fun EntryLedgerRow(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = Danger.copy(alpha = 0.55f),
+                    tint = AppTheme.colors.danger.copy(alpha = 0.55f),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -339,8 +395,8 @@ fun EntryLedgerRow(
         Surface(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            color = InkElevated,
-            border = BorderStroke(1.dp, InkDivider)
+            color = AppTheme.colors.inkElevated,
+            border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
         ) {
             content()
         }

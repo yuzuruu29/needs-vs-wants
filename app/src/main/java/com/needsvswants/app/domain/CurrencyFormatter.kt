@@ -22,7 +22,7 @@ fun parseCents(input: String): Long? {
     return whole * 100 + cents
 }
 
-/** Keep digits and one decimal point; cap at two decimal places. Shared by Input and Settings. */
+/** Keep digits and one decimal point; cap at two decimal places. Shared by Log cost + budget inputs. */
 fun filterAmountInput(input: String): String {
     val cleaned = input.filter { it.isDigit() || it == '.' }
     val parts = cleaned.split(".")

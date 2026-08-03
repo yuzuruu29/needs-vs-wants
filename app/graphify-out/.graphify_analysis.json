@@ -1,0 +1,358 @@
+{
+  "communities": {
+    "0": [
+      "dp",
+      "shape",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyscreen_daytotal",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyscreen_historyscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyscreen_kt_color",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen_goldunderline",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen_inputscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen_kt_color",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen_typechip",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_getperiodlabel",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_getperiodrange",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_instructionsoverlay",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_kt_color",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_kt_modifier",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_legendchip",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_statcard",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_summaryscreen",
+      "src_main_java_com_needsvswants_app_ui_theme_components",
+      "src_main_java_com_needsvswants_app_ui_theme_components_adaptivemoneysize",
+      "src_main_java_com_needsvswants_app_ui_theme_components_entryledgerheader",
+      "src_main_java_com_needsvswants_app_ui_theme_components_entryledgerrow",
+      "src_main_java_com_needsvswants_app_ui_theme_components_eyebrow",
+      "src_main_java_com_needsvswants_app_ui_theme_components_giltbutton",
+      "src_main_java_com_needsvswants_app_ui_theme_components_giltcard",
+      "src_main_java_com_needsvswants_app_ui_theme_components_giltglow",
+      "src_main_java_com_needsvswants_app_ui_theme_components_giltrule",
+      "src_main_java_com_needsvswants_app_ui_theme_components_goldunderline",
+      "src_main_java_com_needsvswants_app_ui_theme_components_inkwash",
+      "src_main_java_com_needsvswants_app_ui_theme_components_kt_color",
+      "src_main_java_com_needsvswants_app_ui_theme_components_kt_modifier",
+      "src_main_java_com_needsvswants_app_ui_theme_components_ledgercols",
+      "src_main_java_com_needsvswants_app_ui_theme_components_ledgerheaderstyle",
+      "src_main_java_com_needsvswants_app_ui_theme_components_topstrokegradient",
+      "textalign",
+      "textstyle",
+      "textunit"
+    ],
+    "1": [
+      "application",
+      "src_main_java_com_needsvswants_app_data_db_entrydao",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_countfordate",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_delete",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_deleteall",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_insert",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_observeall",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_observesince",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao_purgebefore",
+      "src_main_java_com_needsvswants_app_data_db_entrydao_kt_flow",
+      "src_main_java_com_needsvswants_app_data_model_entry_entry",
+      "src_main_java_com_needsvswants_app_di_domainmodule",
+      "src_main_java_com_needsvswants_app_di_domainmodule_domainmodule",
+      "src_main_java_com_needsvswants_app_di_domainmodule_domainmodule_providedailybudgetusecase",
+      "src_main_java_com_needsvswants_app_di_domainmodule_domainmodule_providesummaryusecase",
+      "src_main_java_com_needsvswants_app_needsvswantsapp",
+      "src_main_java_com_needsvswants_app_needsvswantsapp_needsvswantsapp",
+      "src_main_java_com_needsvswants_app_needsvswantsapp_needsvswantsapp_oncreate",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyviewmodel_historyviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyviewmodel_historyviewmodel_deleteentry",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyviewmodel_kt_stateflow",
+      "src_main_java_com_needsvswants_app_ui_screens_history_historyviewmodel_kt_viewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_deleteentry"
+    ],
+    "2": [
+      "src_main_java_com_needsvswants_app_data_model_entry",
+      "src_main_java_com_needsvswants_app_data_model_entry_entrytype",
+      "src_main_java_com_needsvswants_app_data_model_entry_entrytype_need",
+      "src_main_java_com_needsvswants_app_data_model_entry_entrytype_want",
+      "src_main_java_com_needsvswants_app_domain_currencyformatter",
+      "src_main_java_com_needsvswants_app_domain_currencyformatter_parsecents",
+      "src_main_java_com_needsvswants_app_domain_currencyformatter_tomoney",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_confirmoverspendseal",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_dismissoverspendconfirm",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_filtercost",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_filteritem",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_sealnow",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel_tryseal",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_kt_stateflow",
+      "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_kt_viewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel_savedailybudget"
+    ],
+    "3": [
+      "src_main_java_com_needsvswants_app_domain_summaryusecase",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_kt_flow",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_period",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_period_all",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_period_day",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_period_week",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_summarystats",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_summaryusecase",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_summaryusecase_getstats",
+      "src_main_java_com_needsvswants_app_domain_summaryusecase_summaryusecase_startoftoday",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel_kt_stateflow",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel_kt_viewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel_summaryviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel_summaryviewmodel_dismissfirstlaunch",
+      "src_main_java_com_needsvswants_app_ui_screens_summary_summaryviewmodel_summaryviewmodel_setperiod"
+    ],
+    "4": [
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences_cleardailybudget",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences_setcurrency",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences_setdailybudgetcents",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences_setfirstlaunchcomplete",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences_wipeall",
+      "src_main_java_com_needsvswants_app_data_prefs_apppreferences_kt_flow",
+      "src_main_java_com_needsvswants_app_di_preferencesmodule",
+      "src_main_java_com_needsvswants_app_di_preferencesmodule_kt_context",
+      "src_main_java_com_needsvswants_app_di_preferencesmodule_preferencesmodule",
+      "src_main_java_com_needsvswants_app_di_preferencesmodule_preferencesmodule_provideapppreferences"
+    ],
+    "5": [
+      "src_main_java_com_needsvswants_app_domain_dailybudget",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_budgetstatus",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_dailybudgetmath",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_dailybudgetmath_status",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_dailybudgetmath_wouldexceed",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_off",
+      "src_main_java_com_needsvswants_app_domain_dailybudget_on",
+      "src_main_java_com_needsvswants_app_domain_dailybudgetusecase",
+      "src_main_java_com_needsvswants_app_domain_dailybudgetusecase_dailybudgetusecase",
+      "src_main_java_com_needsvswants_app_domain_dailybudgetusecase_dailybudgetusecase_observestatus",
+      "src_main_java_com_needsvswants_app_domain_dailybudgetusecase_dailybudgetusecase_startoftoday",
+      "src_main_java_com_needsvswants_app_domain_dailybudgetusecase_kt_flow"
+    ],
+    "6": [
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsscreen_sectionlabel",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsscreen_settingsscreen",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_currencyoption",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_kt_stateflow",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_kt_viewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel_cleardailybudget",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel_filterbudgetamount",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel_setcurrency",
+      "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel_wipedata"
+    ],
+    "7": [
+      "bundle",
+      "componentactivity",
+      "src_main_java_com_needsvswants_app_mainactivity",
+      "src_main_java_com_needsvswants_app_mainactivity_mainactivity",
+      "src_main_java_com_needsvswants_app_mainactivity_mainactivity_oncreate",
+      "src_main_java_com_needsvswants_app_ui_navigation_appnavigation",
+      "src_main_java_com_needsvswants_app_ui_navigation_appnavigation_appnavigation",
+      "src_main_java_com_needsvswants_app_ui_navigation_appnavigation_bottomnavitem",
+      "src_main_java_com_needsvswants_app_ui_navigation_appnavigation_navpill",
+      "src_main_java_com_needsvswants_app_ui_theme_theme",
+      "src_main_java_com_needsvswants_app_ui_theme_theme_needsvswantstheme"
+    ],
+    "8": [
+      "roomdatabase",
+      "src_main_java_com_needsvswants_app_data_db_appdatabase",
+      "src_main_java_com_needsvswants_app_data_db_appdatabase_appdatabase",
+      "src_main_java_com_needsvswants_app_data_db_appdatabase_appdatabase_entrydao",
+      "src_main_java_com_needsvswants_app_di_databasemodule",
+      "src_main_java_com_needsvswants_app_di_databasemodule_databasemodule",
+      "src_main_java_com_needsvswants_app_di_databasemodule_databasemodule_providedatabase",
+      "src_main_java_com_needsvswants_app_di_databasemodule_databasemodule_provideentrydao",
+      "src_main_java_com_needsvswants_app_di_databasemodule_kt_context"
+    ],
+    "9": [
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest",
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest_dailybudgettest",
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest_dailybudgettest_status_nullornonpositive_isoff",
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest_dailybudgettest_status_on_computesremainingandprogress",
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest_dailybudgettest_status_over_allowsnegativeremaining",
+      "src_test_java_com_needsvswants_app_domain_dailybudgettest_dailybudgettest_wouldexceed_onlywhenstrictlyover"
+    ],
+    "10": [
+      "build_gradle"
+    ],
+    "11": [
+      "src_main_java_com_needsvswants_app_ui_theme_color"
+    ],
+    "12": [
+      "src_main_java_com_needsvswants_app_ui_theme_shape"
+    ],
+    "13": [
+      "src_main_java_com_needsvswants_app_ui_theme_type"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1039136302294197,
+    "1": 0.1,
+    "2": 0.12418300653594772,
+    "3": 0.14166666666666666,
+    "4": 0.16666666666666666,
+    "5": 0.21212121212121213,
+    "6": 0.18181818181818182,
+    "7": 0.21818181818181817,
+    "8": 0.25,
+    "9": 0.3333333333333333,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_main_java_com_needsvswants_app_data_db_entrydao_entrydao",
+      "label": "EntryDao",
+      "degree": 13
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_screens_input_inputviewmodel_inputviewmodel",
+      "label": "InputViewModel",
+      "degree": 13
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_screens_summary_summaryscreen_summaryscreen",
+      "label": "SummaryScreen()",
+      "degree": 13
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_data_model_entry_entry",
+      "label": "Entry",
+      "degree": 11
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_theme_components_eyebrow",
+      "label": "Eyebrow()",
+      "degree": 11
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_screens_input_inputscreen_inputscreen",
+      "label": "InputScreen()",
+      "degree": 10
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_theme_components_giltrule",
+      "label": "GiltRule()",
+      "degree": 10
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_data_prefs_apppreferences_apppreferences",
+      "label": "AppPreferences",
+      "degree": 9
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_screens_history_historyscreen_historyscreen",
+      "label": "HistoryScreen()",
+      "degree": 9
+    },
+    {
+      "id": "src_main_java_com_needsvswants_app_ui_screens_settings_settingsviewmodel_settingsviewmodel",
+      "label": "SettingsViewModel",
+      "degree": 9
+    }
+  ],
+  "surprises": [
+    {
+      "source": "AppNavigation()",
+      "target": "HistoryScreen()",
+      "source_files": [
+        "src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt",
+        "src/main/java/com/needsvswants/app/ui/screens/history/HistoryScreen.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "AppNavigation()",
+      "target": "InputScreen()",
+      "source_files": [
+        "src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt",
+        "src/main/java/com/needsvswants/app/ui/screens/input/InputScreen.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "AppNavigation()",
+      "target": "SettingsScreen()",
+      "source_files": [
+        "src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt",
+        "src/main/java/com/needsvswants/app/ui/screens/settings/SettingsScreen.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "AppNavigation()",
+      "target": "SummaryScreen()",
+      "source_files": [
+        "src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt",
+        "src/main/java/com/needsvswants/app/ui/screens/summary/SummaryScreen.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    },
+    {
+      "source": "GoldUnderline()",
+      "target": "GiltRule()",
+      "source_files": [
+        "src/main/java/com/needsvswants/app/ui/screens/input/InputScreen.kt",
+        "src/main/java/com/needsvswants/app/ui/theme/Components.kt"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; peripheral node `GoldUnderline()` unexpectedly reaches hub `GiltRule()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `EntryDao` connect `Entry Data Access` to `AppDatabase`?",
+      "why": "High betweenness centrality (0.298) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Entry` connect `Entry Data Access` to `UI Screens and Components`, `Input Logic and Formatting`?",
+      "why": "High betweenness centrality (0.297) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `InputViewModel` connect `Input Logic and Formatting` to `UI Screens and Components`, `Entry Data Access`, `BudgetStatus`?",
+      "why": "High betweenness centrality (0.213) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 6 inferred relationships involving `SummaryScreen()` (e.g. with `AppNavigation()` and `adaptiveMoneySize()`) actually correct?",
+      "why": "`SummaryScreen()` has 6 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 7 inferred relationships involving `Eyebrow()` (e.g. with `HistoryScreen()` and `InputScreen()`) actually correct?",
+      "why": "`Eyebrow()` has 7 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `NEED`, `WANT`, `Off` to the rest of the system?",
+      "why": "8 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `UI Screens and Components` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.1039136302294197 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "communities": {
+    "0": [
+      "pad_parts_pad",
+      "pad_parts_pad_adapter",
+      "pad_parts_pad_capturedraft",
+      "pad_parts_pad_datelabel",
+      "pad_parts_pad_esc",
+      "pad_parts_pad_focusdemo",
+      "pad_parts_pad_formdraft",
+      "pad_parts_pad_freezelivesheet",
+      "pad_parts_pad_notepad",
+      "pad_parts_pad_padstage",
+      "pad_parts_pad_pagedots",
+      "pad_parts_pad_pagenext",
+      "pad_parts_pad_pagenexttab",
+      "pad_parts_pad_pageprev",
+      "pad_parts_pad_pageprevtab",
+      "pad_parts_pad_pages",
+      "pad_parts_pad_renderrows",
+      "pad_parts_pad_rendersheetmarkup"
+    ],
+    "1": [
+      "pad_parts_pad_announce",
+      "pad_parts_pad_bindnav",
+      "pad_parts_pad_buildflat",
+      "pad_parts_pad_go",
+      "pad_parts_pad_hydratelivesheet",
+      "pad_parts_pad_initpad",
+      "pad_parts_pad_jumpto",
+      "pad_parts_pad_prunetrailingempty",
+      "pad_parts_pad_rebuildleavesforflip",
+      "pad_parts_pad_rows",
+      "pad_parts_pad_setrows",
+      "pad_parts_pad_tryseal",
+      "pad_parts_pad_updatechrome",
+      "pad_parts_pad_wireliveform"
+    ],
+    "2": [
+      "pad_parts_package",
+      "pad_parts_package_author",
+      "pad_parts_package_description",
+      "pad_parts_package_keywords",
+      "pad_parts_package_license",
+      "pad_parts_package_main",
+      "pad_parts_package_name",
+      "pad_parts_package_scripts",
+      "pad_parts_package_scripts_test",
+      "pad_parts_package_type",
+      "pad_parts_package_version"
+    ],
+    "3": [
+      "pad_parts_apply",
+      "pad_parts_apply_css",
+      "pad_parts_apply_file",
+      "pad_parts_apply_fs",
+      "pad_parts_apply_html",
+      "pad_parts_apply_padhtml",
+      "pad_parts_apply_padjs",
+      "pad_parts_apply_path",
+      "pad_parts_apply_root"
+    ],
+    "4": [
+      "pad_parts_check",
+      "pad_parts_check_code",
+      "pad_parts_check_fs",
+      "pad_parts_check_html",
+      "pad_parts_check_i",
+      "pad_parts_check_j",
+      "pad_parts_check_path"
+    ],
+    "5": [
+      "pad_parts_smoke",
+      "pad_parts_smoke_errs",
+      "pad_parts_smoke_logs",
+      "pad_parts_smoke_mime",
+      "pad_parts_smoke_root",
+      "pad_parts_smoke_server"
+    ],
+    "6": [
+      "_pad_parts_pad_html",
+      "expense_tracker_logic",
+      "index_html",
+      "notepad_ui",
+      "public_index_html"
+    ],
+    "7": [
+      "pad_parts_smoke2",
+      "pad_parts_smoke2_logs",
+      "pad_parts_smoke2_mime",
+      "pad_parts_smoke2_root",
+      "pad_parts_smoke2_server"
+    ],
+    "8": [
+      "pad_parts_debug",
+      "pad_parts_debug_mime",
+      "pad_parts_debug_root",
+      "pad_parts_debug_server"
+    ],
+    "9": [
+      "pad_parts_smoke3",
+      "pad_parts_smoke3_mime",
+      "pad_parts_smoke3_root",
+      "pad_parts_smoke3_server"
+    ],
+    "10": [
+      "vercel",
+      "vercel_outputdirectory"
+    ]
+  },
+  "cohesion": {
+    "0": 0.13725490196078433,
+    "1": 0.38461538461538464,
+    "2": 0.18181818181818182,
+    "3": 0.2222222222222222,
+    "4": 0.2857142857142857,
+    "5": 0.3333333333333333,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.5,
+    "9": 0.5,
+    "10": 1.0
+  },
+  "gods": [
+    {
+      "id": "pad_parts_pad_go",
+      "label": "go()",
+      "degree": 11
+    },
+    {
+      "id": "pad_parts_pad_hydratelivesheet",
+      "label": "hydrateLiveSheet()",
+      "degree": 10
+    },
+    {
+      "id": "pad_parts_pad_wireliveform",
+      "label": "wireLiveForm()",
+      "degree": 8
+    },
+    {
+      "id": "pad_parts_pad_updatechrome",
+      "label": "updateChrome()",
+      "degree": 8
+    },
+    {
+      "id": "pad_parts_pad_rebuildleavesforflip",
+      "label": "rebuildLeavesForFlip()",
+      "degree": 8
+    },
+    {
+      "id": "pad_parts_pad_rendersheetmarkup",
+      "label": "renderSheetMarkup()",
+      "degree": 7
+    },
+    {
+      "id": "pad_parts_pad_buildflat",
+      "label": "buildFlat()",
+      "degree": 7
+    },
+    {
+      "id": "pad_parts_pad_jumpto",
+      "label": "jumpTo()",
+      "degree": 7
+    },
+    {
+      "id": "pad_parts_pad_announce",
+      "label": "announce()",
+      "degree": 6
+    },
+    {
+      "id": "pad_parts_pad_tryseal",
+      "label": "trySeal()",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Needs vs Wants Landing Page",
+      "target": "Notepad Component",
+      "source_files": [
+        "index.html",
+        "_pad-parts/pad.html"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "Public Landing Page",
+      "target": "Needs vs Wants Landing Page",
+      "source_files": [
+        "public/index.html",
+        "index.html"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "semantically_similar_to",
+      "why": "connects across different repos/directories; semantically similar concepts with no structural link"
+    }
+  ],
+  "tokens": {
+    "input": 18094,
+    "output": 756
+  }
+}

@@ -59,7 +59,7 @@ fun AppNavigation() {
     val currentDestination = navBackStackEntry?.destination
 
     Scaffold(
-        containerColor = Surface,
+        containerColor = AppTheme.colors.background,
         bottomBar = {
             // Floating pill nav bar — sits above content with hairline border and subtle elevation.
             Box(
@@ -67,8 +67,8 @@ fun AppNavigation() {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(SurfaceCard)
-                    .border(1.dp, Divider, RoundedCornerShape(20.dp))
+                    .background(AppTheme.colors.surfaceCard)
+                    .border(1.dp, AppTheme.colors.divider, RoundedCornerShape(20.dp))
             ) {
                 Row(
                     modifier = Modifier
@@ -121,7 +121,7 @@ fun AppNavigation() {
 
 @Composable
 private fun NavPill(item: BottomNavItem, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) Crimson.copy(alpha = 0.12f) else Color.Transparent
+    val bg = if (selected) AppTheme.colors.crimson.copy(alpha = 0.12f) else Color.Transparent
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -133,7 +133,7 @@ private fun NavPill(item: BottomNavItem, selected: Boolean, onClick: () -> Unit)
             Icon(
                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                 contentDescription = item.label,
-                tint = if (selected) Crimson else TextSecondary,
+                tint = if (selected) AppTheme.colors.crimson else AppTheme.colors.textSecondary,
                 modifier = Modifier.size(22.dp)
             )
             if (selected) {
@@ -141,7 +141,7 @@ private fun NavPill(item: BottomNavItem, selected: Boolean, onClick: () -> Unit)
                 Text(
                     item.label,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, letterSpacing = 1.sp),
-                    color = Crimson,
+                    color = AppTheme.colors.crimson,
                     fontWeight = FontWeight.SemiBold
                 )
             }

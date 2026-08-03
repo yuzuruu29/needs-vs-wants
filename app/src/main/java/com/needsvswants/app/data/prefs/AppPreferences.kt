@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import com.needsvswants.app.domain.FontScaleStep
+import com.needsvswants.app.domain.ThemeId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -15,11 +17,20 @@ class AppPreferences(private val context: Context) {
         private val CURRENCY_CODE = stringPreferencesKey("currency_code")
         private val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
         private val DAILY_BUDGET_CENTS = longPreferencesKey("daily_budget_cents")
+        private val THEME_ID = stringPreferencesKey("theme_id")
+        private val FONT_SCALE_STEP = stringPreferencesKey("font_scale_step")
     }
 
     val currencySymbol: Flow<String> = context.dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
     val currencyCode: Flow<String> = context.dataStore.data.map { it[CURRENCY_CODE] ?: "PHP" }
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { it[FIRST_LAUNCH] ?: true }
+
+    val themeId: Flow<ThemeId> = context.dataStore.data.map {
+        ThemeId.fromStorage(it[THEME_ID])
+    }
+    val fontScaleStep: Flow<FontScaleStep> = context.dataStore.data.map {
+        FontScaleStep.fromStorage(it[FONT_SCALE_STEP])
+    }
 
     /** null means budget is off (missing or ≤ 0). */
     val dailyBudgetCents: Flow<Long?> = context.dataStore.data.map { prefs ->
@@ -34,6 +45,14 @@ class AppPreferences(private val context: Context) {
 
     suspend fun clearDailyBudget() {
         context.dataStore.edit { it.remove(DAILY_BUDGET_CENTS) }
+    }
+
+    suspend fun setThemeId(id: ThemeId) {
+        context.dataStore.edit { it[THEME_ID] = id.storageKey }
+    }
+
+    suspend fun setFontScaleStep(step: FontScaleStep) {
+        context.dataStore.edit { it[FONT_SCALE_STEP] = step.storageKey }
     }
 
     suspend fun setCurrency(symbol: String, code: String) {

@@ -27,6 +27,7 @@ import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
+import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
@@ -45,27 +46,43 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val type by viewModel.activeType.collectAsStateWithLifecycle()
     val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
+    val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
+    var budgetAmount by remember { mutableStateOf("") }
+    var budgetError by remember { mutableStateOf(false) }
+    var editingBudget by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().background(inkWash())) {
+    LaunchedEffect(dailyBudgetCents) {
+        val cents = dailyBudgetCents
+        if (cents == null) {
+            editingBudget = true
+        } else {
+            if (budgetAmount.isBlank()) {
+                budgetAmount = cents.toInputAmount()
+            }
+            editingBudget = false
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(themedInkWash())) {
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Eyebrow("TODAY  ·  $today", color = Crimson)
+            Eyebrow("TODAY  ·  $today", color = AppTheme.colors.crimson)
             Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
-                Text("LOG", style = MaterialTheme.typography.displayLarge, color = TextPrimary)
+                Text("LOG", style = MaterialTheme.typography.displayLarge, color = AppTheme.colors.textPrimary)
                 Column(horizontalAlignment = Alignment.End) {
-                    Eyebrow("SHEET", color = TextMuted, size = 10)
+                    Eyebrow("SHEET", color = AppTheme.colors.textMuted, size = 10)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         "$filled / 20",
-                        color = if (filled >= 18) Danger else TextPrimary,
+                        color = if (filled >= 18) AppTheme.colors.danger else AppTheme.colors.textPrimary,
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -73,14 +90,50 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             }
             Spacer(Modifier.height(8.dp))
             GiltRule(width = 40.dp)
+            Spacer(Modifier.height(12.dp))
+            LogDailyBudgetSection(
+                budgetStatus = budgetStatus,
+                symbol = symbol,
+                budgetAmount = budgetAmount,
+                budgetError = budgetError,
+                editingBudget = editingBudget,
+                onBudgetAmountChange = {
+                    budgetAmount = viewModel.filterBudgetAmount(it)
+                    budgetError = false
+                },
+                onSave = {
+                    if (viewModel.saveDailyBudget(budgetAmount)) {
+                        budgetAmount = ""
+                        budgetError = false
+                        editingBudget = false
+                    } else {
+                        budgetError = true
+                    }
+                },
+                onClear = {
+                    viewModel.clearDailyBudget()
+                    budgetAmount = ""
+                    budgetError = false
+                    editingBudget = true
+                },
+                onStartEdit = {
+                    dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
+                    editingBudget = true
+                },
+                onCancelEdit = {
+                    budgetError = false
+                    editingBudget = false
+                    dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
+                }
+            )
         }
 
         if (!isFull) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = InkElevated,
-                    border = BorderStroke(1.dp, InkDivider)
+                    color = AppTheme.colors.inkElevated,
+                    border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         OutlinedTextField(
@@ -89,13 +142,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             label = { Text("ITEM", style = MaterialTheme.typography.labelSmall) },
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary,
-                                focusedBorderColor = Crimson,
-                                unfocusedBorderColor = DividerStrong,
-                                cursorColor = Crimson,
-                                focusedLabelColor = Crimson,
-                                unfocusedLabelColor = TextMuted,
+                                focusedTextColor = AppTheme.colors.textPrimary,
+                                unfocusedTextColor = AppTheme.colors.textPrimary,
+                                focusedBorderColor = AppTheme.colors.crimson,
+                                unfocusedBorderColor = AppTheme.colors.dividerStrong,
+                                cursorColor = AppTheme.colors.crimson,
+                                focusedLabelColor = AppTheme.colors.crimson,
+                                unfocusedLabelColor = AppTheme.colors.textMuted,
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent
                             ),
@@ -112,13 +165,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary,
-                                    focusedBorderColor = Crimson,
-                                    unfocusedBorderColor = DividerStrong,
-                                    cursorColor = Crimson,
-                                    focusedLabelColor = Crimson,
-                                    unfocusedLabelColor = TextMuted,
+                                    focusedTextColor = AppTheme.colors.textPrimary,
+                                    unfocusedTextColor = AppTheme.colors.textPrimary,
+                                    focusedBorderColor = AppTheme.colors.crimson,
+                                    unfocusedBorderColor = AppTheme.colors.dividerStrong,
+                                    cursorColor = AppTheme.colors.crimson,
+                                    focusedLabelColor = AppTheme.colors.crimson,
+                                    unfocusedLabelColor = AppTheme.colors.textMuted,
                                     focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent
                                 ),
@@ -127,11 +180,11 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                                 textStyle = MaterialTheme.typography.bodyLarge
                             )
                             Spacer(Modifier.width(10.dp))
-                            TypeChip("NEED", type == EntryType.NEED, Need) {
+                            TypeChip("NEED", type == EntryType.NEED, AppTheme.colors.need) {
                                 viewModel.activeType.value = EntryType.NEED; viewModel.trySeal()
                             }
                             Spacer(Modifier.width(8.dp))
-                            TypeChip("WANT", type == EntryType.WANT, Want) {
+                            TypeChip("WANT", type == EntryType.WANT, AppTheme.colors.want) {
                                 viewModel.activeType.value = EntryType.WANT; viewModel.trySeal()
                             }
                         }
@@ -147,13 +200,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = SurfaceCard,
-                    border = BorderStroke(1.dp, MarketGreen)
+                    color = AppTheme.colors.surfaceCard,
+                    border = BorderStroke(1.dp, AppTheme.colors.marketGreen)
                 ) {
                     Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Eyebrow("SHEET COMPLETE", color = MarketGreen)
+                        Eyebrow("SHEET COMPLETE", color = AppTheme.colors.marketGreen)
                         Spacer(Modifier.height(8.dp))
-                        Text("20 / 20 entries sealed", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                        Text("20 / 20 entries sealed", style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
                         Spacer(Modifier.height(14.dp))
                         GiltButton(onClick = {}, text = "Start new sheet", height = 48.dp)
                     }
@@ -167,7 +220,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             EntryLedgerHeader(
                 modifier = Modifier.padding(horizontal = 34.dp, vertical = 6.dp)
             )
-            HorizontalDivider(color = InkDivider, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
+            HorizontalDivider(color = AppTheme.colors.inkDivider, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
         }
 
         LazyColumn(
@@ -191,16 +244,16 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                 val overBy = DailyBudgetMath.overBy(on.spentCents, on.budgetCents, pendingCost)
                 AlertDialog(
                     onDismissRequest = { viewModel.dismissOverspendConfirm() },
-                    containerColor = InkElevated,
+                    containerColor = AppTheme.colors.inkElevated,
                     tonalElevation = 0.dp,
                     shape = RoundedCornerShape(20.dp),
                     title = {
                         Column {
-                            Eyebrow("DAILY BUDGET", color = Danger)
+                            Eyebrow("DAILY BUDGET", color = AppTheme.colors.danger)
                             Spacer(Modifier.height(6.dp))
                             Text(
                                 "Over budget?",
-                                color = TextPrimary,
+                                color = AppTheme.colors.textPrimary,
                                 style = MaterialTheme.typography.headlineSmall
                             )
                         }
@@ -209,14 +262,14 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                         Column {
                             Text(
                                 "\"$item\" · ${pendingCost.toMoney(symbol)}",
-                                color = TextPrimary,
+                                color = AppTheme.colors.textPrimary,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(Modifier.height(10.dp))
                             Text(
                                 "This puts you over by ${overBy.toMoney(symbol)}. Your daily budget is ${on.budgetCents.toMoney(symbol)}. Log anyway?",
-                                color = TextSecondary
+                                color = AppTheme.colors.textSecondary
                             )
                         }
                     },
@@ -225,15 +278,15 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             onClick = { viewModel.confirmOverspendSeal() },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Crimson.copy(alpha = 0.18f),
-                                contentColor = Crimson
+                                containerColor = AppTheme.colors.crimson.copy(alpha = 0.18f),
+                                contentColor = AppTheme.colors.crimson
                             ),
-                            border = BorderStroke(1.dp, Crimson)
+                            border = BorderStroke(1.dp, AppTheme.colors.crimson)
                         ) { Text("Log anyway", fontWeight = FontWeight.SemiBold) }
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.dismissOverspendConfirm() }) {
-                            Text("Cancel", color = TextMuted)
+                            Text("Cancel", color = AppTheme.colors.textMuted)
                         }
                     }
                 )
@@ -243,27 +296,27 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
         deleteTarget?.let { entry ->
             AlertDialog(
                 onDismissRequest = { deleteTarget = null },
-                containerColor = InkElevated,
+                containerColor = AppTheme.colors.inkElevated,
                 tonalElevation = 0.dp,
                 shape = RoundedCornerShape(20.dp),
                 title = {
                     Column {
-                        Eyebrow("CONFIRM", color = Danger)
+                        Eyebrow("CONFIRM", color = AppTheme.colors.danger)
                         Spacer(Modifier.height(6.dp))
-                        Text("Delete entry?", color = TextPrimary, style = MaterialTheme.typography.headlineSmall)
+                        Text("Delete entry?", color = AppTheme.colors.textPrimary, style = MaterialTheme.typography.headlineSmall)
                     }
                 },
-                text = { Text("${entry.item} — ${entry.costCents.toMoney(symbol)}", color = TextSecondary) },
+                text = { Text("${entry.item} — ${entry.costCents.toMoney(symbol)}", color = AppTheme.colors.textSecondary) },
                 confirmButton = {
                     Button(
                         onClick = { viewModel.deleteEntry(entry); deleteTarget = null },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Danger.copy(alpha = 0.18f), contentColor = Danger),
-                        border = BorderStroke(1.dp, Danger)
+                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.danger.copy(alpha = 0.18f), contentColor = AppTheme.colors.danger),
+                        border = BorderStroke(1.dp, AppTheme.colors.danger)
                     ) { Text("Delete", fontWeight = FontWeight.SemiBold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { deleteTarget = null }) { Text("Cancel", color = TextMuted) }
+                    TextButton(onClick = { deleteTarget = null }) { Text("Cancel", color = AppTheme.colors.textMuted) }
                 }
             )
         }
@@ -277,13 +330,130 @@ private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: ()
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
         color = bgColor,
-        border = BorderStroke(1.dp, if (selected) color else InkDividerStrong)
+        border = BorderStroke(1.dp, if (selected) color else AppTheme.colors.inkDividerStrong)
     ) {
         Text(
             label,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-            color = if (selected) color else TextSecondary,
+            color = if (selected) color else AppTheme.colors.textSecondary,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
         )
+    }
+}
+
+/**
+ * Daily budget lives on Log: meter when on; amount field to set/update; Turn off to clear.
+ * When a limit is active, the form collapses until the user taps Change.
+ */
+@Composable
+private fun LogDailyBudgetSection(
+    budgetStatus: BudgetStatus,
+    symbol: String,
+    budgetAmount: String,
+    budgetError: Boolean,
+    editingBudget: Boolean,
+    onBudgetAmountChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onClear: () -> Unit,
+    onStartEdit: () -> Unit,
+    onCancelEdit: () -> Unit
+) {
+    val budgetOn = budgetStatus is BudgetStatus.On
+
+    if (budgetOn) {
+        DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
+        if (!editingBudget) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onStartEdit) {
+                    Text("Change", color = AppTheme.colors.textSecondary, fontWeight = FontWeight.Medium)
+                }
+                TextButton(onClick = onClear) {
+                    Text("Turn off", color = AppTheme.colors.danger, fontWeight = FontWeight.Medium)
+                }
+            }
+        } else {
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+
+    if (editingBudget || !budgetOn) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = AppTheme.colors.inkElevated,
+            border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (!budgetOn) {
+                    Eyebrow("DAILY BUDGET", color = AppTheme.colors.gilt)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Optional. Off until you set an amount.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AppTheme.colors.textSecondary
+                    )
+                    Spacer(Modifier.height(12.dp))
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Eyebrow("UPDATE LIMIT", color = AppTheme.colors.gilt)
+                        TextButton(onClick = onCancelEdit) {
+                            Text("Cancel", color = AppTheme.colors.textMuted, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                OutlinedTextField(
+                    value = budgetAmount,
+                    onValueChange = onBudgetAmountChange,
+                    label = { Text("AMOUNT", style = MaterialTheme.typography.labelSmall) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = budgetError,
+                    supportingText = if (budgetError) {
+                        { Text("Enter a valid amount", color = AppTheme.colors.danger) }
+                    } else null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = AppTheme.colors.textPrimary,
+                        unfocusedTextColor = AppTheme.colors.textPrimary,
+                        focusedBorderColor = AppTheme.colors.crimson,
+                        unfocusedBorderColor = AppTheme.colors.dividerStrong,
+                        cursorColor = AppTheme.colors.crimson,
+                        focusedLabelColor = AppTheme.colors.crimson,
+                        unfocusedLabelColor = AppTheme.colors.textMuted,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GiltButton(
+                        onClick = onSave,
+                        text = if (budgetOn) "Update budget" else "Save budget",
+                        height = 46.dp,
+                        enabled = budgetAmount.isNotBlank(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (budgetOn) {
+                        TextButton(onClick = onClear) {
+                            Text("Turn off", color = AppTheme.colors.danger, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

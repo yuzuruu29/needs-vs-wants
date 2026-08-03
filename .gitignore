@@ -28,3 +28,9 @@ Thumbs.db
 
 # Brainstorm / agent session artifacts
 .superpowers/
+
+# pre-reformat backup
+.env
+.env.local
+.env.*.local
+

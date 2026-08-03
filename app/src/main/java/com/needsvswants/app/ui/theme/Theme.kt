@@ -1,51 +1,54 @@
 package com.needsvswants.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
-
-private val LightColorScheme = lightColorScheme(
-    primary = Crimson,
-    onPrimary = SurfaceCard,
-    primaryContainer = Crimson.copy(alpha = 0.12f),
-    onPrimaryContainer = CrimsonDeep,
-    secondary = MarketGreen,
-    onSecondary = SurfaceCard,
-    secondaryContainer = MarketGreen.copy(alpha = 0.12f),
-    onSecondaryContainer = MarketGreenDeep,
-    tertiary = GoldDeep,
-    background = Surface,
-    onBackground = TextPrimary,
-    surface = SurfaceCard,
-    onSurface = TextPrimary,
-    surfaceVariant = SurfaceRaised,
-    onSurfaceVariant = TextSecondary,
-    error = Danger,
-    onError = SurfaceCard,
-    outline = Divider,
-    outlineVariant = DividerStrong
-)
+import com.needsvswants.app.domain.FontScaleStep
+import com.needsvswants.app.domain.ThemeId
 
 @Composable
-fun NeedsVsWantsTheme(content: @Composable () -> Unit) {
-    val colorScheme = LightColorScheme
-    // Light surfaces → dark icons in the status & navigation bars.
-    val activity = androidx.compose.ui.platform.LocalView.current.context as? android.app.Activity
+fun NeedsVsWantsTheme(
+    themeId: ThemeId = ThemeId.MARKET_LIGHT,
+    fontScaleStep: FontScaleStep = FontScaleStep.DEFAULT,
+    systemDark: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val palette = AppPalette.forTheme(themeId, systemDark)
+    val colorScheme = palette.toMaterialColorScheme()
+    val baseDensity = LocalDensity.current
+    val scaledDensity = Density(
+        density = baseDensity.density,
+        fontScale = baseDensity.fontScale * fontScaleStep.multiplier
+    )
+
+    val view = LocalView.current
+    val activity = view.context as? android.app.Activity
     SideEffect {
         activity?.window?.let { w ->
-            w.statusBarColor = Surface.toArgb()
-            w.navigationBarColor = Surface.toArgb()
-            WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightStatusBars = true
-            WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = true
+            w.statusBarColor = palette.background.toArgb()
+            w.navigationBarColor = palette.background.toArgb()
+            val insets = WindowCompat.getInsetsController(w, w.decorView)
+            insets.isAppearanceLightStatusBars = palette.isLightStatusBars
+            insets.isAppearanceLightNavigationBars = palette.isLightStatusBars
         }
     }
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content
-    )
+
+    CompositionLocalProvider(
+        LocalAppPalette provides palette,
+        LocalDensity provides scaledDensity
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content
+        )
+    }
 }

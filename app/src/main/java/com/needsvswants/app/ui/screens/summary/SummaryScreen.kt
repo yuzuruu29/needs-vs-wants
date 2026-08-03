@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.*
@@ -48,6 +45,7 @@ fun SummaryScreen(
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     var showInstructions by remember { mutableStateOf(false) }
+    val palette = AppTheme.colors
 
     if (showInstructions) {
         InstructionsOverlay(onDismiss = { showInstructions = false })
@@ -56,7 +54,7 @@ fun SummaryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(inkWash())
+            .background(themedInkWash())
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
@@ -68,23 +66,23 @@ fun SummaryScreen(
             verticalAlignment = Alignment.Top
         ) {
             Column {
-                Eyebrow("A 35-Day Trainer", color = Crimson)
+                Eyebrow("A 35-Day Trainer", color = palette.crimson)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "NEEDS\nvs WANTS",
                     style = MaterialTheme.typography.displayLarge.copy(lineHeight = 36.sp),
-                    color = TextPrimary
+                    color = palette.textPrimary
                 )
                 Spacer(Modifier.height(8.dp))
                 GiltRule(width = 40.dp)
                 Spacer(Modifier.height(6.dp))
-                Text("Expense Tracker", color = Crimson, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Expense Tracker", color = palette.crimson, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
-                Text(getPeriodLabel(period), color = Crimson, style = MaterialTheme.typography.labelMedium)
-                Text(getPeriodRange(period), color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, letterSpacing = 0.6.sp))
+                Text(getPeriodLabel(period), color = palette.crimson, style = MaterialTheme.typography.labelMedium)
+                Text(getPeriodRange(period), color = palette.textMuted, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, letterSpacing = 0.6.sp))
             }
             IconButton(onClick = { showInstructions = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.HelpOutline, "Help", tint = Crimson, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Filled.HelpOutline, "Help", tint = palette.crimson, modifier = Modifier.size(20.dp))
             }
         }
 
@@ -94,8 +92,8 @@ fun SummaryScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SurfaceCard, RoundedCornerShape(12.dp))
-                .border(1.dp, Divider, RoundedCornerShape(12.dp))
+                .background(palette.surfaceCard, RoundedCornerShape(12.dp))
+                .border(1.dp, palette.divider, RoundedCornerShape(12.dp))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -112,7 +110,7 @@ fun SummaryScreen(
                         .height(36.dp)
                         .then(
                             if (selected) Modifier
-                                .background(Brush.horizontalGradient(listOf(Crimson, CrimsonDeep)), RoundedCornerShape(8.dp))
+                                .background(Brush.horizontalGradient(listOf(palette.crimson, palette.crimsonDeep)), RoundedCornerShape(8.dp))
                             else Modifier
                                 .clickable { viewModel.setPeriod(p) }
                         ),
@@ -121,7 +119,7 @@ fun SummaryScreen(
                     if (!selected) Box(modifier = Modifier.matchParentSize().clickable { viewModel.setPeriod(p) })
                     Text(
                         label,
-                        color = if (selected) SurfaceCard else TextSecondary,
+                        color = if (selected) palette.surfaceCard else palette.textSecondary,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                     )
@@ -133,44 +131,7 @@ fun SummaryScreen(
 
         // Daily budget meter — Day period only, when budget is on
         if (period == Period.DAY && budgetStatus is BudgetStatus.On) {
-            val on = budgetStatus as BudgetStatus.On
-            val over = on.remainingCents < 0
-            val animatedProgress by animateFloatAsState(
-                targetValue = on.progress.coerceIn(0f, 1f),
-                animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-                label = "budgetProgress"
-            )
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = SurfaceCard,
-                border = BorderStroke(1.dp, if (over) Crimson.copy(alpha = 0.45f) else Divider),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Eyebrow("DAILY BUDGET", color = if (over) Crimson else Gilt)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "${on.spentCents.toMoney(symbol)} / ${on.budgetCents.toMoney(symbol)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { animatedProgress },
-                        modifier = Modifier.fillMaxWidth().height(8.dp),
-                        color = if (over) Crimson else MarketGreen,
-                        trackColor = SurfaceRaised,
-                        strokeCap = StrokeCap.Round
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        if (over) "Over by ${(-on.remainingCents).toMoney(symbol)}"
-                        else "Remaining ${on.remainingCents.toMoney(symbol)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (over) Crimson else TextSecondary
-                    )
-                }
-            }
+            DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
             Spacer(Modifier.height(20.dp))
         }
 
@@ -187,7 +148,7 @@ fun SummaryScreen(
                             .drawBehind {
                                 drawCircle(
                                     brush = Brush.radialGradient(
-                                        colors = listOf(Gilt.copy(alpha = 0.18f), Color.Transparent),
+                                        colors = listOf(palette.gilt.copy(alpha = 0.18f), Color.Transparent),
                                         radius = size.minDimension
                                     )
                                 )
@@ -196,7 +157,7 @@ fun SummaryScreen(
                     ) {
                         Canvas(Modifier.size(150.dp)) {
                             drawArc(
-                                color = InkDivider,
+                                color = palette.inkDivider,
                                 startAngle = 0f,
                                 sweepAngle = 360f,
                                 useCenter = false,
@@ -206,12 +167,12 @@ fun SummaryScreen(
                         }
                     }
                     Spacer(Modifier.height(16.dp))
-                    Eyebrow("EMPTY DIARY", color = TextMuted)
+                    Eyebrow("EMPTY DIARY", color = palette.textMuted)
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Log your first expense\nto start the diary.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = palette.textSecondary,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -223,7 +184,7 @@ fun SummaryScreen(
                             .drawBehind {
                                 drawCircle(
                                     brush = Brush.radialGradient(
-                                        colors = listOf(Gilt.copy(alpha = 0.16f), Color.Transparent),
+                                        colors = listOf(palette.gilt.copy(alpha = 0.16f), Color.Transparent),
                                         radius = size.minDimension / 1.2f
                                     )
                                 )
@@ -236,7 +197,7 @@ fun SummaryScreen(
                             val ring = 22.dp.toPx()
                             val stroke = Stroke(width = ring, cap = StrokeCap.Round)
                             drawArc(
-                                color = InkDivider,
+                                color = palette.inkDivider,
                                 startAngle = 0f,
                                 sweepAngle = 360f,
                                 useCenter = false,
@@ -244,7 +205,7 @@ fun SummaryScreen(
                                 size = Size(size.width, size.height)
                             )
                             drawArc(
-                                color = Need,
+                                color = palette.need,
                                 startAngle = -90f,
                                 sweepAngle = needsSweep,
                                 useCenter = false,
@@ -252,7 +213,7 @@ fun SummaryScreen(
                                 size = Size(size.width, size.height)
                             )
                             drawArc(
-                                color = Want,
+                                color = palette.want,
                                 startAngle = -90f + needsSweep,
                                 sweepAngle = 360f - needsSweep,
                                 useCenter = false,
@@ -261,12 +222,12 @@ fun SummaryScreen(
                             )
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Eyebrow("TOTAL", color = TextMuted, size = 10)
+                            Eyebrow("TOTAL", color = palette.textMuted, size = 10)
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 stats.totalCents.toMoney(symbol),
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = TextPrimary,
+                                color = palette.textPrimary,
                                 fontWeight = FontWeight.Bold,
                                 softWrap = false,
                                 maxLines = 1,
@@ -279,9 +240,9 @@ fun SummaryScreen(
                         horizontalArrangement = Arrangement.spacedBy(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        LegendChip(Need, "Need", stats.needsPct)
-                        Box(modifier = Modifier.width(1.dp).height(14.dp).background(InkDivider))
-                        LegendChip(Want, "Want", stats.wantsPct)
+                        LegendChip(palette.need, "Need", stats.needsPct)
+                        Box(modifier = Modifier.width(1.dp).height(14.dp).background(palette.inkDivider))
+                        LegendChip(palette.want, "Want", stats.wantsPct)
                     }
                 }
             }
@@ -291,9 +252,9 @@ fun SummaryScreen(
 
         // Stat cards
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard("NEEDS", stats.needsTotalCents.toMoney(symbol), Need, stats.needsPct, Modifier.weight(1f))
-            StatCard("WANTS", stats.wantsTotalCents.toMoney(symbol), Want, stats.wantsPct, Modifier.weight(1f))
-            StatCard("NEED %", "${stats.needsPct}%", Gilt, stats.needsPct, Modifier.weight(1f))
+            StatCard("NEEDS", stats.needsTotalCents.toMoney(symbol), palette.need, stats.needsPct, Modifier.weight(1f))
+            StatCard("WANTS", stats.wantsTotalCents.toMoney(symbol), palette.want, stats.wantsPct, Modifier.weight(1f))
+            StatCard("NEED %", "${stats.needsPct}%", palette.gilt, stats.needsPct, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(16.dp))
@@ -308,26 +269,29 @@ fun SummaryScreen(
 
 @Composable
 private fun LegendChip(color: Color, label: String, pct: Int) {
+    val palette = AppTheme.colors
     Row(verticalAlignment = Alignment.CenterVertically) {
         Canvas(Modifier.size(8.dp)) { drawCircle(color) }
         Spacer(Modifier.width(6.dp))
         Text(
             "$label $pct%",
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, letterSpacing = 0.5.sp),
-            color = TextSecondary
+            color = palette.textSecondary
         )
     }
 }
 
 @Composable
 private fun StatCard(label: String, value: String, accent: Color, pct: Int, modifier: Modifier) {
+    val palette = AppTheme.colors
+    val dividerColor = palette.inkDivider
     Column(
         modifier = modifier
-            .background(InkElevated, RoundedCornerShape(16.dp))
-            .border(1.dp, InkDivider, RoundedCornerShape(16.dp))
+            .background(palette.inkElevated, RoundedCornerShape(16.dp))
+            .border(1.dp, palette.inkDivider, RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 14.dp)
     ) {
-        Eyebrow(label, color = TextMuted, size = 9)
+        Eyebrow(label, color = palette.textMuted, size = 9)
         Spacer(Modifier.height(6.dp))
         Text(
             value,
@@ -340,7 +304,7 @@ private fun StatCard(label: String, value: String, accent: Color, pct: Int, modi
         )
         Spacer(Modifier.height(8.dp))
         Canvas(Modifier.fillMaxWidth().height(3.dp)) {
-            drawRect(color = InkDivider, size = Size(size.width, size.height))
+            drawRect(color = dividerColor, size = Size(size.width, size.height))
             drawRect(color = accent, size = Size(size.width * pct / 100f, size.height))
         }
     }
@@ -349,45 +313,53 @@ private fun StatCard(label: String, value: String, accent: Color, pct: Int, modi
 @Composable
 fun InstructionsOverlay(onDismiss: () -> Unit) {
     var currentPage by remember { mutableIntStateOf(0) }
-    val titles = listOf("Every expense is a Need or a Want", "Your diary keeps 35 days", "Rows seal themselves")
+    val palette = AppTheme.colors
+    val titles = listOf(
+        "Every expense is a Need or a Want",
+        "Your diary keeps 35 days",
+        "Rows seal themselves",
+        "Optional daily budget on Log"
+    )
     val bodies = listOf(
         "Each entry forces a binary choice. There is no middle ground. This is the lesson.",
         "Older entries are automatically removed. The window is always 35 days.",
-        "When you fill in item, cost, and type, the row saves instantly. Hold a sealed row to unseal it."
+        "When you fill in item, cost, and type, the row saves instantly. Hold a sealed row to unseal it.",
+        "Set a limit on the Log screen — watch spent vs remaining, change or turn it off anytime. Sealing past the line asks “Log anyway?” first."
     )
+    val lastPage = titles.lastIndex
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = InkElevated,
+        containerColor = palette.inkElevated,
         tonalElevation = 0.dp,
         shape = RoundedCornerShape(20.dp),
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Eyebrow("WELCOME", color = Crimson)
+                Eyebrow("WELCOME", color = palette.crimson)
                 Spacer(Modifier.height(8.dp))
                 GiltRule(width = 32.dp)
                 Spacer(Modifier.height(12.dp))
-                Text(titles[currentPage], style = MaterialTheme.typography.headlineMedium, color = TextPrimary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text(titles[currentPage], style = MaterialTheme.typography.headlineMedium, color = palette.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
         },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(bodies[currentPage], style = MaterialTheme.typography.bodyLarge, color = TextSecondary, textAlign = TextAlign.Center)
+                Text(bodies[currentPage], style = MaterialTheme.typography.bodyLarge, color = palette.textSecondary, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.Center) {
-                    repeat(3) { i ->
-                        Box(modifier = Modifier.padding(4.dp).size(6.dp).background(if (i == currentPage) Crimson else Divider, RoundedCornerShape(3.dp)))
+                    repeat(titles.size) { i ->
+                        Box(modifier = Modifier.padding(4.dp).size(6.dp).background(if (i == currentPage) palette.crimson else palette.divider, RoundedCornerShape(3.dp)))
                     }
                 }
             }
         },
         confirmButton = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = onDismiss) { Text("Skip", color = TextMuted) }
-                if (currentPage < 2) {
-                    TextButton(onClick = { currentPage++ }) { Text("Next", color = Crimson, fontWeight = FontWeight.SemiBold) }
+                TextButton(onClick = onDismiss) { Text("Skip", color = palette.textMuted) }
+                if (currentPage < lastPage) {
+                    TextButton(onClick = { currentPage++ }) { Text("Next", color = palette.crimson, fontWeight = FontWeight.SemiBold) }
                 } else {
-                    TextButton(onClick = onDismiss) { Text("Begin", color = Crimson, fontWeight = FontWeight.Bold) }
+                    TextButton(onClick = onDismiss) { Text("Begin", color = palette.crimson, fontWeight = FontWeight.Bold) }
                 }
             }
         }

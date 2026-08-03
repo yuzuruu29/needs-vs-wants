@@ -1,0 +1,25 @@
+    <div class="sheet-wrap hero-in hero-in-sheet">
+      <div class="notepad" id="notepad" role="group" aria-label="Expense log notepad">
+        <div class="pad-board">
+          <div class="pad-spine" aria-hidden="true"></div>
+          <div class="pad-stack" id="padStack" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </div>
+          <div class="pad-stage" id="padStage"></div>
+          <div class="pad-tabs">
+            <button type="button" class="pad-tab" id="pagePrevTab" aria-label="Previous page">‹ Prev</button>
+            <button type="button" class="pad-tab" id="pageNextTab" aria-label="Next page">Next ›</button>
+          </div>
+        </div>
+        <div class="pad-nav" role="navigation" aria-label="Notepad pages">
+          <button class="btn-page" id="pagePrev" type="button" aria-label="Previous page">‹ Prev</button>
+          <div class="page-dots" id="pageDots" role="tablist" aria-label="Jump to page"></div>
+          <button class="btn-page btn-page--flip" id="pageNext" type="button" aria-label="Next page">Next ›</button>
+        </div>
+        <p class="pad-status" id="padStatus" aria-live="polite">
+          Page <b id="pagePos">1</b> of <b id="pageTotal">2</b>
+        </p>
+        <span id="todayLabel" class="vh" aria-hidden="true"></span>
+        <p class="vh" role="status" aria-live="polite" id="live"></p>
+      </div>
+    </div>

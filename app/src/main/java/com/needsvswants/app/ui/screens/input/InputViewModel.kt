@@ -40,6 +40,10 @@ class InputViewModel @Inject constructor(
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetStatus.Off)
 
+    /** Raw limit cents (null = off). Used for set/edit prefill on Log. */
+    val dailyBudgetCents: StateFlow<Long?> = preferences.dailyBudgetCents
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _overspendConfirm = MutableStateFlow<Long?>(null)
     /** Non-null = pending new cost cents awaiting user confirm. */
     val overspendConfirmCostCents: StateFlow<Long?> = _overspendConfirm.asStateFlow()
@@ -48,6 +52,19 @@ class InputViewModel @Inject constructor(
         input.filter { it.isLetterOrDigit() || it.isWhitespace() || it == '-' || it == '.' || it == '\'' || it == ',' }
 
     fun filterCost(input: String): String = filterAmountInput(input)
+
+    fun filterBudgetAmount(input: String): String = filterAmountInput(input)
+
+    fun saveDailyBudget(rawAmount: String): Boolean {
+        val cents = parseCents(rawAmount) ?: return false
+        if (cents <= 0L) return false
+        viewModelScope.launch { preferences.setDailyBudgetCents(cents) }
+        return true
+    }
+
+    fun clearDailyBudget() {
+        viewModelScope.launch { preferences.clearDailyBudget() }
+    }
 
     fun trySeal() {
         if (isSealing) return

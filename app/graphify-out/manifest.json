@@ -1,0 +1,147 @@
+{
+  "build.gradle.kts": {
+    "mtime": 1785239882.5954235,
+    "ast_hash": "47f6a2afa58b7f6adb32a4c1b7a8d1f8",
+    "semantic_hash": "47f6a2afa58b7f6adb32a4c1b7a8d1f8"
+  },
+  "src/main/java/com/needsvswants/app/MainActivity.kt": {
+    "mtime": 1785161295.1230245,
+    "ast_hash": "8114fac69ad86e28f68748daed6b7c6f",
+    "semantic_hash": "8114fac69ad86e28f68748daed6b7c6f"
+  },
+  "src/main/java/com/needsvswants/app/NeedsVsWantsApp.kt": {
+    "mtime": 1785161288.1146967,
+    "ast_hash": "ec4e6f19d9cdf7d8439adc7ebec5af35",
+    "semantic_hash": "ec4e6f19d9cdf7d8439adc7ebec5af35"
+  },
+  "src/main/java/com/needsvswants/app/data/db/AppDatabase.kt": {
+    "mtime": 1785161191.513299,
+    "ast_hash": "2de2b00ed0c0aff023fec75240e33ad9",
+    "semantic_hash": "2de2b00ed0c0aff023fec75240e33ad9"
+  },
+  "src/main/java/com/needsvswants/app/data/db/EntryDao.kt": {
+    "mtime": 1785161184.3571382,
+    "ast_hash": "d6ae8de5be51b2d4d28eb89bd043e8fc",
+    "semantic_hash": "d6ae8de5be51b2d4d28eb89bd043e8fc"
+  },
+  "src/main/java/com/needsvswants/app/data/model/Entry.kt": {
+    "mtime": 1785161175.686063,
+    "ast_hash": "f5dceba8431826f81b7ad238cfe8efa5",
+    "semantic_hash": "f5dceba8431826f81b7ad238cfe8efa5"
+  },
+  "src/main/java/com/needsvswants/app/data/prefs/AppPreferences.kt": {
+    "mtime": 1785527644.252509,
+    "ast_hash": "59c96b079f1f067ea5912c429af62417",
+    "semantic_hash": "59c96b079f1f067ea5912c429af62417"
+  },
+  "src/main/java/com/needsvswants/app/di/DatabaseModule.kt": {
+    "mtime": 1785161264.3439963,
+    "ast_hash": "89e061da34abeed4d1f68ed5815a4705",
+    "semantic_hash": "89e061da34abeed4d1f68ed5815a4705"
+  },
+  "src/main/java/com/needsvswants/app/di/DomainModule.kt": {
+    "mtime": 1785527672.7664726,
+    "ast_hash": "2183656c00bef099d1ad94d74e6fce8e",
+    "semantic_hash": "2183656c00bef099d1ad94d74e6fce8e"
+  },
+  "src/main/java/com/needsvswants/app/di/PreferencesModule.kt": {
+    "mtime": 1785161272.5587034,
+    "ast_hash": "97156c1bdd0afe68ae4f4459b1cfea60",
+    "semantic_hash": "97156c1bdd0afe68ae4f4459b1cfea60"
+  },
+  "src/main/java/com/needsvswants/app/domain/CurrencyFormatter.kt": {
+    "mtime": 1785161225.2044027,
+    "ast_hash": "0f419f128ba85c51b1b9336ce5d8a7d0",
+    "semantic_hash": "0f419f128ba85c51b1b9336ce5d8a7d0"
+  },
+  "src/main/java/com/needsvswants/app/domain/DailyBudget.kt": {
+    "mtime": 1785527559.1546376,
+    "ast_hash": "19b057d05afa3615b441704f23fbb573",
+    "semantic_hash": "19b057d05afa3615b441704f23fbb573"
+  },
+  "src/main/java/com/needsvswants/app/domain/DailyBudgetUseCase.kt": {
+    "mtime": 1785527661.4575565,
+    "ast_hash": "c1d41c3c60369c3cbed0c3f6d0d9f3c2",
+    "semantic_hash": "c1d41c3c60369c3cbed0c3f6d0d9f3c2"
+  },
+  "src/main/java/com/needsvswants/app/domain/SummaryUseCase.kt": {
+    "mtime": 1785161216.4313765,
+    "ast_hash": "492ce65d8cf60b3c2bcef995809484f5",
+    "semantic_hash": "492ce65d8cf60b3c2bcef995809484f5"
+  },
+  "src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt": {
+    "mtime": 1785217377.0395124,
+    "ast_hash": "498c021b4404e28162a9b367c086b37c",
+    "semantic_hash": "498c021b4404e28162a9b367c086b37c"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/history/HistoryScreen.kt": {
+    "mtime": 1785257722.0656734,
+    "ast_hash": "deb66f8a0da120e14c29d2a34bdeab64",
+    "semantic_hash": "deb66f8a0da120e14c29d2a34bdeab64"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/history/HistoryViewModel.kt": {
+    "mtime": 1785161311.1436808,
+    "ast_hash": "dd736a09ef6e60009b12247b1b3ef3f7",
+    "semantic_hash": "dd736a09ef6e60009b12247b1b3ef3f7"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/input/InputScreen.kt": {
+    "mtime": 1785527911.0707648,
+    "ast_hash": "efe6d2295a4094e59cf40afeb2c1e06c",
+    "semantic_hash": "efe6d2295a4094e59cf40afeb2c1e06c"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/input/InputViewModel.kt": {
+    "mtime": 1785527886.659708,
+    "ast_hash": "54beaf7a06fb51d97f319342b62ffbf2",
+    "semantic_hash": "54beaf7a06fb51d97f319342b62ffbf2"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/settings/SettingsScreen.kt": {
+    "mtime": 1785527783.4735396,
+    "ast_hash": "d2abe4c9b35717619138d86028ccea81",
+    "semantic_hash": "d2abe4c9b35717619138d86028ccea81"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/settings/SettingsViewModel.kt": {
+    "mtime": 1785527733.2360995,
+    "ast_hash": "dafe4019795fe0934c9b044e9f5199a9",
+    "semantic_hash": "dafe4019795fe0934c9b044e9f5199a9"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/summary/SummaryScreen.kt": {
+    "mtime": 1785527868.6836329,
+    "ast_hash": "83e6de797dfd97a51579d5c912b166f9",
+    "semantic_hash": "83e6de797dfd97a51579d5c912b166f9"
+  },
+  "src/main/java/com/needsvswants/app/ui/screens/summary/SummaryViewModel.kt": {
+    "mtime": 1785527986.5596037,
+    "ast_hash": "fa25256d9cf44cb5de4c16488484c48b",
+    "semantic_hash": "fa25256d9cf44cb5de4c16488484c48b"
+  },
+  "src/main/java/com/needsvswants/app/ui/theme/Color.kt": {
+    "mtime": 1785215195.659452,
+    "ast_hash": "22aa661ab3e0d80a444a7f75142a3e8f",
+    "semantic_hash": "22aa661ab3e0d80a444a7f75142a3e8f"
+  },
+  "src/main/java/com/needsvswants/app/ui/theme/Components.kt": {
+    "mtime": 1785257346.4144902,
+    "ast_hash": "a34e35a1855828db418b024b50f2cf79",
+    "semantic_hash": "a34e35a1855828db418b024b50f2cf79"
+  },
+  "src/main/java/com/needsvswants/app/ui/theme/Shape.kt": {
+    "mtime": 1785168860.8197832,
+    "ast_hash": "51a25e2efe71149114997b5736c0c373",
+    "semantic_hash": "51a25e2efe71149114997b5736c0c373"
+  },
+  "src/main/java/com/needsvswants/app/ui/theme/Theme.kt": {
+    "mtime": 1785215269.6820948,
+    "ast_hash": "63cf0325248391162bda6d9208ac91ac",
+    "semantic_hash": "63cf0325248391162bda6d9208ac91ac"
+  },
+  "src/main/java/com/needsvswants/app/ui/theme/Type.kt": {
+    "mtime": 1785168358.4009523,
+    "ast_hash": "0284aa5b59ac4d5b5d436bd078e8b48c",
+    "semantic_hash": "0284aa5b59ac4d5b5d436bd078e8b48c"
+  },
+  "src/test/java/com/needsvswants/app/domain/DailyBudgetTest.kt": {
+    "mtime": 1785527405.686565,
+    "ast_hash": "adf258fe2cff84c220f279e3e195e15c",
+    "semantic_hash": "adf258fe2cff84c220f279e3e195e15c"
+  }
+}
