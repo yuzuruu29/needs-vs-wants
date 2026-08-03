@@ -18,59 +18,117 @@ val BodyFont = FontFamily(
     Font(R.font.inter_semibold, FontWeight.SemiBold)
 )
 
-// Editorial label style — wide letter-spaced uppercase for eyebrows / micro labels.
-// Colors come from callers / AppTheme so dark & high-contrast work.
+// Editorial label — wide letter-spaced uppercase for eyebrows / micro labels.
 private val eyebrow = TextStyle(
     fontFamily = BodyFont,
     fontWeight = FontWeight.SemiBold,
     fontSize = 11.sp,
-    letterSpacing = 2.4.sp
+    letterSpacing = 2.0.sp,
+    lineHeight = 14.sp
 )
 
+/**
+ * Full Material 3 scale so no role falls back to system Roboto.
+ * Display / headlines = Playfair SC; UI body / titles / labels = Inter.
+ */
 val AppTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
-        fontSize = 30.sp,
-        letterSpacing = 1.sp
+        fontSize = 32.sp,
+        letterSpacing = 0.8.sp,
+        lineHeight = 38.sp
+    ),
+    displayMedium = TextStyle(
+        fontFamily = DisplayFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        letterSpacing = 0.6.sp,
+        lineHeight = 34.sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = DisplayFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        letterSpacing = 0.5.sp,
+        lineHeight = 30.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = DisplayFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        letterSpacing = 0.8.sp,
+        lineHeight = 30.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        letterSpacing = 1.4.sp
+        letterSpacing = 1.0.sp,
+        lineHeight = 28.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = DisplayFont,
         fontWeight = FontWeight.Bold,
         fontSize = 18.sp,
-        letterSpacing = 1.2.sp
+        letterSpacing = 0.8.sp,
+        lineHeight = 24.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        letterSpacing = 0.15.sp,
+        lineHeight = 24.sp
     ),
     titleMedium = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 15.sp,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.2.sp,
+        lineHeight = 20.sp
     ),
     titleSmall = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
-        letterSpacing = 0.3.sp
+        letterSpacing = 0.15.sp,
+        lineHeight = 18.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        letterSpacing = 0.15.sp
+        fontSize = 16.sp,
+        letterSpacing = 0.15.sp,
+        lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.15.sp,
+        lineHeight = 20.sp
     ),
-    labelLarge = eyebrow.copy(fontSize = 12.sp),
-    labelSmall = eyebrow,
-    labelMedium = eyebrow.copy(fontSize = 11.sp, letterSpacing = 1.8.sp)
+    bodySmall = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        letterSpacing = 0.2.sp,
+        lineHeight = 16.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
+        letterSpacing = 0.8.sp,
+        lineHeight = 16.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        letterSpacing = 0.4.sp,
+        lineHeight = 14.sp
+    ),
+    labelSmall = eyebrow
 )

@@ -1,0 +1,54 @@
+# Needs vs Wants - Supabase project configuration
+# Task 2: Pro subscription backend scaffolding.
+#
+# Deploy from this directory only (`supabase`), never the monorepo root:
+#   supabase link --project-ref <PROJECT_REF>
+#   supabase db push
+#   supabase functions deploy get_entitlement
+#   supabase functions deploy paypal_webhook
+#   supabase functions deploy google_play_verify
+#   supabase functions deploy apple_verify
+#   supabase secrets set SUPABASE_SERVICE_ROLE_KEY=... (migrated providers only)
+
+project_id = "needs-vs-wants"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+shadow_port = 54320
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[local_smtp]
+port = 54324
+
+# Per-function settings (CLI 2.x expects [functions.<name>] maps, not a global bool).
+# paypal_webhook is called by PayPal, not a Supabase JWT client.
+[functions.get_entitlement]
+verify_jwt = true
+
+[functions.google_play_verify]
+verify_jwt = true
+
+[functions.apple_verify]
+verify_jwt = true
+
+[functions.paypal_webhook]
+verify_jwt = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
+jwt_expiry = 3600
+enable_signup = true

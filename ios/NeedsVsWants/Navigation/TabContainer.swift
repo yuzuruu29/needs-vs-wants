@@ -12,7 +12,7 @@ struct TabContainer: View {
     @State private var showInstructions = false
 
     enum Tab: Hashable, CaseIterable {
-        case summary, log, history, settings
+        case summary, log, advisor, history, settings
     }
 
     var body: some View {
@@ -27,6 +27,11 @@ struct TabContainer: View {
                     .padding(.bottom, 84)
                     .opacity(selected == .log ? 1 : 0)
                     .allowsHitTesting(selected == .log)
+
+                AdvisorView()
+                    .padding(.bottom, 84)
+                    .opacity(selected == .advisor ? 1 : 0)
+                    .allowsHitTesting(selected == .advisor)
 
                 HistoryView()
                     .padding(.bottom, 84)
@@ -99,6 +104,7 @@ extension TabContainer.Tab {
         switch self {
         case .summary: return "Summary"
         case .log: return "Log"
+        case .advisor: return "Advisor"
         case .history: return "History"
         case .settings: return "Settings"
         }
@@ -107,6 +113,7 @@ extension TabContainer.Tab {
         switch self {
         case .summary: return "house.fill"
         case .log: return "cart.fill"
+        case .advisor: return "lightbulb.fill"
         case .history: return "clock.fill"
         case .settings: return "gearshape.fill"
         }
@@ -115,6 +122,7 @@ extension TabContainer.Tab {
         switch self {
         case .summary: return "house"
         case .log: return "cart"
+        case .advisor: return "lightbulb"
         case .history: return "clock"
         case .settings: return "gearshape"
         }

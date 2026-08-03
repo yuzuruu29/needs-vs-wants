@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// Load gitignored local.properties (sdk.dir + optional Supabase / billing keys).
+// Never put real keys in this file or any tracked source — only local.properties.
+val localProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun localProp(name: String, default: String = ""): String =
+    (localProperties.getProperty(name) ?: default)
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
 
 android {
     namespace = "com.needsvswants.app"
@@ -16,6 +29,26 @@ android {
         versionCode = 5
         versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // --- Task 3: Pro / Supabase seams -----------------------------------
+        // Empty by default (offline). Set SUPABASE_URL + SUPABASE_ANON_KEY in
+        // root local.properties (gitignored). Anon key is a public client key;
+        // never put the service_role key in the app.
+        buildConfigField("String", "SUPABASE_URL", "\"${localProp("SUPABASE_URL")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProp("SUPABASE_ANON_KEY")}\"")
+        buildConfigField(
+            "String",
+            "PRO_TRIAL_PRODUCT_ID",
+            "\"${localProp("PRO_TRIAL_PRODUCT_ID", "pro_trial_3day")}\""
+        )
+        buildConfigField(
+            "String",
+            "PRO_MONTHLY_PRODUCT_ID",
+            "\"${localProp("PRO_MONTHLY_PRODUCT_ID", "pro_monthly")}\""
+        )
+        // Web OAuth client ID — serverClientId for Credential Manager Google Sign-In.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
+        // ---------------------------------------------------------------------
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -52,6 +85,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -85,6 +119,16 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
+
+    // --- Task 3: Google Play Billing (stub implementation; offline build) --
+    // Uncomment `androidx-billing` in gradle/libs.versions.toml first, then enable:
+    // implementation(libs.androidx.billing)
+    // ------------------------------------------------------------------------
+
+    // Google Sign-In via Credential Manager (native ID token → Supabase)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

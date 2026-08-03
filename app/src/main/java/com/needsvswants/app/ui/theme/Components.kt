@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,11 +57,59 @@ fun inkWash(top: Color, bottom: Color) = Brush.verticalGradient(
     colors = listOf(top, bottom)
 )
 
-/** Themed background wash (reads current [AppTheme] palette). */
+/** Themed background wash — soft cream depth (supermarket premium, not purple-AI). */
 @Composable
 fun themedInkWash(): Brush {
     val c = AppTheme.colors
-    return inkWash(c.background, c.surfaceRaised)
+    return Brush.verticalGradient(
+        colorStops = arrayOf(
+            0.0f to c.background,
+            0.55f to c.background,
+            1.0f to c.surfaceSunken
+        )
+    )
+}
+
+/**
+ * Glossy card surface: white/raised fill, soft elevation, gold-kissed border.
+ * Prefer this over bare [Surface] on main screens for a premium feel.
+ */
+@Composable
+fun PremiumSurface(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(18.dp),
+    goldEdge: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val c = AppTheme.colors
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = shape,
+        color = c.surfaceCard,
+        shadowElevation = 5.dp,
+        tonalElevation = 0.dp,
+        border = BorderStroke(
+            1.dp,
+            if (goldEdge) c.gold.copy(alpha = 0.28f) else c.divider
+        )
+    ) {
+        // Subtle top sheen
+        Box {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = if (c.isLightStatusBars) 0.55f else 0.06f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Column(content = content)
+        }
+    }
 }
 
 /** Faint gold radial glow used behind hero elements (donut, stat hero). */
@@ -90,7 +139,8 @@ fun Eyebrow(
         color = resolved,
         modifier = modifier,
         softWrap = softWrap,
-        maxLines = maxLines
+        maxLines = maxLines,
+        overflow = if (maxLines == 1) TextOverflow.Ellipsis else TextOverflow.Clip
     )
 }
 
@@ -170,7 +220,7 @@ fun adaptiveMoneySize(text: String, base: TextUnit): TextUnit {
     return (base.value * factor).sp
 }
 
-/** Premium card — white AppTheme.colors.background, hairline border, optional AppTheme.colors.gold top glow. */
+/** Premium card — glossy surface with gold edge. */
 @Composable
 fun GiltCard(
     modifier: Modifier = Modifier,
@@ -178,19 +228,7 @@ fun GiltCard(
     giltAccent: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        color = AppTheme.colors.surfaceCard,
-        border = BorderStroke(1.dp, AppTheme.colors.divider)
-    ) {
-        Column {
-            content()
-        }
-    }
-    if (giltAccent) {
-        // Crown drawn inside parent via overlay in actual screens; keep helper non-breaking.
-    }
+    PremiumSurface(modifier = modifier, shape = shape, goldEdge = true || giltAccent, content = content)
 }
 
 /** Primary action button — solid crimson with white text, premium weight. */
@@ -212,37 +250,44 @@ fun GiltButton(
             disabledContainerColor = AppTheme.colors.crimson.copy(alpha = 0.35f),
             disabledContentColor = AppTheme.colors.surfaceCard.copy(alpha = 0.6f)
         ),
-        modifier = modifier.height(height)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 1.dp),
+        modifier = modifier.heightIn(min = height)
     ) {
         Text(
             text = text.uppercase(),
             style = TextStyle(
                 fontFamily = BodyFont,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                letterSpacing = 1.2.sp
-            )
+                fontSize = 13.sp,
+                letterSpacing = 1.0.sp
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
     }
 }
 
 /**
- * Shared ledger column metrics — header and rows must use the same widths
- * so TIME / ITEM / COST / TYPE never drift or wrap awkwardly.
+ * Shared ledger column metrics — widths scale with fontScale so enlarged text
+ * does not clip into neighboring columns.
  */
-private object LedgerCols {
-    val Time = 48.dp
-    val Cost = 88.dp
-    val Type = 42.dp
-    val Delete = 32.dp
-    val GutterTight = 6.dp
-    val Gutter = 10.dp
-    val TrailGutter = 8.dp
+@Composable
+private fun ledgerScaled(base: Float): Dp {
+    val fs = androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceIn(1f, 1.35f)
+    return (base * fs).dp
 }
 
 /** Column labels for the sealed-entry table on the Log screen. */
 @Composable
 fun EntryLedgerHeader(modifier: Modifier = Modifier) {
+    val timeW = ledgerScaled(48f)
+    val costW = ledgerScaled(92f)
+    val typeW = ledgerScaled(46f)
+    val deleteW = ledgerScaled(32f)
+    val gutter = ledgerScaled(8f)
+    val gutterTight = ledgerScaled(6f)
+    val trail = ledgerScaled(6f)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -251,41 +296,45 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             text = "TIME",
             style = ledgerHeaderStyle(),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(LedgerCols.Time),
+            modifier = Modifier.width(timeW),
             maxLines = 1,
-            softWrap = false
+            softWrap = false,
+            overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(LedgerCols.Gutter))
+        Spacer(Modifier.width(gutter))
         Text(
             text = "ITEM",
             style = ledgerHeaderStyle(),
             color = AppTheme.colors.textMuted,
             modifier = Modifier.weight(1f),
             maxLines = 1,
-            softWrap = false
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
         )
-        Spacer(Modifier.width(LedgerCols.Gutter))
+        Spacer(Modifier.width(gutter))
         Text(
             text = "COST",
             style = ledgerHeaderStyle(),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(LedgerCols.Cost),
+            modifier = Modifier.width(costW),
             textAlign = TextAlign.End,
             maxLines = 1,
-            softWrap = false
+            softWrap = false,
+            overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(LedgerCols.TrailGutter))
+        Spacer(Modifier.width(trail))
         Text(
             text = "TYPE",
-            style = ledgerHeaderStyle(letterSpacing = 0.55.sp),
+            style = ledgerHeaderStyle(letterSpacing = 0.4.sp),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(LedgerCols.Type),
+            modifier = Modifier.width(typeW),
             textAlign = TextAlign.Center,
             maxLines = 1,
-            softWrap = false
+            softWrap = false,
+            overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(LedgerCols.GutterTight))
-        Spacer(Modifier.width(LedgerCols.Delete))
+        Spacer(Modifier.width(gutterTight))
+        Spacer(Modifier.width(deleteW))
     }
 }
 
@@ -303,6 +352,13 @@ fun EntryLedgerRow(
 ) {
     val typeColor = if (entry.type == EntryType.NEED) AppTheme.colors.need else AppTheme.colors.want
     val money = entry.costCents.toMoney(symbol)
+    val timeW = ledgerScaled(48f)
+    val costW = ledgerScaled(92f)
+    val typeW = ledgerScaled(46f)
+    val deleteW = ledgerScaled(32f)
+    val gutter = ledgerScaled(8f)
+    val gutterTight = ledgerScaled(6f)
+    val trail = ledgerScaled(6f)
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -321,11 +377,12 @@ fun EntryLedgerRow(
                     fontFeatureSettings = "tnum"
                 ),
                 color = AppTheme.colors.textMuted,
-                modifier = Modifier.width(LedgerCols.Time),
+                modifier = Modifier.width(timeW),
                 maxLines = 1,
-                softWrap = false
+                softWrap = false,
+                overflow = TextOverflow.Clip
             )
-            Spacer(Modifier.width(LedgerCols.Gutter))
+            Spacer(Modifier.width(gutter))
             Text(
                 text = entry.item,
                 style = MaterialTheme.typography.bodyMedium,
@@ -335,7 +392,7 @@ fun EntryLedgerRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.width(LedgerCols.Gutter))
+            Spacer(Modifier.width(gutter))
             Text(
                 text = money,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -344,22 +401,22 @@ fun EntryLedgerRow(
                 ),
                 color = AppTheme.colors.textPrimary,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(LedgerCols.Cost),
+                modifier = Modifier.width(costW),
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.width(LedgerCols.TrailGutter))
+            Spacer(Modifier.width(trail))
             Box(
                 modifier = Modifier
-                    .width(LedgerCols.Type)
-                    .height(28.dp),
+                    .width(typeW)
+                    .heightIn(min = 28.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(ledgerScaled(30f))
                         .border(BorderStroke(1.2.dp, typeColor), RoundedCornerShape(7.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -374,10 +431,10 @@ fun EntryLedgerRow(
                     )
                 }
             }
-            Spacer(Modifier.width(LedgerCols.GutterTight))
+            Spacer(Modifier.width(gutterTight))
             Box(
                 modifier = Modifier
-                    .size(LedgerCols.Delete)
+                    .size(deleteW)
                     .clickable(role = Role.Button, onClick = onDelete),
                 contentAlignment = Alignment.Center
             ) {

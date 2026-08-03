@@ -1,0 +1,10 @@
+# Copy to local.properties (gitignored) at repo root. Do not commit real keys.
+# Anon key is the public client key; never put service_role in the Android app.
+
+SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_ANON_KEY=your_anon_key_here
+# Web OAuth client ID from Google Cloud (also used as Android serverClientId)
+GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+# Optional overrides (defaults exist in app/build.gradle.kts):
+# PRO_TRIAL_PRODUCT_ID=pro_trial_3day
+# PRO_MONTHLY_PRODUCT_ID=pro_monthly

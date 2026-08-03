@@ -30,7 +30,14 @@ class InputViewModel @Inject constructor(
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
 
-    val isSheetFull: Boolean get() = sheetEntries.value.size >= 20
+    val entitlement = preferences.entitlement
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.needsvswants.app.domain.Entitlement.Free)
+
+    val isSheetFull: Boolean get() {
+        val now = System.currentTimeMillis()
+        if (entitlement.value.hasProAccessAt(now)) return false
+        return sheetEntries.value.size >= 20
+    }
 
     var activeItem = MutableStateFlow("")
     var activeCost = MutableStateFlow("")

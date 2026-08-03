@@ -19,9 +19,10 @@ enum class ThemeId(val storageKey: String) {
 }
 
 enum class FontScaleStep(val storageKey: String, val multiplier: Float) {
+    // Softened so Extra large stays readable without crushing fixed layouts.
     DEFAULT("default", 1.00f),
-    LARGE("large", 1.15f),
-    EXTRA_LARGE("extra_large", 1.30f);
+    LARGE("large", 1.12f),
+    EXTRA_LARGE("extra_large", 1.22f);
 
     companion object {
         fun fromStorage(raw: String?): FontScaleStep =

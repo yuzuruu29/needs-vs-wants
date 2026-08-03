@@ -9,8 +9,8 @@ class AppearancePrefsTest {
     @Test
     fun fontMultipliers() {
         assertEquals(1.00f, FontScaleStep.DEFAULT.multiplier)
-        assertEquals(1.15f, FontScaleStep.LARGE.multiplier)
-        assertEquals(1.30f, FontScaleStep.EXTRA_LARGE.multiplier)
+        assertEquals(1.12f, FontScaleStep.LARGE.multiplier)
+        assertEquals(1.22f, FontScaleStep.EXTRA_LARGE.multiplier)
     }
 
     @Test

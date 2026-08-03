@@ -1,0 +1,31 @@
+{
+  "sourceOfTruth": "Google NotebookLM (Economic Studies Notebooks)",
+  "version": "1.0.0",
+  "notebookUrl": "https://notebook.google.com/",
+  "studies": [
+    {
+      "id": "study_01",
+      "title": "Budgetary Equilibrium & Need vs Want Allocation",
+      "citation": "NotebookLM Section 1.2 — Binary Classification Dynamics",
+      "summary": "Need expenditure represents core baseline staples. Want expenditure represents discretionary lifestyle choices.",
+      "advice": "Keep Needs as the majority share (>50%) of total spend. When Wants exceed Needs, evaluate upcoming purchases with a 24-hour delay.",
+      "keywords": ["need", "want", "split", "ratio", "equilibrium", "baseline"]
+    },
+    {
+      "id": "study_02",
+      "title": "Real-Time Micro-Transaction Friction",
+      "citation": "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control",
+      "summary": "Impulse purchases occur when transaction friction is zero. Real-time categorization forces active decision making.",
+      "advice": "Always log purchases immediately at point-of-sale to preserve behavioral friction and habit reinforcement.",
+      "keywords": ["friction", "impulse", "daily", "budget", "log", "velocity"]
+    },
+    {
+      "id": "study_03",
+      "title": "Compensatory Budget Recovery",
+      "citation": "NotebookLM Section 4.5 — Compensatory Sinking Protocol",
+      "summary": "Overspending on a single day should be compensated by tightening discretionary Want spending on subsequent days.",
+      "advice": "If you exceed your daily budget today, reduce your daily Want target by 33% for the next 3 days until liquidity normalizes.",
+      "keywords": ["overspend", "exceed", "limit", "recovery", "compensate", "sinking"]
+    }
+  ]
+}

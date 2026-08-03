@@ -65,24 +65,41 @@ fun SummaryScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            Column {
-                Eyebrow("A 35-Day Trainer", color = palette.crimson)
+            Column(modifier = Modifier.weight(1f)) {
+                Eyebrow("A 35-Day Trainer", color = palette.crimson, maxLines = 1)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "NEEDS\nvs WANTS",
-                    style = MaterialTheme.typography.displayLarge.copy(lineHeight = 36.sp),
+                    style = MaterialTheme.typography.displayLarge.copy(lineHeight = 34.sp),
                     color = palette.textPrimary
                 )
                 Spacer(Modifier.height(8.dp))
                 GiltRule(width = 40.dp)
                 Spacer(Modifier.height(6.dp))
-                Text("Expense Tracker", color = palette.crimson, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Expense Tracker",
+                    color = palette.crimson,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Spacer(Modifier.height(8.dp))
-                Text(getPeriodLabel(period), color = palette.crimson, style = MaterialTheme.typography.labelMedium)
-                Text(getPeriodRange(period), color = palette.textMuted, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, letterSpacing = 0.6.sp))
+                Text(
+                    getPeriodLabel(period),
+                    color = palette.crimson,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
+                )
+                Text(
+                    getPeriodRange(period),
+                    color = palette.textMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2
+                )
             }
-            IconButton(onClick = { showInstructions = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.AutoMirrored.Filled.HelpOutline, "Help", tint = palette.crimson, modifier = Modifier.size(20.dp))
+            IconButton(onClick = { showInstructions = true }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.AutoMirrored.Filled.HelpOutline, "Help", tint = palette.crimson, modifier = Modifier.size(22.dp))
             }
         }
 

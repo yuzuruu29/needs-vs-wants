@@ -23,14 +23,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
+import com.needsvswants.app.ui.screens.auth.AuthViewModel
 import com.needsvswants.app.ui.theme.*
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onOpenPaywall: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
     val currentCode by viewModel.currentCode.collectAsStateWithLifecycle()
     val themeId by viewModel.themeId.collectAsStateWithLifecycle()
     val fontScaleStep by viewModel.fontScaleStep.collectAsStateWithLifecycle()
     val symbol by viewModel.currentSymbol.collectAsStateWithLifecycle()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     var showWipeConfirm by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
 
@@ -42,11 +48,73 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
     ) {
-        Eyebrow("PREFERENCES", color = palette.crimson)
+        Eyebrow("PREFERENCES", color = palette.crimson, maxLines = 1)
         Spacer(Modifier.height(6.dp))
-        Text("SETTINGS", style = MaterialTheme.typography.displayLarge, color = palette.textPrimary)
+        Text(
+            "SETTINGS",
+            style = MaterialTheme.typography.displayLarge,
+            color = palette.textPrimary,
+            maxLines = 2
+        )
         Spacer(Modifier.height(8.dp))
         GiltRule(width = 40.dp)
+
+        Spacer(Modifier.height(28.dp))
+
+        // Account: free users cannot sign in here — Google is only on the Pro/Max paywall.
+        SectionLabel("ACCOUNT")
+        Spacer(Modifier.height(10.dp))
+        PremiumSurface(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (authState.signedIn) {
+                    Text(
+                        authState.email ?: "Signed in",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Linked for Pro / Max purchases and entitlement sync.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = { authViewModel.signOut() },
+                        enabled = !authState.busy,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, palette.inkDivider),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Sign out", color = palette.textPrimary)
+                    }
+                } else {
+                    Text(
+                        "No account on free plan",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Google sign-in unlocks only when you start Pro or Max — free logging stays private on-device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = onOpenPaywall,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.55f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View Pro & Max plans", color = palette.textPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
 
         Spacer(Modifier.height(28.dp))
 
@@ -171,6 +239,41 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         )
                     }
                 }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabel("SUBSCRIPTION")
+        Spacer(Modifier.height(10.dp))
+        PremiumSurface(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpenPaywall)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Pro & Max plans",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Sign in with Google only when you upgrade — unlimited log, full history, Max AI Advisor.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    "upgrade to pro",
+                    tint = palette.gold.copy(alpha = 0.7f)
+                )
             }
         }
 
@@ -333,7 +436,11 @@ private fun PreferenceRow(
             }
         }
         Spacer(Modifier.width(14.dp))
-        leading()
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            content = leading
+        )
     }
 }
 
