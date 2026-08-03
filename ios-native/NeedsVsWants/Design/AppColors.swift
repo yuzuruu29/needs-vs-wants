@@ -4,8 +4,10 @@ import SwiftUI
 ///
 /// Light values reproduce D7 exactly (crimson #C8102E, market green #0B6B3A,
 /// gold #E8A92A, warm cream #FAFAF7). Dark values are tuned variants — same
-/// brand identity, readable on black. The old `ios/` port only had light mode;
-/// this is the adaptive improvement the plan calls for.
+/// brand identity, readable on black.
+///
+/// **Parity note:** Android remains light-only (D7). Dark mode is an iOS-native
+/// enhancement for v1 — intentional platform divergence, not a missing port.
 enum AppColors {
     static let surface = Color(uiColor: UIColor { tc in
         tc.userInterfaceStyle == .dark

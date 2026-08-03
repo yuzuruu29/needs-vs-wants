@@ -36,7 +36,7 @@ struct HistoryView: View {
                     .padding(.bottom, 40)
                 }
             }
-            .background(AppColors.surface)
+            .inkWashBackground()
             .navigationTitle("History")
         }
         .alert("Delete entry?", isPresented: $showDeleteAlert) {
@@ -56,27 +56,25 @@ struct HistoryView: View {
         let totals = vm.dayTotals(dayEntries)
         return VStack(spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(formatDayHeader(key))
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
-                    Text("\(dayEntries.count) entries")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.textSecondary)
-                }
+                Text(formatDayHeader(key).uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(AppColors.textPrimary)
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    if totals.needs > 0 {
-                        CurrencyText(cents: totals.needs, currency: currency)
-                            .foregroundStyle(AppColors.need)
-                    }
-                    if totals.wants > 0 {
-                        CurrencyText(cents: totals.wants, currency: currency)
-                            .foregroundStyle(AppColors.want)
-                    }
-                }
+                Text("\(dayEntries.count) entries")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.textSecondary)
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 12)
+
+            HStack(spacing: 18) {
+                dayTotal(color: AppColors.need, label: "Need", cents: totals.needs)
+                dayTotal(color: AppColors.want, label: "Want", cents: totals.wants)
+            }
+            .padding(.bottom, 14)
+
+            Divider().background(AppColors.divider)
+                .padding(.bottom, 8)
 
             LedgerHeader()
 
@@ -94,8 +92,29 @@ struct HistoryView: View {
         }
         .padding(16)
         .background(AppColors.surfaceCard)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.divider, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: AppMetrics.cardRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppMetrics.cardRadius)
+                .stroke(AppColors.divider, lineWidth: 1)
+        )
+    }
+
+    private func dayTotal(color: Color, label: String, cents: Int64) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(AppColors.textSecondary)
+            CurrencyText(cents: cents, currency: currency)
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .foregroundStyle(AppColors.textPrimary)
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) \(CurrencyFormatter.format(cents: cents, currency: currency))")
     }
 
     // MARK: - Empty state
@@ -103,15 +122,12 @@ struct HistoryView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Circle()
-                .stroke(AppColors.divider, lineWidth: 2)
-                .frame(width: 100, height: 100)
-                .overlay {
-                    Image(systemName: "book")
-                        .font(.system(size: 32))
-                        .foregroundStyle(AppColors.textSecondary)
-                }
+                .stroke(AppColors.crimson.opacity(0.35), lineWidth: 1)
+                .frame(width: 96, height: 96)
+                .giltGlow(alpha: 0.14, diameter: 140)
+            Eyebrow(text: "EMPTY DIARY")
             Text("The page waits for ink.")
-                .font(AppTypography.displaySmall)
+                .font(AppTypography.body)
                 .foregroundStyle(AppColors.textSecondary)
             PrimaryButton(title: "Log an expense") {
                 appModel.switchToLog()

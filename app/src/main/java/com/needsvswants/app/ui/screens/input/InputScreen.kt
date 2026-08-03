@@ -151,7 +151,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                         Spacer(Modifier.height(8.dp))
                         Text("20 / 20 entries sealed", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                         Spacer(Modifier.height(14.dp))
-                        GiltButton(onClick = {}, text = "Start new sheet", height = 48.dp)
+                        GiltButton(onClick = { viewModel.startNewSheet() }, text = "Start new sheet", height = 48.dp)
                     }
                 }
             }
