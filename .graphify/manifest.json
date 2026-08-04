@@ -1,0 +1,974 @@
+{
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__clang_cuda_cmath.h": {
+    "mtime": 1785160563345.267,
+    "hash": "0e3cb48c46af3431ef18d0f9e5b8c078"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__clang_cuda_intrinsics.h": {
+    "mtime": 1785160563345.8948,
+    "hash": "8f1a4c2c9d2e326b66a06e4f9e164665"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__clang_cuda_math_forward_declares.h": {
+    "mtime": 1785160563354.9126,
+    "hash": "6d1085d38c47baa49aec58b62e932567"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__clang_cuda_runtime_wrapper.h": {
+    "mtime": 1785160563355.922,
+    "hash": "154a8788778e58413a998c0d25df6a1e"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__stddef_max_align_t.h": {
+    "mtime": 1785160563357.1145,
+    "hash": "2517149e769905bc80e89dd0e36f947d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__wmmintrin_aes.h": {
+    "mtime": 1785160563358.1118,
+    "hash": "76318b23cd51d3ba5ee8a610866564ce"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/__wmmintrin_pclmul.h": {
+    "mtime": 1785160563359.1123,
+    "hash": "eff01640cb8d4f26f863b6585512514a"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/adxintrin.h": {
+    "mtime": 1785160563254.4834,
+    "hash": "18107898b13e08d2a86ac7f6add446e2"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/altivec.h": {
+    "mtime": 1785160563256.6443,
+    "hash": "a81933aba9e074ead09a8c6061047c46"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/ammintrin.h": {
+    "mtime": 1785160563257.1487,
+    "hash": "8c194f379b0ed3fff811e151cb04eadb"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/arm_acle.h": {
+    "mtime": 1785160563260.1538,
+    "hash": "53d630804e40b78391b46bfe7c2a7148"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx2intrin.h": {
+    "mtime": 1785160563261.1553,
+    "hash": "6d7a80c6d8c199ddf8b7209155fadcac"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512bwintrin.h": {
+    "mtime": 1785160563262.169,
+    "hash": "f72577cccd8716d3b3a8d3193acd3a19"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512cdintrin.h": {
+    "mtime": 1785160563264.1597,
+    "hash": "40b75a5b2e1ad22ceb658cbcbcf82ab4"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512dqintrin.h": {
+    "mtime": 1785160563264.6646,
+    "hash": "7f4ca7d219fd03131dea3206f2db4818"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512erintrin.h": {
+    "mtime": 1785160563265.6724,
+    "hash": "1bb264e91f940576581d8ff64a752688"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512fintrin.h": {
+    "mtime": 1785160563267.841,
+    "hash": "da23933aa37a0f8f065d09c569e11ee8"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512ifmaintrin.h": {
+    "mtime": 1785160563268.8389,
+    "hash": "e54d47493db70eb3f2b240d8760a1539"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512ifmavlintrin.h": {
+    "mtime": 1785160563269.8386,
+    "hash": "4dbe89c9f3abf6042d64cc038250d64d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512pfintrin.h": {
+    "mtime": 1785160563270.8389,
+    "hash": "4692935ac015f3d7051b952835eeed00"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vbmiintrin.h": {
+    "mtime": 1785160563271.8403,
+    "hash": "7fb028af5cd5d373688c648d05fa0934"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vbmivlintrin.h": {
+    "mtime": 1785160563272.8416,
+    "hash": "b31883fb62abf2240e220c6f3d730e2d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vlbwintrin.h": {
+    "mtime": 1785160563272.8416,
+    "hash": "9f3fe260144fa56505868d8c36d66216"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vlcdintrin.h": {
+    "mtime": 1785160563274.8516,
+    "hash": "a037362ab953e27faea28b78d49635e7"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vldqintrin.h": {
+    "mtime": 1785160563274.8516,
+    "hash": "a8ce864ed5c5b0798361219a3b6d73c6"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avx512vlintrin.h": {
+    "mtime": 1785160563278.0227,
+    "hash": "06a69e039c645fd95ba272f600cd2c23"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/avxintrin.h": {
+    "mtime": 1785160563279.6086,
+    "hash": "a7cefe0be93e98b32e3741866547f3d2"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/bmi2intrin.h": {
+    "mtime": 1785160563280.616,
+    "hash": "9addd5044feaf7142b3adbc9815f4230"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/bmiintrin.h": {
+    "mtime": 1785160563281.6194,
+    "hash": "aaf73f84e562bc7bcc5272c1e75d102e"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/clflushoptintrin.h": {
+    "mtime": 1785160563282.6177,
+    "hash": "7d9f2413f574ae8fb2d4cf9f33477ed5"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/cpuid.h": {
+    "mtime": 1785160563284.6294,
+    "hash": "e5ef8158e5c3294053b8f9079ec789cf"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/cuda_builtin_vars.h": {
+    "mtime": 1785160563285.9834,
+    "hash": "933ae45028d7454a5d5ae427dff49931"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/emmintrin.h": {
+    "mtime": 1785160563286.99,
+    "hash": "4371438141c49ac8e62c8d46d9d52d33"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/f16cintrin.h": {
+    "mtime": 1785160563286.99,
+    "hash": "2c55faef4ed20fb6e5587c8aa1bba30b"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/float.h": {
+    "mtime": 1785160563287.9834,
+    "hash": "21a4ea92df644713a55e38f06d7c182f"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/fma4intrin.h": {
+    "mtime": 1785160563289.9844,
+    "hash": "e2317041a8356efc33bded78dba16c6b"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/fmaintrin.h": {
+    "mtime": 1785160563289.9844,
+    "hash": "0e50ed4730f0f6bcef0445e7ef7ce26c"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/fxsrintrin.h": {
+    "mtime": 1785160563290.9841,
+    "hash": "ddc0919eb199b8f18b7d55d59162af79"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/htmintrin.h": {
+    "mtime": 1785160563291.9846,
+    "hash": "ee8647f3793bf36a5f1ff331c6a9a266"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/htmxlintrin.h": {
+    "mtime": 1785160563292.987,
+    "hash": "01a1a31614de14ef28ab58b5a6be499d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/ia32intrin.h": {
+    "mtime": 1785160563294.5063,
+    "hash": "f45b18b428c64adddb59c0a88454d8b3"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/immintrin.h": {
+    "mtime": 1785160563295.0222,
+    "hash": "319937ae89db9d826e606a4ae4860ba9"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/intrin.h": {
+    "mtime": 1785160563296.1775,
+    "hash": "6b007c07448ab645f4e1c34ffb3051a1"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/inttypes.h": {
+    "mtime": 1785160563297.0557,
+    "hash": "915901babc0ddd40f8f5d3e4a6847650"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/iso646.h": {
+    "mtime": 1785160563298.0554,
+    "hash": "d589027ac5aa84f911b6e2a2bdcf17ae"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/limits.h": {
+    "mtime": 1785160563299.572,
+    "hash": "cdf4e3dd6fef3d60f7ce23890a075304"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/lzcntintrin.h": {
+    "mtime": 1785160563300.57,
+    "hash": "ddf13f544ef19ee04458e5c6e0750169"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/mm3dnow.h": {
+    "mtime": 1785160563301.573,
+    "hash": "4cc72b001708057d228ef5b976f0fa9f"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/mm_malloc.h": {
+    "mtime": 1785160563303.572,
+    "hash": "b3e4d4b4a617f7114bb153ca5410d9e5"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/mmintrin.h": {
+    "mtime": 1785160563302.5728,
+    "hash": "3cba1bb4e1a5b3d86efd57ea31a0638d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/mwaitxintrin.h": {
+    "mtime": 1785160563304.569,
+    "hash": "d07d0963266a021b8318862f4216d650"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/nmmintrin.h": {
+    "mtime": 1785160563304.569,
+    "hash": "93c76eb048a63e52fe931568fa24c052"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/opencl-c.h": {
+    "mtime": 1785160563308.2004,
+    "hash": "87b9e8fdc297da3b9bea22f30e4d1614"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/pkuintrin.h": {
+    "mtime": 1785160563309.2024,
+    "hash": "2ba7cfe52bdde5a7e5497ea7e216f7dc"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/pmmintrin.h": {
+    "mtime": 1785160563310.402,
+    "hash": "cc0e1ecb5fe4f7c68e5a4557f96b3665"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/popcntintrin.h": {
+    "mtime": 1785160563311.7097,
+    "hash": "9d76b3838c2359a8529960477e12872c"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/prfchwintrin.h": {
+    "mtime": 1785160563312.7146,
+    "hash": "39be4fe098f1e2d2cd069f4e19157a1d"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/rdseedintrin.h": {
+    "mtime": 1785160563314.2214,
+    "hash": "8db41c5cbd2f827c67e8fc886f4f7174"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/rtmintrin.h": {
+    "mtime": 1785160563314.7275,
+    "hash": "7352a91f48ca92d891b42342fddaf988"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/s390intrin.h": {
+    "mtime": 1785160563315.7336,
+    "hash": "adad5add4e54503905b0451da5391038"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/shaintrin.h": {
+    "mtime": 1785160563316.8984,
+    "hash": "6db98f77f5a65bcd7b94241af432f2ee"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/smmintrin.h": {
+    "mtime": 1785160563317.896,
+    "hash": "b87c233672467dda7a7b438baf0d1197"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdalign.h": {
+    "mtime": 1785160563318.8962,
+    "hash": "682b3c6ed118371c607fb3ccd4e102b9"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdarg.h": {
+    "mtime": 1785160563319.8987,
+    "hash": "1ef51a9372b0c325d630576d8ed8bbdc"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdatomic.h": {
+    "mtime": 1785160563319.8987,
+    "hash": "c2dae293e51c006728b9bb686d9473e9"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdbool.h": {
+    "mtime": 1785160563320.8977,
+    "hash": "a124e8edaffe24bcd7925207e8a13861"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stddef.h": {
+    "mtime": 1785160563321.896,
+    "hash": "3dd24d4ff6fd1cf5ed6d31accad71676"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdint.h": {
+    "mtime": 1785160563322.8965,
+    "hash": "184763e688e4d7f93bc61898a219f227"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/stdnoreturn.h": {
+    "mtime": 1785160563324.9138,
+    "hash": "294412f598218ac0af6082b87a8eefe9"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/tbmintrin.h": {
+    "mtime": 1785160563327.0603,
+    "hash": "efa86e8c5b875f5f00485c2bd22f4f4c"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/tgmath.h": {
+    "mtime": 1785160563328.0547,
+    "hash": "c27710e1c83a70a8a78818999cb61762"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/tmmintrin.h": {
+    "mtime": 1785160563329.0566,
+    "hash": "c007053792a2a1809421c1a1c06b8992"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/unwind.h": {
+    "mtime": 1785160563330.4966,
+    "hash": "17fd0a9b7b3cb081581ddf49c928fce8"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/vadefs.h": {
+    "mtime": 1785160563331.505,
+    "hash": "b18d2c20b5ebf47e58b7200e5ddeea50"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/varargs.h": {
+    "mtime": 1785160563331.505,
+    "hash": "36f0b7632c1118e2cb9807ea004acd39"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/vecintrin.h": {
+    "mtime": 1785160563333.5024,
+    "hash": "a5386e99d70241782396eef2a2965376"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/wmmintrin.h": {
+    "mtime": 1785160563333.5024,
+    "hash": "685908aeb68daa2883a72674552a006b"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/x86intrin.h": {
+    "mtime": 1785160563336.1797,
+    "hash": "fad4f1dd7528ffa905d7aa65e4494350"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xmmintrin.h": {
+    "mtime": 1785160563337.1787,
+    "hash": "ad0a075a517b15441de5d2089ba94a3b"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xopintrin.h": {
+    "mtime": 1785160563338.1804,
+    "hash": "da293152381f6e8cbad0fc41044d22eb"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xsavecintrin.h": {
+    "mtime": 1785160563340.1824,
+    "hash": "323fdcba9d0d289464a929646c545f2a"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xsaveintrin.h": {
+    "mtime": 1785160563340.7336,
+    "hash": "8a3bb88b274193c76091d8424bb9558b"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xsaveoptintrin.h": {
+    "mtime": 1785160563341.2378,
+    "hash": "20731e471ab0164f4dd3a81f3be97e55"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xsavesintrin.h": {
+    "mtime": 1785160563343.2498,
+    "hash": "79b0df940f8dd50b177504c5cd846ed9"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/xtestintrin.h": {
+    "mtime": 1785160563344.245,
+    "hash": "9b12a9e5189451b8059fb8321f65b4e0"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_auto_utils.h": {
+    "mtime": 1785160565707.2993,
+    "hash": "e3741d7acdbf2d76063b5396660e64b4"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_enums.h": {
+    "mtime": 1785160565695.7302,
+    "hash": "b8400c4e18f3f620171706a049284ef1"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_interface_utils.h": {
+    "mtime": 1785160565698.1113,
+    "hash": "0dadb8bea66c2f55517f187ead6fad51"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_internal_logging.h": {
+    "mtime": 1785160565709.3079,
+    "hash": "7c73866b4f82e8029db62b1e99175cbc"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_parcel_utils.h": {
+    "mtime": 1785160565710.3086,
+    "hash": "307a2da3d5a6abbbb6d54cd0e17fe7b2"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_parcelable_utils.h": {
+    "mtime": 1785160565711.3076,
+    "hash": "417360f686df4af402d37fb80704a218"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/optional/libbinder_ndk_cpp/android/binder_to_string.h": {
+    "mtime": 1785160565697.1157,
+    "hash": "e97773d231bea77a4e47c6a0e1b124fc"
+  },
+  "C:/Needs vs Wants/app/build.gradle.kts": {
+    "mtime": 1785758336104.0137,
+    "hash": "370b4e31941335c473988697efc17871"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/MainActivity.kt": {
+    "mtime": 1785678634796.7458,
+    "hash": "7b1f7e988e3e2035f275f101bae63f56"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/NeedsVsWantsApp.kt": {
+    "mtime": 1785161288114.6968,
+    "hash": "ec4e6f19d9cdf7d8439adc7ebec5af35"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/data/db/AppDatabase.kt": {
+    "mtime": 1785161191513.299,
+    "hash": "2de2b00ed0c0aff023fec75240e33ad9"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/data/db/EntryDao.kt": {
+    "mtime": 1785161184357.1382,
+    "hash": "d6ae8de5be51b2d4d28eb89bd043e8fc"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/data/model/Entry.kt": {
+    "mtime": 1785161175686.063,
+    "hash": "f5dceba8431826f81b7ad238cfe8efa5"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/data/prefs/AppPreferences.kt": {
+    "mtime": 1785758619179.9255,
+    "hash": "bcaafdd441da4b9363871177ac1a2575"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/di/DatabaseModule.kt": {
+    "mtime": 1785161264343.996,
+    "hash": "89e061da34abeed4d1f68ed5815a4705"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/di/DomainModule.kt": {
+    "mtime": 1785527672766.4724,
+    "hash": "2183656c00bef099d1ad94d74e6fce8e"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/di/PreferencesModule.kt": {
+    "mtime": 1785161272558.7036,
+    "hash": "97156c1bdd0afe68ae4f4459b1cfea60"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/domain/AppearancePrefs.kt": {
+    "mtime": 1785678569204.8445,
+    "hash": "60586521581647712099c04e29b69e53"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/domain/CurrencyFormatter.kt": {
+    "mtime": 1785676165730.0137,
+    "hash": "378d620d370d67d4fa13d682b5716577"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/domain/DailyBudget.kt": {
+    "mtime": 1785529267747.379,
+    "hash": "2893da314c91b75bd3caef460dd84547"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/domain/DailyBudgetUseCase.kt": {
+    "mtime": 1785527661457.5564,
+    "hash": "c1d41c3c60369c3cbed0c3f6d0d9f3c2"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/domain/SummaryUseCase.kt": {
+    "mtime": 1785161216431.3765,
+    "hash": "492ce65d8cf60b3c2bcef995809484f5"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/AppAppearanceViewModel.kt": {
+    "mtime": 1785678634796.7458,
+    "hash": "4ae1354b5ab0b1e1404d439a17588c65"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/navigation/AppNavigation.kt": {
+    "mtime": 1785758192185.0442,
+    "hash": "d5b01bfdd725655571245bf22083ad89"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/history/HistoryScreen.kt": {
+    "mtime": 1785679961326.9092,
+    "hash": "4b6a2296bde3e4c943fe2e20310f10ac"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/history/HistoryViewModel.kt": {
+    "mtime": 1785758245995.802,
+    "hash": "01b8562f6b1c0d96e99a64e366855fb4"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/input/InputScreen.kt": {
+    "mtime": 1785686417433.389,
+    "hash": "d5077dde700d457a08b78f72e3a5a833"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/input/InputViewModel.kt": {
+    "mtime": 1785675648353.053,
+    "hash": "65d9f64ba7a01a4af104e9f36f1e058a"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/settings/SettingsScreen.kt": {
+    "mtime": 1785758223132.1836,
+    "hash": "31f22b1f71a73e47568338a86e9344cf"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/settings/SettingsViewModel.kt": {
+    "mtime": 1785680263305.6838,
+    "hash": "069b435e9df4fd225b3425513bc24340"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/summary/SummaryScreen.kt": {
+    "mtime": 1785686417435.3916,
+    "hash": "5769915f1befc70ee70b727aeb6870ac"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/screens/summary/SummaryViewModel.kt": {
+    "mtime": 1785527986559.6038,
+    "hash": "fa25256d9cf44cb5de4c16488484c48b"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/AppPalette.kt": {
+    "mtime": 1785678569202.8337,
+    "hash": "a803fd138930966e167de7c7118825f5"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/Color.kt": {
+    "mtime": 1785215195659.452,
+    "hash": "22aa661ab3e0d80a444a7f75142a3e8f"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/Components.kt": {
+    "mtime": 1785686417446.9783,
+    "hash": "0a506a4ea1820883994f1ca8aed4d1b3"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/Shape.kt": {
+    "mtime": 1785168860819.7832,
+    "hash": "51a25e2efe71149114997b5736c0c373"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/Theme.kt": {
+    "mtime": 1785678634796.7458,
+    "hash": "e7b1f80f49db9b6872b4759561b5b435"
+  },
+  "C:/Needs vs Wants/app/src/main/java/com/needsvswants/app/ui/theme/Type.kt": {
+    "mtime": 1785678634796.7458,
+    "hash": "a6dd1897aebb1899772b51aa8e899bfe"
+  },
+  "C:/Needs vs Wants/app/src/test/java/com/needsvswants/app/domain/AppearancePrefsTest.kt": {
+    "mtime": 1785678569204.8445,
+    "hash": "56f413462e6a614f2cd107f2bc5350fc"
+  },
+  "C:/Needs vs Wants/app/src/test/java/com/needsvswants/app/domain/CurrencyFormatterTest.kt": {
+    "mtime": 1785529425767.3047,
+    "hash": "14fa2de0b093a22782cb86c7cb5e0e80"
+  },
+  "C:/Needs vs Wants/app/src/test/java/com/needsvswants/app/domain/DailyBudgetTest.kt": {
+    "mtime": 1785529240722.6296,
+    "hash": "e3587373de46a9350bb4a855bcdf7e28"
+  },
+  "C:/Needs vs Wants/app/src/test/java/com/needsvswants/app/ui/theme/AppPaletteTest.kt": {
+    "mtime": 1785678569205.8435,
+    "hash": "650d65c35efcca8da6ff018630ec6b94"
+  },
+  "C:/Needs vs Wants/build.gradle.kts": {
+    "mtime": 1785160841744.198,
+    "hash": "4e582ae2ff20e0538f31bcd0dc8d47f1"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/App/NeedsVsWantsApp.swift": {
+    "mtime": 1785260629256.8142,
+    "hash": "7a10b2ce82f1072a90fc426698e9b9b8"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/Eyebrow.swift": {
+    "mtime": 1785260338396.2886,
+    "hash": "4633f70c92ac1543a360ed379c873138"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/GiltRule.swift": {
+    "mtime": 1785260338622.936,
+    "hash": "03ec8b6caa6da582a9b652208c512f25"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/LedgerHeader.swift": {
+    "mtime": 1785260338699.2324,
+    "hash": "10e425566aa6f08f5d4647fb31d4a8ac"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/LedgerRow.swift": {
+    "mtime": 1785260338400.7197,
+    "hash": "19d433e957f6e24db2c6b49f8acada36"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/PremiumCard.swift": {
+    "mtime": 1785260339028.689,
+    "hash": "b0728fc9935e2a85c6f92fa20deab97b"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/PrimaryButton.swift": {
+    "mtime": 1785260570972.1316,
+    "hash": "27439c4f11ea01ac20b58dd2d80e71d7"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Components/TypeBadge.swift": {
+    "mtime": 1785260338423.0396,
+    "hash": "e250379bb4507cc20a5020be8b934319"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/AppSession.swift": {
+    "mtime": 1785260570871.7202,
+    "hash": "4a97002195b8fab419c549c6c294aea8"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/CurrencyOption.swift": {
+    "mtime": 1785260276495.5176,
+    "hash": "faf937370bcb496f23e45362633e2220"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/Entry.swift": {
+    "mtime": 1785260276084.122,
+    "hash": "a366512c78d116c5ab49b3e055a94319"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/EntryType.swift": {
+    "mtime": 1785260276385.0198,
+    "hash": "fd811ace6b9877ec338dcff441820e77"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/Period.swift": {
+    "mtime": 1785260276415.2256,
+    "hash": "4aad421c1f431b03953c6e576c61d946"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Models/SummaryStats.swift": {
+    "mtime": 1785260278951.0212,
+    "hash": "2ae12a9d2d855003b77b9604f9844a87"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Navigation/TabContainer.swift": {
+    "mtime": 1785260609841.8152,
+    "hash": "a28f6e2791c075bb3341fbac30616417"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Screens/History/HistoryView.swift": {
+    "mtime": 1785260495018.5059,
+    "hash": "eef8e84ffcb4aee96ff9383566dac387"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Screens/Log/LogView.swift": {
+    "mtime": 1785260574155.8667,
+    "hash": "aa8a86358f2f465cd1528d79612dc6f6"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Screens/Onboarding/InstructionsView.swift": {
+    "mtime": 1785260422775.7527,
+    "hash": "28de48fc1ba8c25ffb5cab0a1a325595"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Screens/Settings/SettingsView.swift": {
+    "mtime": 1785260495018.5059,
+    "hash": "989bf14ae460333a1adfd256d2ae26e3"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Screens/Summary/SummaryView.swift": {
+    "mtime": 1785260583965.895,
+    "hash": "db4be0655a497d7fe774f6b43cb2f0ad"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Storage/AppSettings.swift": {
+    "mtime": 1785260570796.2148,
+    "hash": "c9a4120f055dcf7b0804042702efcbb7"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Storage/CurrencyFormatter.swift": {
+    "mtime": 1785260278962.968,
+    "hash": "551a3d1d361e8ac3536ce2050109fe42"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Storage/EntryStore.swift": {
+    "mtime": 1785260570775.1724,
+    "hash": "0c7337b161b687946c86801b69e4e18c"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Theme/Colors.swift": {
+    "mtime": 1785260276170.2478,
+    "hash": "dc464ee8fc7bb6ee675670e14d0f4a41"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Theme/Spacing.swift": {
+    "mtime": 1785260276090.149,
+    "hash": "bd10b209af68cd9973b1913d47323adf"
+  },
+  "C:/Needs vs Wants/ios/NeedsVsWants/Theme/Typography.swift": {
+    "mtime": 1785260276379.9993,
+    "hash": "9f072cf99a87ec03323c36ed814c0d67"
+  },
+  "C:/Needs vs Wants/settings.gradle.kts": {
+    "mtime": 1785160743749.8796,
+    "hash": "5e2a6199bedb83f68636f615b3b99896"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/apply.js": {
+    "mtime": 1785686417458.571,
+    "hash": "0187a735643d91270a028164849b36af"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/check.js": {
+    "mtime": 1785482305335.8142,
+    "hash": "add5376a6a49039017fd3b584964c365"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/debug.mjs": {
+    "mtime": 1785566418209.8174,
+    "hash": "22277d022aeec1ad56608d22c0015ea4"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/pad.js": {
+    "mtime": 1785566337427.7551,
+    "hash": "ec282029656bb00c0504a3a71c9875b6"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/smoke.mjs": {
+    "mtime": 1785566408385.365,
+    "hash": "30e56ee51fdd5d5fc418c134f4a0a177"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/smoke2.mjs": {
+    "mtime": 1785482582694.155,
+    "hash": "66ba50695617abf23b18975b3e614011"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/smoke3.mjs": {
+    "mtime": 1785482775781.8386,
+    "hash": "1add3402f80fe60596f2fda7caeea24f"
+  },
+  "C:/Needs vs Wants/website/probe2_current.py": {
+    "mtime": 1785566193623.9102,
+    "hash": "34089815803dc1df3ba9bbaaa6870df1"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/NOTICE.txt": {
+    "mtime": 1785160562881.5203,
+    "hash": "ad3275e062c72df25c8639a8a3c8e9cc"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/CMakeLists.txt": {
+    "mtime": 1785160563282.6177,
+    "hash": "30bfd872d51d40d5520a1250b70234a2"
+  },
+  "C:/Needs vs Wants/.android-sdk/build-tools/34.0.0/renderscript/clang-include/LICENSE.TXT": {
+    "mtime": 1785160563298.5632,
+    "hash": "a77eac638a3aae44a2d604217d6f0f01"
+  },
+  "C:/Needs vs Wants/.android-sdk/cmdline-tools/latest/NOTICE.txt": {
+    "mtime": 1784072396000,
+    "hash": "fe7266308631d0c2258ab487f8e7781d"
+  },
+  "C:/Needs vs Wants/.android-sdk/platform-tools/NOTICE.txt": {
+    "mtime": 1785160560994.5298,
+    "hash": "c9bd09bafb2d8c8a397b4a053df096c1"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/NOTICE.txt": {
+    "mtime": 1785160565839.0352,
+    "hash": "32854b9572502d74edbe6f0b3a916c74"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/activity_actions.txt": {
+    "mtime": 1785160580589.9758,
+    "hash": "1d674038581e7c738ea9007bed5b2f21"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/broadcast_actions.txt": {
+    "mtime": 1785160565841.0308,
+    "hash": "22824949e4893797fc5797ce355f75c0"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/categories.txt": {
+    "mtime": 1785160580589.9758,
+    "hash": "7f945663f96d83cfa099fab9b852d0fe"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/features.txt": {
+    "mtime": 1785160565872.3162,
+    "hash": "dadfde4d9cd7f80e357da28ccae934bc"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ar/loaderror.html": {
+    "mtime": 1785160578909.7573,
+    "hash": "f1194cd969fdcee4855df7a628625d46"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ar/nodomain.html": {
+    "mtime": 1785160578908.7573,
+    "hash": "66fd7cbd8c2d966ac4a83f228d6ed44c"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-cs/loaderror.html": {
+    "mtime": 1785160567593.2356,
+    "hash": "a4dc4a4eb0355198cd5fb945468c283b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-cs/nodomain.html": {
+    "mtime": 1785160567592.2358,
+    "hash": "4e2cc14a81e9e28848d9ea1204e1d69a"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-da/loaderror.html": {
+    "mtime": 1785160570281.183,
+    "hash": "70ffbfdbb3d3bc878d952c9183d18620"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-da/nodomain.html": {
+    "mtime": 1785160570280.1257,
+    "hash": "7472137178d0c2f51e76be9359fe40eb"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-de/loaderror.html": {
+    "mtime": 1785160578884.767,
+    "hash": "ba5a86490412b002ecfe261948a47445"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-de/nodomain.html": {
+    "mtime": 1785160578884.767,
+    "hash": "bed665018962b2593ff1fcf093e5f80b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-en-rGB/loaderror.html": {
+    "mtime": 1785160566784.9016,
+    "hash": "d9927cb20a96a41637d4cb9054404af9"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-en-rGB/nodomain.html": {
+    "mtime": 1785160566784.9016,
+    "hash": "964d41b250edb7cd01dda8b65da20603"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-es/loaderror.html": {
+    "mtime": 1785160576754.9182,
+    "hash": "8d67268ee6ddb671fddf21925fe08976"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-es/nodomain.html": {
+    "mtime": 1785160576754.4126,
+    "hash": "481b850cfea27e2ac2c5506d7ad72f34"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-fi/loaderror.html": {
+    "mtime": 1785160576784.647,
+    "hash": "897bf19bbf9151c3c91e7b4d9a2a1109"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-fi/nodomain.html": {
+    "mtime": 1785160576784.647,
+    "hash": "055cb7c4c933614b3b870f6cccac9b0c"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-fr/loaderror.html": {
+    "mtime": 1785160571412.7922,
+    "hash": "b4cbef238e6d1fe93ee3d3af2670195b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-fr/nodomain.html": {
+    "mtime": 1785160571412.7922,
+    "hash": "978e645ba70add67bc0065c299441d8b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-hu/loaderror.html": {
+    "mtime": 1785160569341.7456,
+    "hash": "1ced63f82c747a11573736a5565c8f8f"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-hu/nodomain.html": {
+    "mtime": 1785160569340.7473,
+    "hash": "80cf9ed6640dbe957df8a667be7086bf"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-it/loaderror.html": {
+    "mtime": 1785160569064.7957,
+    "hash": "436257ef7e8d8c52690a3892db0c4241"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-it/nodomain.html": {
+    "mtime": 1785160569064.2915,
+    "hash": "23136b8f64d33ad02df904ad4290e74d"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-iw/loaderror.html": {
+    "mtime": 1785160570235.8418,
+    "hash": "a7d5578c69629932d665cf5766006ead"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-iw/nodomain.html": {
+    "mtime": 1785160570235.8418,
+    "hash": "799e266ead9f20ef7524f9643ede5c55"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ja/loaderror.html": {
+    "mtime": 1785160580412.8958,
+    "hash": "dbfffe6ea38f543bb8c4400b9d2162c8"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ja/nodomain.html": {
+    "mtime": 1785160580412.8958,
+    "hash": "b7d9777472423abf4fac4fb3234eff8d"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ko/loaderror.html": {
+    "mtime": 1785160570040.3562,
+    "hash": "189cbe9829e95e6200bf8bddcc3b1160"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ko/nodomain.html": {
+    "mtime": 1785160570039.3489,
+    "hash": "761d315703d3d0b45d45ebffd9b9787a"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-nl/loaderror.html": {
+    "mtime": 1785160572830.5142,
+    "hash": "63aae28f7b084acc372007c97c9ba0ab"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-nl/nodomain.html": {
+    "mtime": 1785160572830.5142,
+    "hash": "65a7cbcd0979c58531b0147f3f7aba8c"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-pl/loaderror.html": {
+    "mtime": 1785160576363.262,
+    "hash": "32ac4c3a99019446a20ede39b91e25c1"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-pl/nodomain.html": {
+    "mtime": 1785160576363.262,
+    "hash": "c408972f05a15f1c365da081bbcbe02b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-pt-rBR/loaderror.html": {
+    "mtime": 1785160567054.9126,
+    "hash": "7c6a855383d3508bcc79673713dbfd19"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-pt-rBR/nodomain.html": {
+    "mtime": 1785160567042.2087,
+    "hash": "af687b61fde40a9c789aeb663b3de06b"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-rm/loaderror.html": {
+    "mtime": 1785160570264.984,
+    "hash": "82bade62b785b23635a250cbf00c864d"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-rm/nodomain.html": {
+    "mtime": 1785160570263.4785,
+    "hash": "dfd8c04e06d3c03dcd853c1fa3710020"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ru/loaderror.html": {
+    "mtime": 1785160577331.2776,
+    "hash": "11ebe68894e62f0fcff3c9a2a736da43"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-ru/nodomain.html": {
+    "mtime": 1785160577330.2817,
+    "hash": "83c9770bbb144dfba640ae2ae7dbddfa"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-th/loaderror.html": {
+    "mtime": 1785160576778.1382,
+    "hash": "53506ba30a6767effb4708f4b0d09902"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-th/nodomain.html": {
+    "mtime": 1785160576777.1384,
+    "hash": "2a0fbe04d78a80311eb7fce8338ef1c5"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-tr/loaderror.html": {
+    "mtime": 1785160569163.2512,
+    "hash": "316b2d4fa7f49ce07a70648f47676aa6"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-tr/nodomain.html": {
+    "mtime": 1785160569162.2559,
+    "hash": "337019ebb1a23d96fa6d965703b13100"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-zh-rCN/loaderror.html": {
+    "mtime": 1785160572721.9995,
+    "hash": "18c46d77fd30d023139107c2e5f4843a"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-zh-rCN/nodomain.html": {
+    "mtime": 1785160572721.9995,
+    "hash": "bedd418b628fda5f91cf3c4b92862f71"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-zh-rTW/loaderror.html": {
+    "mtime": 1785160569993.4592,
+    "hash": "38946e62e3eb912dbd9dbf22ade3ae42"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw-zh-rTW/nodomain.html": {
+    "mtime": 1785160569991.458,
+    "hash": "393857b83d254307fef981aa74d7fe19"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw/loaderror.html": {
+    "mtime": 1785160577012.062,
+    "hash": "5390d3007c1e29b88250c78157fc23d3"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw/nodomain.html": {
+    "mtime": 1785160577009.063,
+    "hash": "a4442e19312c32429962996c7aec4a73"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/service_actions.txt": {
+    "mtime": 1785160565832.7532,
+    "hash": "898d6420bcf14aee17328b740d3b4cbe"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/widgets.txt": {
+    "mtime": 1785160565840.0288,
+    "hash": "69f3fa28256e579234d7cda7da0058b0"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/skins/NOTICE.txt": {
+    "mtime": 1785160580614.9663,
+    "hash": "32854b9572502d74edbe6f0b3a916c74"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/templates/NOTICE.txt": {
+    "mtime": 1785160565727.8928,
+    "hash": "32854b9572502d74edbe6f0b3a916c74"
+  },
+  "C:/Needs vs Wants/.github/workflows/README.md": {
+    "mtime": 1785316920223.406,
+    "hash": "3b36b8b964653e893f23c8fcb987c5bc"
+  },
+  "C:/Needs vs Wants/.github/workflows/ios.yml": {
+    "mtime": 1785316878120.85,
+    "hash": "c14ec66225cdcfe4a2518a83fbf175a4"
+  },
+  "C:/Needs vs Wants/AGENTS.md": {
+    "mtime": 1785566908291.7732,
+    "hash": "be40b2c7bc90f885912a1326ad29a108"
+  },
+  "C:/Needs vs Wants/HANDOFF_QWEN_SOFT_LAUNCH_PLAN.md": {
+    "mtime": 1785479585649.6812,
+    "hash": "84ed26f64b9a0d5c3d346b8dfa2c1a6c"
+  },
+  "C:/Needs vs Wants/IMPLEMENTATION_PLAN.md": {
+    "mtime": 1785158896925.4363,
+    "hash": "0b2544667294204b74152acec8303c60"
+  },
+  "C:/Needs vs Wants/app/graphify-out/GRAPH_REPORT.md": {
+    "mtime": 1785529146183.2546,
+    "hash": "bdd8ea3fe17c9c4230b8de9037767b2b"
+  },
+  "C:/Needs vs Wants/app/graphify-out/graph.html": {
+    "mtime": 1785529146251.2583,
+    "hash": "f22f059a13463c84ca694c3f863ef737"
+  },
+  "C:/Needs vs Wants/docs/superpowers/plans/2026-08-01-daily-budget.md": {
+    "mtime": 1785526777900.289,
+    "hash": "67b75eca278527c537b5599343c90fde"
+  },
+  "C:/Needs vs Wants/docs/superpowers/plans/2026-08-02-developed-by-aceu.md": {
+    "mtime": 1785686417446.9783,
+    "hash": "399728088e1bd9add940831b786f06fa"
+  },
+  "C:/Needs vs Wants/docs/superpowers/specs/2026-08-01-daily-budget-design.md": {
+    "mtime": 1785526686975.8362,
+    "hash": "5ce4718f3e28028d31da45e4afc27963"
+  },
+  "C:/Needs vs Wants/docs/superpowers/specs/2026-08-02-developed-by-aceu-design.md": {
+    "mtime": 1785686417433.389,
+    "hash": "d4b3e7d47e5fbcb0c961c867ca65552e"
+  },
+  "C:/Needs vs Wants/docs/superpowers/specs/2026-08-02-settings-appearance-design.md": {
+    "mtime": 1785678513696.7334,
+    "hash": "bc88c1ef97442dc1e0590b3ac7e6386a"
+  },
+  "C:/Needs vs Wants/ios/BUILD.md": {
+    "mtime": 1785260512288.8596,
+    "hash": "f66299ede7ed0e98965ea042753466bb"
+  },
+  "C:/Needs vs Wants/ios/IOS_IMPLEMENTATION_PLAN.md": {
+    "mtime": 1785260276109.9648,
+    "hash": "c8e40696945506426f17db973ad79946"
+  },
+  "C:/Needs vs Wants/ios/project.yml": {
+    "mtime": 1785260512629.6694,
+    "hash": "d91521d01c24dd0dea2d2af2601ff7ac"
+  },
+  "C:/Needs vs Wants/website/_pad-parts/pad.html": {
+    "mtime": 1785482169467.653,
+    "hash": "1884f66649d605405564eda0cbb1b809"
+  },
+  "C:/Needs vs Wants/website/index.html": {
+    "mtime": 1785758673333.8445,
+    "hash": "a6bc9e1a2a05eccf7176a584ffca5641"
+  },
+  "C:/Needs vs Wants/website/public/index.html": {
+    "mtime": 1785758673333.8445,
+    "hash": "a6bc9e1a2a05eccf7176a584ffca5641"
+  },
+  "C:/Needs vs Wants/website/public/favicon.svg": {
+    "mtime": 1785601051005.371,
+    "hash": "0574df8a777a5bd64ac61dc10d6b32f6"
+  },
+  "C:/Needs vs Wants/.android-sdk/platforms/android-34/data/res/raw/fallbackring.ogg": {
+    "mtime": 1785160577008.0647,
+    "hash": "707f7eaa3707bd524c3db9085bed96c0"
+  }
+}

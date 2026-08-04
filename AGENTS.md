@@ -13,17 +13,37 @@ This applies to: features, bug fixes, redesigns, “just a small tweak,” and p
 
 **Exempt only:** pure documentation/memory updates the user asked for *without* code changes (e.g. this file, Obsidian notes only). If the task will eventually change code in the same turn, run the gate **before** the first code edit.
 
-### 1. Obsidian project memory
+### 1. Obsidian Second Brain
 
-Load Second Brain context first (cheaper than rediscovering the repo):
+The Second Brain is the project memory layer for this PC. Load it before investigating or changing implementation code:
 
-1. `Memory/00 Memory Layer/Memory Index.md` (vault root: `C:\Obsidian Vault\Second Brain\`)
-2. Project notes under `Projects/Needs vs Wants/`:
-   - `Summary.md`
-   - `Tasks.md`
-   - `Decisions.md`
-   - Any task-relevant notes (e.g. `Log Sheet Paper Flip.md`, `Soft Launch CTA Motion.md`, `Qwen Handoff Soft Launch Plan.md`)
-3. Prefer `[[wikilinks]]` and keep notes updated after significant work
+1. Start with `C:\Obsidian Vault\Second Brain\Memory\00 Memory Layer\Memory Index.md`.
+2. Open the matching project dashboard or index when one exists. For this project, use `C:\Obsidian Vault\Second Brain\Projects\Needs vs Wants\` directly.
+3. Always load these project notes:
+   - `Summary.md` — current product scope, platform state, constraints, and known gaps
+   - `Tasks.md` — active work, progress log, and open blockers
+   - `Decisions.md` — locked decisions and historical rationale
+4. Load task-specific notes before touching that surface, such as `Agent Pre Code Gate.md`, `Log Sheet Paper Flip.md`, `Soft Launch CTA Motion.md`, and `Qwen Handoff Soft Launch Plan.md`.
+5. Follow `[[wikilinks]]` to source notes rather than relying on summaries alone.
+6. Treat the repository at `C:\Needs vs Wants` as the ultimate source of truth for what actually exists. Treat vault notes as project context and a historical snapshot; if they disagree, verify the code and report the discrepancy.
+7. Do not infer missing behavior from notes. State when a claim is unsupported, stale, or still planned.
+8. After significant implementation, deployment, architecture, or verification work, update the relevant vault notes:
+   - append the outcome to `Tasks.md`;
+   - add a dated entry to `Decisions.md` when a meaningful decision or correction was made;
+   - update `Summary.md` when scope, platform status, architecture, or known gaps changed.
+9. Preserve existing note structure, frontmatter, decision numbering, and wikilink style. Do not rewrite historical entries.
+
+**Documentation-only exception:** If the task only changes project documentation or vault memory and does not include code changes in the same turn, the Context7 and Graphify implementation gates are not required. Keep the Second Brain links and status accurate nevertheless.
+
+### Second Brain conflict protocol
+
+When repository state, project notes, and generated artifacts disagree:
+
+1. Verify the relevant source files, tests, build output, or deployed surface.
+2. Record the verified state, not the intended state.
+3. Identify stale notes or generated files explicitly.
+4. Update the vault only after verification; never use the vault to justify an unverified implementation.
+5. Never delete or overwrite unfamiliar memory, project, or generated files without checking their purpose first.
 
 ### 2. Context7 (ctx7)
 

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(graphify:*)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

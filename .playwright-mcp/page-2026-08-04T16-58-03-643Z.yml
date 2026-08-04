@@ -1,0 +1,722 @@
+- generic [active] [ref=e1]:
+  - link "Skip to content" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "Needs vs Wants — home" [ref=e5] [cursor=pointer]:
+        - /url: "#top"
+        - text: Needs
+        - generic [ref=e10]: vs
+        - text: Wants
+      - generic "Official launch · Version 1.4.0" [ref=e11]: Official
+      - navigation "Primary" [ref=e13]:
+        - link "The Rule" [ref=e14] [cursor=pointer]:
+          - /url: "#rule"
+        - link "How It Works" [ref=e15] [cursor=pointer]:
+          - /url: "#how"
+        - link "35 Days" [ref=e16] [cursor=pointer]:
+          - /url: "#window"
+        - link "The Screens" [ref=e17] [cursor=pointer]:
+          - /url: "#screens"
+      - link "Get the app" [ref=e18] [cursor=pointer]:
+        - /url: "#get"
+  - main [ref=e19]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: A 35-Day Trainer · Offline-First
+        - heading "Needs vs Wants" [level=1] [ref=e24]: Needs vsWants
+        - paragraph [ref=e25]: Expense Tracker
+        - paragraph [ref=e26]:
+          - text: Every purchase is either a
+          - strong [ref=e27]: need
+          - text: or a
+          - strong [ref=e28]: want
+          - text: — and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.
+        - generic [ref=e29]:
+          - button "Log your first expense" [ref=e30] [cursor=pointer]
+          - link "See how it works" [ref=e31] [cursor=pointer]:
+            - /url: "#how"
+        - paragraph [ref=e34]:
+          - generic [ref=e35]: Official launch
+          - generic [ref=e36]: ◆
+          - generic [ref=e37]: Offline-first
+          - generic [ref=e38]: ◆
+          - generic [ref=e39]: No accounts
+          - generic [ref=e40]: ◆
+          - generic [ref=e41]: Optional daily budget
+          - generic [ref=e42]: ◆
+          - generic [ref=e43]: ₱ $ € ¥ S$
+      - group "Expense log notepad" [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - generic [ref=e51]:
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Today · Aug 5, 2026 · Page 1
+                      - heading "Log" [level=3]
+                    - generic:
+                      - text: SHEET
+                      - generic: "3"
+                      - text: / 20
+                  - generic:
+                    - generic:
+                      - generic: Item
+                      - textbox "What did you just buy?"
+                    - generic:
+                      - generic: Cost
+                      - generic:
+                        - generic: ₱
+                        - textbox "0.00"
+                    - generic:
+                      - generic: NEED
+                      - generic: WANT
+                    - paragraph: Fill all three — the row seals itself. No save button.
+                  - generic:
+                    - generic: Time
+                    - generic: Item
+                    - generic: Cost
+                    - generic: Type
+                  - generic:
+                    - generic:
+                      - generic: 12:05
+                      - generic: Bus fare
+                      - generic: ₱45.00
+                      - generic: NEED
+                    - generic:
+                      - generic: 09:47
+                      - generic: Coffee
+                      - generic: ₱180.00
+                      - generic: WANT
+                    - generic:
+                      - generic: 08:12
+                      - generic: Rice & eggs
+                      - generic: ₱125.00
+                      - generic: NEED
+              - generic [ref=e54]:
+                - generic:
+                  - generic:
+                    - generic:
+                      - paragraph: Today · Aug 5, 2026 · Page 2
+                      - heading "Log" [level=3]
+                    - generic:
+                      - text: SHEET
+                      - generic: "0"
+                      - text: / 20
+                  - paragraph: Seal your first purchase on this page — Need or Want?
+                  - generic:
+                    - generic:
+                      - generic: Item
+                      - textbox "What did you just buy?"
+                    - generic:
+                      - generic: Cost
+                      - generic:
+                        - generic: ₱
+                        - textbox "0.00"
+                    - generic:
+                      - generic: NEED
+                      - generic: WANT
+                    - paragraph: Fill all three — the row seals itself. No save button.
+                  - generic:
+                    - generic: Time
+                    - generic: Item
+                    - generic: Cost
+                    - generic: Type
+            - generic [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]:
+                  - paragraph [ref=e60]: Today · Aug 5, 2026 · Page 1
+                  - heading "Log" [level=3] [ref=e61]
+                - generic [ref=e62]:
+                  - text: SHEET
+                  - generic [ref=e66]: "3"
+                  - text: / 20
+              - generic [ref=e67]:
+                - generic [ref=e68]:
+                  - generic [ref=e69]: Item
+                  - textbox "Item" [ref=e70]:
+                    - /placeholder: What did you just buy?
+                - generic [ref=e71]:
+                  - generic [ref=e72]: Cost
+                  - generic [ref=e73]:
+                    - generic [ref=e74]: ₱
+                    - textbox "Cost" [ref=e75]:
+                      - /placeholder: "0.00"
+                - group "Classify this expense" [ref=e76]:
+                  - button "NEED" [ref=e77] [cursor=pointer]
+                  - button "WANT" [ref=e80] [cursor=pointer]
+                - paragraph [ref=e83]: Fill all three — the row seals itself. No save button.
+              - generic [ref=e84]:
+                - generic [ref=e85]: Time
+                - generic [ref=e86]: Item
+                - generic [ref=e87]: Cost
+                - generic [ref=e88]: Type
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - generic [ref=e91]: 12:05
+                  - generic [ref=e92]: Bus fare
+                  - generic [ref=e93]: ₱45.00
+                  - generic [ref=e94]: NEED
+                  - 'button "Delete entry: Bus fare" [ref=e95] [cursor=pointer]'
+                - generic [ref=e98]:
+                  - generic [ref=e99]: 09:47
+                  - generic [ref=e100]: Coffee
+                  - generic [ref=e101]: ₱180.00
+                  - generic [ref=e102]: WANT
+                  - 'button "Delete entry: Coffee" [ref=e103] [cursor=pointer]'
+                - generic [ref=e106]:
+                  - generic [ref=e107]: 08:12
+                  - generic [ref=e108]: Rice & eggs
+                  - generic [ref=e109]: ₱125.00
+                  - generic [ref=e110]: NEED
+                  - 'button "Delete entry: Rice & eggs" [ref=e111] [cursor=pointer]'
+              - button "Flip to next page" [ref=e114] [cursor=pointer]
+          - generic:
+            - button "Previous page" [disabled] [ref=e115]: ‹ Prev
+            - button "Next page" [ref=e116] [cursor=pointer]: Next ›
+        - navigation "Notepad pages" [ref=e117]:
+          - tablist "Jump to page" [ref=e118]:
+            - button "Go to page 1" [ref=e119] [cursor=pointer]
+            - button "Go to page 2" [ref=e120] [cursor=pointer]
+        - paragraph [ref=e121]: Page 1 of 2
+        - generic [ref=e122]: Aug 5, 2026
+        - status [ref=e123]
+    - 'region "Announcement: Pro and Max subscriptions available" [ref=e124]':
+      - generic [ref=e125]:
+        - generic [ref=e126]: New
+        - generic [ref=e129]:
+          - heading "Pro & Max subscriptions are here." [level=3] [ref=e130]
+          - paragraph [ref=e131]: Unlock unlimited logging, lifetime history, full-period analytics, and — with Max — a Google NotebookLM AI Financial Advisor. 3-day free trial on every paid tier.
+        - link "See Pro & Max" [ref=e133] [cursor=pointer]:
+          - /url: "#pro-pricing"
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - generic [ref=e140]: Rice
+        - generic [ref=e141]: ₱95.00
+        - generic [ref=e142]: NEED
+      - generic [ref=e143]: ◆
+      - generic [ref=e144]:
+        - generic [ref=e145]: Coffee
+        - generic [ref=e146]: ₱180.00
+        - generic [ref=e147]: WANT
+      - generic [ref=e148]: ◆
+      - generic [ref=e149]:
+        - generic [ref=e150]: Rent
+        - generic [ref=e151]: ₱8,500.00
+        - generic [ref=e152]: NEED
+      - generic [ref=e153]: ◆
+      - generic [ref=e154]:
+        - generic [ref=e155]: Sneakers
+        - generic [ref=e156]: ₱3,299.00
+        - generic [ref=e157]: WANT
+      - generic [ref=e158]: ◆
+      - generic [ref=e159]:
+        - generic [ref=e160]: Eggs
+        - generic [ref=e161]: ₱120.00
+        - generic [ref=e162]: NEED
+      - generic [ref=e163]: ◆
+      - generic [ref=e164]:
+        - generic [ref=e165]: Streaming
+        - generic [ref=e166]: ₱149.00
+        - generic [ref=e167]: WANT
+      - generic [ref=e168]: ◆
+      - generic [ref=e169]:
+        - generic [ref=e170]: Medicine
+        - generic [ref=e171]: ₱260.00
+        - generic [ref=e172]: NEED
+      - generic [ref=e173]: ◆
+      - generic [ref=e174]:
+        - generic [ref=e175]: Dessert
+        - generic [ref=e176]: ₱95.00
+        - generic [ref=e177]: WANT
+      - generic [ref=e178]: ◆
+      - generic [ref=e179]:
+        - generic [ref=e180]: Bus fare
+        - generic [ref=e181]: ₱45.00
+        - generic [ref=e182]: NEED
+      - generic [ref=e183]: ◆
+      - generic [ref=e184]:
+        - generic [ref=e185]: Concert
+        - generic [ref=e186]: ₱2,500.00
+        - generic [ref=e187]: WANT
+      - generic [ref=e188]: ◆
+      - generic [ref=e189]:
+        - generic [ref=e190]: Rice
+        - generic [ref=e191]: ₱95.00
+        - generic [ref=e192]: NEED
+      - generic [ref=e193]: ◆
+      - generic [ref=e194]:
+        - generic [ref=e195]: Coffee
+        - generic [ref=e196]: ₱180.00
+        - generic [ref=e197]: WANT
+      - generic [ref=e198]: ◆
+      - generic [ref=e199]:
+        - generic [ref=e200]: Rent
+        - generic [ref=e201]: ₱8,500.00
+        - generic [ref=e202]: NEED
+      - generic [ref=e203]: ◆
+      - generic [ref=e204]:
+        - generic [ref=e205]: Sneakers
+        - generic [ref=e206]: ₱3,299.00
+        - generic [ref=e207]: WANT
+      - generic [ref=e208]: ◆
+      - generic [ref=e209]:
+        - generic [ref=e210]: Eggs
+        - generic [ref=e211]: ₱120.00
+        - generic [ref=e212]: NEED
+      - generic [ref=e213]: ◆
+      - generic [ref=e214]:
+        - generic [ref=e215]: Streaming
+        - generic [ref=e216]: ₱149.00
+        - generic [ref=e217]: WANT
+      - generic [ref=e218]: ◆
+      - generic [ref=e219]:
+        - generic [ref=e220]: Medicine
+        - generic [ref=e221]: ₱260.00
+        - generic [ref=e222]: NEED
+      - generic [ref=e223]: ◆
+      - generic [ref=e224]:
+        - generic [ref=e225]: Dessert
+        - generic [ref=e226]: ₱95.00
+        - generic [ref=e227]: WANT
+      - generic [ref=e228]: ◆
+      - generic [ref=e229]:
+        - generic [ref=e230]: Bus fare
+        - generic [ref=e231]: ₱45.00
+        - generic [ref=e232]: NEED
+      - generic [ref=e233]: ◆
+      - generic [ref=e234]:
+        - generic [ref=e235]: Concert
+        - generic [ref=e236]: ₱2,500.00
+        - generic [ref=e237]: WANT
+      - generic [ref=e238]: ◆
+    - generic [ref=e240]:
+      - generic [ref=e241]:
+        - generic [ref=e242]:
+          - paragraph [ref=e243]: The Rule
+          - heading "Every expense is a Need or a Want." [level=2] [ref=e244]
+        - paragraph [ref=e245]: One line, two columns. You decide which side of the page your money lands on — in the aisle, at the counter, in the moment.
+      - generic [ref=e246]:
+        - article [ref=e247]:
+          - heading "Need" [level=3] [ref=e248]
+          - paragraph [ref=e253]: Something you must have to live and work. Honest, necessary, unavoidable — the spending you defend without hesitation.
+          - generic [ref=e254]:
+            - button "Rice & groceries" [ref=e255] [cursor=pointer]
+            - button "Rent" [ref=e257] [cursor=pointer]
+            - button "Transit fare" [ref=e259] [cursor=pointer]
+            - button "Medicine" [ref=e261] [cursor=pointer]
+            - button "Utilities" [ref=e263] [cursor=pointer]
+        - generic [ref=e265]: VS
+        - article [ref=e267]:
+          - heading "Want" [level=3] [ref=e268]
+          - paragraph [ref=e271]: Something you would like to have. Pleasant, optional, often impulsive — the spending that deserves a second look.
+          - generic [ref=e272]:
+            - button "Coffee runs" [ref=e273] [cursor=pointer]
+            - button "Sneakers" [ref=e275] [cursor=pointer]
+            - button "Streaming" [ref=e277] [cursor=pointer]
+            - button "Dessert" [ref=e279] [cursor=pointer]
+            - button "Gadgets" [ref=e281] [cursor=pointer]
+      - paragraph [ref=e283]: Tap an example to seal it — the same one-tap choice the app asks of you.
+    - generic [ref=e288]:
+      - generic [ref=e289]:
+        - generic [ref=e290]:
+          - paragraph [ref=e291]: How It Works
+          - heading "Four rules. No fine print." [level=2] [ref=e292]
+        - paragraph [ref=e293]: The whole method fits on one page of a diary. The daily budget is optional — set it when you want the guardrail.
+      - generic [ref=e294]:
+        - generic [ref=e295]: "01"
+        - generic [ref=e301]:
+          - heading "Every expense is a Need or a Want" [level=3] [ref=e302]
+          - paragraph [ref=e303]: Each purchase forces a single binary choice. You confront impulse spending in real time, not at month-end.
+      - generic [ref=e304]:
+        - generic [ref=e305]: "02"
+        - generic [ref=e310]:
+          - heading "The diary keeps 35 days" [level=3] [ref=e311]
+          - paragraph [ref=e312]: Entries older than 35 days are automatically removed. This is a trainer, not an archive.
+      - generic [ref=e313]:
+        - generic [ref=e314]: "03"
+        - generic [ref=e320]:
+          - heading "Rows seal themselves" [level=3] [ref=e321]
+          - paragraph [ref=e322]: The moment you enter item, cost, and type, the row seals — stamped with the current time and saved instantly.
+      - generic [ref=e323]:
+        - generic [ref=e324]: "04"
+        - generic [ref=e330]:
+          - heading "An optional daily budget" [level=3] [ref=e331]
+          - paragraph [ref=e332]: Set a limit on Log — the meter there (and Summary Day) shows today's spend, remaining budget, and when you're over. Logging would push you over? The diary asks before you seal — you still decide.
+          - list [ref=e333]:
+            - listitem [ref=e334]: Set it on Log. Open Log, enter your daily limit — say ₱1,500 — and Save budget.
+            - listitem [ref=e335]: Watch the meter. On Log and Summary Day, see spent vs budget and what's left. Green keeps you on track; red tells you you're over.
+            - listitem [ref=e336]: Seal past the line? The diary asks “Log anyway?” first. Cancel keeps your draft; Log seals it — your call, every time.
+            - listitem [ref=e337]: Change or turn off anytime. On Log, tap Change to update the limit, or Turn off to drop the guardrail. The trainer stays.
+    - generic [ref=e339]:
+      - generic [ref=e340]:
+        - paragraph [ref=e341]: The Window
+        - heading "The diary keeps 35 days." [level=2] [ref=e342]
+        - paragraph [ref=e343]: Entries older than 35 days are automatically removed. This is a trainer, not an archive.
+        - paragraph [ref=e344]: Once per launch, the diary quietly lets go of anything behind the window — no cleanup chore, no ever-growing ledger, no old guilt. The lessons stay recent; the page stays light.
+        - generic [ref=e345]:
+          - generic [ref=e346]:
+            - generic [ref=e347]: 35 /
+            - generic [ref=e348]: Days retained
+          - generic [ref=e349]:
+            - generic [ref=e350]: 20 /
+            - generic [ref=e351]: Entries per sheet
+          - generic [ref=e352]:
+            - generic [ref=e353]: 1 /
+            - generic [ref=e354]: Binary choice
+          - generic [ref=e355]:
+            - generic [ref=e356]: 0 /
+            - generic [ref=e357]: Accounts required
+          - generic [ref=e358]:
+            - generic [ref=e359]: ₱
+            - generic [ref=e360]: Optional daily budget
+      - img "A dial of 35 day-ticks with a slow gold sweep, representing the rolling 35-day window" [ref=e361]:
+        - img [ref=e362]:
+          - generic [ref=e364]:
+            - generic [ref=e371]: "7"
+            - generic [ref=e379]: "14"
+            - generic [ref=e387]: "21"
+            - generic [ref=e395]: "28"
+            - generic [ref=e403]: "35"
+        - generic [ref=e405]:
+          - generic [ref=e406]: "35"
+          - generic [ref=e407]: Days
+    - generic [ref=e409]:
+      - generic [ref=e410]:
+        - generic [ref=e411]:
+          - paragraph [ref=e412]: Inside the Diary
+          - heading "Four pages. One honest habit." [level=2] [ref=e413]
+        - paragraph [ref=e414]: A summary, a sheet, a history, and a settings page — set your optional daily budget on Log; enlarge text and switch light/dark themes in Settings. Nothing else to learn, nothing else to manage.
+      - generic [ref=e415]:
+        - generic [ref=e416]:
+          - generic "Summary screen preview" [ref=e417]:
+            - generic [ref=e418]:
+              - generic [ref=e419]:
+                - generic [ref=e420]: 9:41
+                - generic [ref=e422]: 100%
+              - generic [ref=e423]:
+                - generic [ref=e424]: Summary
+                - paragraph [ref=e425]: A 35-Day Trainer
+                - heading "Needs vs Wants" [level=3] [ref=e426]
+                - generic [ref=e427]:
+                  - generic [ref=e428]: All 35 Days
+                  - generic [ref=e429]: Jul 2 – Aug 5 · 77 entries
+                - group "Summary period" [ref=e430]:
+                  - button "Day" [ref=e431] [cursor=pointer]
+                  - button "Week" [ref=e432] [cursor=pointer]
+                  - button "All (35d)" [pressed] [ref=e433] [cursor=pointer]
+                - generic [ref=e439]:
+                  - generic [ref=e440]: Total
+                  - generic [ref=e441]: ₱19,850.00
+                - generic [ref=e442]:
+                  - generic [ref=e443]: Need 57%
+                  - generic [ref=e445]: Want 43%
+                - generic [ref=e447]:
+                  - generic [ref=e448]:
+                    - text: Needs
+                    - generic [ref=e449]: ₱11,240.00
+                    - generic [ref=e450]: 46 entries
+                  - generic [ref=e451]:
+                    - text: Wants
+                    - generic [ref=e452]: ₱8,610.00
+                    - generic [ref=e453]: 31 entries
+                  - generic [ref=e454]:
+                    - text: Need %
+                    - generic [ref=e455]: 57%
+                - button "Log an expense" [ref=e457] [cursor=pointer]
+          - paragraph [ref=e458]:
+            - generic [ref=e459]: Summary
+            - text: Your 35-day diary at a glance — Need / Want split, period rotor, totals — plus a live daily-budget meter on the Day view.
+        - generic [ref=e460]:
+          - generic "Log screen preview" [ref=e461]:
+            - generic [ref=e462]:
+              - generic [ref=e463]:
+                - generic [ref=e464]: 9:41
+                - generic [ref=e466]: 100%
+              - generic [ref=e467]:
+                - generic [ref=e468]: Log
+                - paragraph [ref=e469]: Today · Aug 2, 2026
+                - heading "LOG" [level=3] [ref=e470]
+                - generic [ref=e471]:
+                  - paragraph [ref=e472]: Daily Budget
+                  - generic [ref=e473]:
+                    - generic [ref=e474]: ₱4,200.00
+                    - generic [ref=e475]: of ₱5,000.00
+                  - paragraph [ref=e478]: Remaining ₱800.00
+                - generic [ref=e479]:
+                  - button "Change" [ref=e480] [cursor=pointer]
+                  - button "Turn off" [ref=e481] [cursor=pointer]
+                - paragraph [ref=e482]: Sheet
+                - generic [ref=e483]:
+                  - generic [ref=e484]: 08:12
+                  - generic [ref=e485]: Rice & eggs
+                  - generic [ref=e486]: ₱125.00
+                  - generic [ref=e487]: NEED
+                - generic [ref=e488]:
+                  - generic [ref=e489]: 12:40
+                  - generic [ref=e490]: Lunch
+                  - generic [ref=e491]: ₱1,800.00
+                  - generic [ref=e492]: NEED
+                - generic [ref=e493]:
+                  - generic [ref=e494]: 15:10
+                  - generic [ref=e495]: Iced tea
+                  - generic [ref=e496]: ₱85.00
+                  - generic [ref=e497]: WANT
+          - paragraph [ref=e498]:
+            - generic [ref=e499]: Log
+            - text: Seal today's sheet — set, change, or turn off your daily budget here, with spent and remaining under the header when a limit is on.
+        - generic [ref=e500]:
+          - generic "History screen preview" [ref=e501]:
+            - generic [ref=e502]:
+              - generic [ref=e503]:
+                - generic [ref=e504]: 9:41
+                - generic [ref=e506]: 100%
+              - generic [ref=e507]:
+                - generic [ref=e508]: History
+                - paragraph [ref=e509]: History
+                - heading "Ledger" [level=3] [ref=e510]
+                - paragraph [ref=e511]: Jul 2 — Aug 5, 2026
+                - generic [ref=e512]:
+                  - generic [ref=e513]: Thu, Jul 30 3
+                  - generic [ref=e514]: ₱365.00 · ₱85.00
+                - generic [ref=e515]:
+                  - generic [ref=e516]: 07:55
+                  - generic [ref=e517]: Bus fare
+                  - generic [ref=e518]: ₱45.00
+                  - generic [ref=e519]: NEED
+                - generic [ref=e520]:
+                  - generic [ref=e521]: 15:10
+                  - generic [ref=e522]: Iced tea
+                  - generic [ref=e523]: ₱85.00
+                  - generic [ref=e524]: WANT
+                - generic [ref=e525]:
+                  - generic [ref=e526]: 18:42
+                  - generic [ref=e527]: Dinner
+                  - generic [ref=e528]: ₱320.00
+                  - generic [ref=e529]: NEED
+                - generic [ref=e530]:
+                  - generic [ref=e531]: Wed, Jul 29 2
+                  - generic [ref=e532]: ₱125.00 · ₱180.00
+                - generic [ref=e533]:
+                  - generic [ref=e534]: 08:12
+                  - generic [ref=e535]: Rice & eggs
+                  - generic [ref=e536]: ₱125.00
+                  - generic [ref=e537]: NEED
+                - generic [ref=e538]:
+                  - generic [ref=e539]: 10:03
+                  - generic [ref=e540]: Coffee
+                  - generic [ref=e541]: ₱180.00
+                  - generic [ref=e542]: WANT
+                - paragraph [ref=e543]: The page waits for ink.
+          - paragraph [ref=e547]:
+            - generic [ref=e548]: History
+            - text: 35-day ledger, grouped by day — with Need and Want totals.
+        - generic [ref=e549]:
+          - generic "Settings screen preview" [ref=e550]:
+            - generic [ref=e551]:
+              - generic [ref=e552]:
+                - generic [ref=e553]: 9:41
+                - generic [ref=e555]: 100%
+              - generic [ref=e556]:
+                - generic [ref=e557]: Settings
+                - paragraph [ref=e558]: Currency
+                - radiogroup "Currency" [ref=e559]:
+                  - generic [ref=e560] [cursor=pointer]:
+                    - radio "₱ PHP Peso" [checked] [ref=e561]
+                    - generic [ref=e563]: ₱
+                    - generic [ref=e564]: PHP
+                    - generic [ref=e565]: Peso
+                  - generic [ref=e566] [cursor=pointer]:
+                    - radio "$ USD Dollar" [ref=e567]
+                    - generic [ref=e569]: $
+                    - generic [ref=e570]: USD
+                    - generic [ref=e571]: Dollar
+                  - generic [ref=e572] [cursor=pointer]:
+                    - radio "€ EUR Euro" [ref=e573]
+                    - generic [ref=e575]: €
+                    - generic [ref=e576]: EUR
+                    - generic [ref=e577]: Euro
+                - paragraph [ref=e578]: Text size
+                - radiogroup "Text size" [ref=e579]:
+                  - generic [ref=e580] [cursor=pointer]:
+                    - radio "Default" [ref=e581]
+                    - generic [ref=e583]: Default
+                  - generic [ref=e584] [cursor=pointer]:
+                    - radio "Large" [checked] [ref=e585]
+                    - generic [ref=e587]: Large
+                  - generic [ref=e588] [cursor=pointer]:
+                    - radio "Extra large" [ref=e589]
+                    - generic [ref=e591]: Extra large
+                - paragraph [ref=e592]: "Sample: ₱1,250.00 · Need"
+                - paragraph [ref=e593]: Appearance
+                - radiogroup "Appearance" [ref=e594]:
+                  - generic [ref=e595] [cursor=pointer]:
+                    - radio "Market light" [checked] [ref=e596]
+                    - generic [ref=e602]: Market light
+                  - generic [ref=e603] [cursor=pointer]:
+                    - radio "Market dark" [ref=e604]
+                    - generic [ref=e610]: Market dark
+                  - generic [ref=e611] [cursor=pointer]:
+                    - radio "System" [ref=e612]
+                    - generic [ref=e614]: System
+                  - generic [ref=e615] [cursor=pointer]:
+                    - radio "High contrast" [ref=e616]
+                    - generic [ref=e618]: High contrast
+                - paragraph [ref=e619]: Data
+                - button "Wipe diary Delete all entries & reset" [ref=e620] [cursor=pointer]:
+                  - generic [ref=e623]:
+                    - generic [ref=e624]: Wipe diary
+                    - text: Delete all entries & reset
+                - paragraph [ref=e625]: About
+                - paragraph [ref=e626]: Needs vs. Wants
+                - paragraph [ref=e627]: Version 1.4.0
+                - paragraph [ref=e628]: An offline-first trainer for honest spenders.
+          - paragraph [ref=e629]:
+            - generic [ref=e630]: Settings
+            - text: Currency, larger text for readability, light/dark themes — daily budget lives on Log.
+        - generic [ref=e631]:
+          - generic "Financial Advisor screen preview" [ref=e632]:
+            - generic [ref=e633]:
+              - generic [ref=e634]:
+                - generic [ref=e635]: 9:41
+                - generic [ref=e637]: 100%
+              - generic [ref=e638]:
+                - generic [ref=e639]: Max Tier
+                - paragraph [ref=e640]: Advisor · NotebookLM
+                - heading "Source of Truth" [level=3] [ref=e641]
+                - paragraph [ref=e642]: Google NotebookLM (Max Feature)
+                - generic [ref=e643]:
+                  - paragraph [ref=e644]: ADVISOR RECOMMENDATION
+                  - generic [ref=e645]: Budgetary Equilibrium Active
+                  - paragraph [ref=e646]: "Based on your Economic Study Notebook #1, essential Needs form the anchor of your spending velocity."
+                  - generic [ref=e647]:
+                    - generic [ref=e648]: CITATIONS
+                    - generic [ref=e649]: "• Notebook #1: Equilibrium"
+                    - text: NotebookLM Section 1.2
+          - paragraph [ref=e650]:
+            - generic [ref=e651]: Financial Advisor
+            - text: (Max Tier · Upcoming Subscription) Zero-hallucination guidance grounded in your Google NotebookLM economic study notebooks.
+    - region "Pro Subscription & Direct Purchase" [ref=e652]:
+      - generic [ref=e653]:
+        - generic [ref=e654]:
+          - generic [ref=e655]:
+            - paragraph [ref=e656]: Pro · Max · Direct Access
+            - heading "Unlimited Diary. Lifetime History." [level=2] [ref=e657]
+          - paragraph [ref=e658]: Free keeps the honest 20-sheet, 35-day trainer. Pro removes the limits. Max adds the AI Financial Advisor. 3-day free trial on every paid tier.
+        - generic [ref=e659]:
+          - article [ref=e660]:
+            - generic [ref=e662]:
+              - paragraph [ref=e664]: Free Plan
+              - heading "The Trainer" [level=3] [ref=e665]
+              - generic [ref=e666]: Default · Offline
+              - paragraph [ref=e667]: ₱0 forever
+              - paragraph [ref=e668]: The honest daily trainer, free from day one.
+              - list [ref=e670]:
+                - listitem [ref=e671]: 20 entries per sheet
+                - listitem [ref=e674]: 35-day retention window
+                - listitem [ref=e677]: Daily budget meter
+                - listitem [ref=e680]: 4 theme appearances
+              - generic [ref=e683]:
+                - button "Active by default" [disabled] [ref=e684]
+                - paragraph [ref=e685]: No account needed · No network
+          - article [ref=e686]:
+            - generic [ref=e688]:
+              - generic [ref=e690]: Most popular
+              - paragraph [ref=e691]: Pro Subscription
+              - heading "Unlimited" [level=3] [ref=e692]
+              - generic [ref=e693]: 3-Day Free Trial
+              - paragraph [ref=e694]: ₱249 / mo · $4.99
+              - paragraph [ref=e695]: Unlimited logging, lifetime history, full analytics.
+              - list [ref=e697]:
+                - listitem [ref=e698]:
+                  - generic [ref=e701]: Unlimited
+                  - text: entries per log sheet
+                - listitem [ref=e702]:
+                  - generic [ref=e705]: Lifetime
+                  - text: history retention
+                - listitem [ref=e706]: Full period summary analytics
+                - listitem [ref=e709]: Priority updates & direct APK activation
+              - generic [ref=e712]:
+                - button "Pay with PayPal / Card" [ref=e714] [cursor=pointer]
+                - paragraph [ref=e718]: 3-day free trial · Cancel anytime
+          - article [ref=e719]:
+            - generic [ref=e721]:
+              - paragraph [ref=e726]: Max Subscription
+              - heading "Complete Intelligence" [level=3] [ref=e727]
+              - generic [ref=e728]: AI Powered
+              - paragraph [ref=e729]: ₱499 / mo · $9.99
+              - paragraph [ref=e730]: Everything in Pro, plus the AI Financial Advisor.
+              - list [ref=e732]:
+                - listitem [ref=e733]:
+                  - generic [ref=e736]: Everything in Pro
+                  - text: · unlimited & lifetime
+                - listitem [ref=e737]:
+                  - generic [ref=e740]: Google NotebookLM
+                  - text: AI Financial Advisor
+                - listitem [ref=e741]: Zero-hallucination grounded citations
+                - listitem [ref=e744]: Real-time overspend recovery & chatbot
+              - generic [ref=e747]:
+                - link "Upgrade to Max" [ref=e748] [cursor=pointer]:
+                  - /url: "#get"
+                - paragraph [ref=e752]: 3-day free trial
+    - generic [ref=e755]:
+      - img:
+        - generic: OFFICIAL · VERSION 1.4.0 · NEEDS VS WANTS ·
+        - generic: ₱
+      - generic [ref=e757]:
+        - paragraph [ref=e758]: Official Launch · Version 1.4.0 · August 5, 2026
+        - heading "Start tracking today." [level=2] [ref=e759]
+        - paragraph [ref=e760]: Take control of your finances. Every expense counts — seal it as a Need or a Want, keep a 35-day window of honest habits, and let an optional daily budget keep today in check.
+        - generic [ref=e761]:
+          - link "Download Android APK" [ref=e762] [cursor=pointer]:
+            - /url: ./downloads/needs-vs-wants-1.4.0.apk
+          - button "Scan QR code" [ref=e765] [cursor=pointer]
+          - button "iOS coming soon" [ref=e768] [cursor=pointer]
+        - paragraph [ref=e769]: No accounts · No analytics · No network — your diary never leaves your device.
+    - region "Developed by ACEU AI Solutions" [ref=e773]:
+      - link "Developed by ACEU AI Solutions Founder-led AI studio · Intelligence, engineered. Visit studio → Needs vs Wants ships as a studio product — offline-first, built to change how you spend." [ref=e775] [cursor=pointer]:
+        - /url: https://aceu-ai-solutions-portfolio.netlify.app
+        - paragraph [ref=e776]: Developed by
+        - generic [ref=e777]:
+          - generic [ref=e782]:
+            - text: ACEU AI Solutions
+            - generic [ref=e783]: Founder-led AI studio · Intelligence, engineered.
+          - generic [ref=e784]: Visit studio →
+        - paragraph [ref=e785]: Needs vs Wants ships as a studio product — offline-first, built to change how you spend.
+  - contentinfo [ref=e786]:
+    - generic [ref=e787]:
+      - generic [ref=e788]:
+        - generic [ref=e789]:
+          - generic [ref=e790]:
+            - text: Needs
+            - generic [ref=e791]: vs
+            - text: Wants
+          - paragraph [ref=e792]: Expense Tracker — a 35-day diary for honest spenders. Official launch · v1.4.0.
+        - generic [ref=e793]:
+          - paragraph [ref=e794]: Explore
+          - list [ref=e795]:
+            - listitem [ref=e796]:
+              - link "The Rule" [ref=e797] [cursor=pointer]:
+                - /url: "#rule"
+            - listitem [ref=e798]:
+              - link "How It Works" [ref=e799] [cursor=pointer]:
+                - /url: "#how"
+            - listitem [ref=e800]:
+              - link "The 35-Day Window" [ref=e801] [cursor=pointer]:
+                - /url: "#window"
+            - listitem [ref=e802]:
+              - link "Get the App" [ref=e803] [cursor=pointer]:
+                - /url: "#get"
+        - generic [ref=e804]:
+          - paragraph [ref=e805]: Details
+          - paragraph [ref=e806]: Version 1.4.0 ₱ $ € ¥ S$ · currency-aware Wednesday, August 5, 2026
+      - generic [ref=e807]:
+        - generic [ref=e808]:
+          - generic [ref=e809]: © 2026 Needs vs Wants. Offline-first. Android APK is a direct download — not yet on Google Play or the App Store.
+          - generic [ref=e810]:
+            - text: Developed by
+            - link "ACEU AI Solutions" [ref=e811] [cursor=pointer]:
+              - /url: https://aceu-ai-solutions-portfolio.netlify.app
+        - generic [ref=e812]: Every expense counts.
+  - status

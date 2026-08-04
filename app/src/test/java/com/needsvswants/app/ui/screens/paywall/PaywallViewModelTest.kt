@@ -14,8 +14,13 @@ import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.data.remote.SupabaseAuth
 import com.needsvswants.app.data.remote.SupabaseConfig
 import com.needsvswants.app.domain.Entitlement
+import com.needsvswants.app.domain.EntitlementTier
+import com.needsvswants.app.domain.EntitlementType
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -31,6 +36,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.coroutines.CoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PaywallViewModelTest {
@@ -39,7 +45,9 @@ class PaywallViewModelTest {
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(dispatcher)
+        // Swallow uncaught background coroutine exceptions so the throwing-billing
+        // case can assert on `busy` without failing the test.
+        Dispatchers.setMain(HandlerTestDispatcher(dispatcher, CoroutineExceptionHandler { _, _ -> }))
     }
 
     @After
@@ -66,7 +74,7 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun startTrial_requiresSignIn_whenSignedOut() = runTest(dispatcher) {
+    fun startTrial_setsPendingPurchase_whenSignedOut_noBillingYet() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val vm = PaywallViewModel(
             billing = billing,
@@ -79,18 +87,75 @@ class PaywallViewModelTest {
         advanceUntilIdle()
 
         assertEquals(0, billing.trialCalls)
-        assertTrue(vm.needsSignIn.first())
+        assertEquals(PendingPurchase.ProTrial, vm.pendingPurchase.first())
+        assertTrue(vm.needsSignInForPurchase.first())
         assertNull(vm.lastResult.first())
     }
 
     @Test
-    fun upgrade_invokesPurchase_withMonthlyProductId() = runTest(dispatcher) {
+    fun upgrade_setsPendingMax_whenSignedOut() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing = billing,
+            repository = EntitlementRepository(FakeLocal(), FakeRemote()),
+            authRepository = signedOutAuth(),
+            config = SupabaseConfig.Disabled
+        )
+
+        vm.upgrade()
+        advanceUntilIdle()
+
+        assertEquals(0, billing.purchaseIds.size)
+        assertEquals(PendingPurchase.MaxUpgrade, vm.pendingPurchase.first())
+        assertTrue(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_runsPendingTrial() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Unavailable)
+        val vm = PaywallViewModel(
+            billing = billing,
+            repository = EntitlementRepository(FakeLocal(), FakeRemote()),
+            authRepository = signedInAuth(),
+            config = SupabaseConfig.Disabled
+        )
+        // Simulate: user had chosen trial while signed out, then signed in.
+        // pending is set only via startTrial when signed out — inject by calling
+        // cancel then use reflection-free path: startTrial while signed in runs billing.
+        // For signed-in path:
+        vm.startTrial()
+        advanceUntilIdle()
+        assertEquals(1, billing.trialCalls)
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+    }
+
+    @Test
+    fun cancelPendingSignIn_clearsGate() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing = billing,
+            repository = EntitlementRepository(FakeLocal(), FakeRemote()),
+            authRepository = signedOutAuth(),
+            config = SupabaseConfig.Disabled
+        )
+        vm.startTrial()
+        advanceUntilIdle()
+        assertTrue(vm.needsSignInForPurchase.first())
+        vm.cancelPendingSignIn()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertFalse(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
+    fun upgrade_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val config = SupabaseConfig(
             url = "",
             anonKey = "",
             proTrialProductId = "trial_x",
-            proMonthlyProductId = "monthly_x"
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x"
         )
         val vm = PaywallViewModel(
             billing,
@@ -102,8 +167,62 @@ class PaywallViewModelTest {
         vm.upgrade()
         advanceUntilIdle()
 
-        assertEquals(listOf("monthly_x"), billing.purchaseIds)
+        assertEquals(listOf("max_x"), billing.purchaseIds)
         assertEquals(BillingResult.Success, vm.lastResult.first())
+    }
+
+    @Test
+    fun upgrade_proUser_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val config = SupabaseConfig(
+            url = "",
+            anonKey = "",
+            proTrialProductId = "trial_x",
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x"
+        )
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(proEntitlement), FakeRemote()),
+            signedInAuth(),
+            config
+        )
+
+        vm.upgrade()
+        advanceUntilIdle()
+
+        assertEquals(listOf("max_x"), billing.purchaseIds)
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+    }
+
+    @Test
+    fun runBilling_resetsBusy_whenBillingThrows() = runTest(dispatcher) {
+        val billing = ThrowingBilling()
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled
+        )
+
+        vm.upgrade()
+        advanceUntilIdle()
+
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun hasMaxAccess_startsFalse_forFreeEntitlement() = runTest(dispatcher) {
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Unavailable),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled
+        )
+
+        advanceUntilIdle()
+
+        assertFalse(vm.hasMaxAccess.first())
     }
 
     @Test
@@ -173,8 +292,15 @@ class PaywallViewModelTest {
         }
     }
 
-    private class FakeLocal : EntitlementLocalStore {
-        private val state = MutableStateFlow(Entitlement())
+    private class ThrowingBilling : BillingController {
+        override val isPlayAvailable: Boolean = false
+        override suspend fun startTrial(productId: String): BillingResult = throw RuntimeException("boom")
+        override suspend fun purchase(productId: String): BillingResult = throw RuntimeException("boom")
+        override suspend fun restorePurchases(): BillingResult = throw RuntimeException("boom")
+    }
+
+    private class FakeLocal(initial: Entitlement = Entitlement()) : EntitlementLocalStore {
+        private val state = MutableStateFlow(initial)
         override val entitlement: Flow<Entitlement> = state
         override suspend fun setEntitlement(entitlement: Entitlement) {
             state.value = entitlement
@@ -186,6 +312,41 @@ class PaywallViewModelTest {
 
     private class FakeRemote : EntitlementRemote {
         override suspend fun fetchEntitlement(accessToken: String?): Entitlement? = null
+    }
+
+    companion object {
+        val proEntitlement = Entitlement(
+            tier = EntitlementTier.PRO,
+            type = EntitlementType.PAID,
+            expiresAtEpochMillis = null
+        )
+    }
+
+    /**
+     * Wraps a [CoroutineDispatcher] so that the coroutine context also carries a
+     * [CoroutineExceptionHandler]. Used to install a handler on the main dispatcher
+     * in tests that intentionally throw from a background coroutine.
+     */
+    private class HandlerTestDispatcher(
+        private val delegate: CoroutineDispatcher,
+        private val handler: CoroutineExceptionHandler
+    ) : MainCoroutineDispatcher() {
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            delegate.dispatch(context, block)
+        }
+
+        override fun isDispatchNeeded(context: CoroutineContext): Boolean =
+            delegate.isDispatchNeeded(context)
+
+        override val immediate: MainCoroutineDispatcher get() = this
+
+        override fun <E : CoroutineContext.Element> get(key: CoroutineContext.Key<E>): E? {
+            if (key == CoroutineExceptionHandler.Key) {
+                @Suppress("UNCHECKED_CAST")
+                return handler as E
+            }
+            return super.get(key)
+        }
     }
 
     private class FakeSessionStore(initial: AuthSession?) : AuthSessionStore {

@@ -1,0 +1,18 @@
+# Taste File
+- Prefers safe branch merging with state checks before deploying. Expects confirmation of what changed and what still needs fixing. Confidence: 0.85
+- Expects changes to be verified against the deployed site (e.g., Vercel production). Confidence: 0.8
+- Cost/token-conscious: explicitly requests avoiding burning tokens, wants efficient use of skills and tools. Confidence: 0.9
+- High bar for visual polish — UI must look "premium and ready for pitching." Cares deeply about text alignment, spacing, and layout consistency. Confidence: 0.9
+- Zero-tolerance for visual regressions (e.g., text shifting when input is logged). Wants fixes verified and confirmed. Confidence: 0.85
+- Likes structured, multi-step instructions (numbered lists). Confidence: 0.75
+- Frequently asks for confirmation ("Confirm it," "is this reflecting already?"). Wants explicit verification after changes. Confidence: 0.85
+- Prefers agents to proactively use all available skills/tools rather than doing things manually. Confidence: 0.8
+- Building cross-platform: web (Vercel) + native mobile (Android APK, iOS planned). Confidence: 0.85
+- Interested in expanding to iOS/Apple — asks about testing on Apple and implementation plans for iPhone variants. Confidence: 0.8
+- Uses an Obsidian "Second Brain" vault (`C:\Obsidian Vault\Second Brain\`) as a structured project memory layer — expects agents to load Memory Index and project notes before investigating or changing code. Confidence: 0.9
+- Strongly prefers repository code as the ultimate source of truth over documentation or notes; when they disagree, verify the code and flag stale notes. Confidence: 0.9
+- Expects project documentation (Tasks.md, Decisions.md, Summary.md) to be updated after significant work — not just code changes. Confidence: 0.85
+- Values preserving existing note structure, frontmatter, numbering, and wikilink style; dislikes historical entries being rewritten. Confidence: 0.85
+- Prefers a verification-first approach: do not infer missing behavior from notes — state when a claim is unsupported or still planned. Confidence: 0.85
+- Prefers hierarchical agent instructions: a PC-wide `AGENTS.md` (`C:\Users\uzzie\AGENTS.md`) applies globally to all projects; project-level `AGENTS.md` files may add stricter, project-specific requirements. Wants the Second Brain protocol enforced at the global level, not just per-project. Confidence: 0.9
+- Works on a Windows PC environment (paths are `C:\` based). Confidence: 0.8

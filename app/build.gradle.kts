@@ -46,6 +46,11 @@ android {
             "PRO_MONTHLY_PRODUCT_ID",
             "\"${localProp("PRO_MONTHLY_PRODUCT_ID", "pro_monthly")}\""
         )
+        buildConfigField(
+            "String",
+            "PRO_MAX_MONTHLY_PRODUCT_ID",
+            "\"${localProp("PRO_MAX_MONTHLY_PRODUCT_ID", "max_monthly")}\""
+        )
         // Web OAuth client ID — serverClientId for Credential Manager Google Sign-In.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
         // ---------------------------------------------------------------------

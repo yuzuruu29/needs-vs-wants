@@ -18,6 +18,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Purchase the user chose; sign-in is only offered after one of these is selected. */
+enum class PendingPurchase {
+    None,
+    ProTrial,
+    MaxUpgrade
+}
+
 @HiltViewModel
 class PaywallViewModel @Inject constructor(
     private val billing: BillingController,
@@ -29,7 +36,9 @@ class PaywallViewModel @Inject constructor(
     val isPro: StateFlow<Boolean> = repository.isPro
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    // Eager so purchase gates see the current session without a UI subscriber first.
+    val hasMaxAccess: StateFlow<Boolean> = repository.hasMaxAccess
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val isSignedIn: StateFlow<Boolean> = authRepository.isSignedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
@@ -37,11 +46,9 @@ class PaywallViewModel @Inject constructor(
         .map { it?.email }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    /** Trial product id resolved from BuildConfig, with a harmless offline default. */
     val trialProductId: String = config.proTrialProductId.ifBlank { "pro_trial_3day" }
-
-    /** Monthly product id resolved from BuildConfig, with a harmless offline default. */
     val monthlyProductId: String = config.proMonthlyProductId.ifBlank { "pro_monthly" }
+    val maxProductId: String = config.maxMonthlyProductId.ifBlank { "max_monthly" }
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
@@ -49,38 +56,63 @@ class PaywallViewModel @Inject constructor(
     private val _lastResult = MutableStateFlow<BillingResult?>(null)
     val lastResult: StateFlow<BillingResult?> = _lastResult.asStateFlow()
 
-    private val _needsSignIn = MutableStateFlow(false)
-    val needsSignIn: StateFlow<Boolean> = _needsSignIn.asStateFlow()
+    private val _pendingPurchase = MutableStateFlow(PendingPurchase.None)
+    val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
+
+    /**
+     * True only after the user taps Start trial / Upgrade while signed out.
+     * Drives the Google sign-in strip — never shown for free browsing of the paywall.
+     */
+    val needsSignInForPurchase: StateFlow<Boolean> = _pendingPurchase
+        .map { it != PendingPurchase.None }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun startTrial() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) {
-                _needsSignIn.value = true
+                _pendingPurchase.value = PendingPurchase.ProTrial
                 return@launch
             }
-            if (_busy.value) return@launch
-            _busy.value = true
-            _lastResult.value = billing.startTrial(trialProductId)
-            _busy.value = false
+            runBilling { billing.startTrial(trialProductId) }
         }
     }
 
     fun upgrade() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) {
-                _needsSignIn.value = true
+                _pendingPurchase.value = PendingPurchase.MaxUpgrade
                 return@launch
             }
-            if (_busy.value) return@launch
-            _busy.value = true
-            _lastResult.value = billing.purchase(monthlyProductId)
-            _busy.value = false
+            runBilling { billing.purchase(maxProductId) }
         }
     }
 
+    /**
+     * Call after a successful Google sign-in triggered by a pending purchase.
+     * Completes the trial/upgrade the user originally chose.
+     */
+    fun onSignedInForPurchase() {
+        viewModelScope.launch {
+            if (!authRepository.isSignedIn.first()) return@launch
+            when (_pendingPurchase.value) {
+                PendingPurchase.ProTrial -> {
+                    _pendingPurchase.value = PendingPurchase.None
+                    runBilling { billing.startTrial(trialProductId) }
+                }
+                PendingPurchase.MaxUpgrade -> {
+                    _pendingPurchase.value = PendingPurchase.None
+                    runBilling { billing.purchase(maxProductId) }
+                }
+                PendingPurchase.None -> Unit
+            }
+        }
+    }
+
+    fun cancelPendingSignIn() {
+        _pendingPurchase.value = PendingPurchase.None
+    }
+
     fun restore() {
-        // NOTE: restorePurchases is in the BillingController seam; not surfaced as a
-        // first-class CTA on the paywall for now, but exposed for future tying to Supabase.
         viewModelScope.launch {
             _lastResult.value = billing.restorePurchases()
         }
@@ -90,15 +122,12 @@ class PaywallViewModel @Inject constructor(
         _lastResult.value = null
     }
 
-    fun consumeNeedsSignIn() {
-        _needsSignIn.value = false
-    }
-
-    private fun runAction(block: suspend () -> BillingResult) {
+    private suspend fun runBilling(block: suspend () -> BillingResult) {
         if (_busy.value) return
-        viewModelScope.launch {
-            _busy.value = true
+        _busy.value = true
+        try {
             _lastResult.value = block()
+        } finally {
             _busy.value = false
         }
     }

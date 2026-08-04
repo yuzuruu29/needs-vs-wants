@@ -1,1 +1,0 @@
-{"nodes": [{"id": "public_index_html", "label": "Public Landing Page", "file_type": "document", "source_file": "public/index.html", "source_location": null}], "edges": [{"source": "public_index_html", "target": "index_html", "relation": "semantically_similar_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "public/index.html"}], "hyperedges": []}

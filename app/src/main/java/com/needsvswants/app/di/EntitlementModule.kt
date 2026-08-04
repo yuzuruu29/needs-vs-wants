@@ -61,6 +61,7 @@ abstract class EntitlementModule {
             anonKey = BuildConfig.SUPABASE_ANON_KEY,
             proTrialProductId = BuildConfig.PRO_TRIAL_PRODUCT_ID,
             proMonthlyProductId = BuildConfig.PRO_MONTHLY_PRODUCT_ID,
+            maxMonthlyProductId = BuildConfig.PRO_MAX_MONTHLY_PRODUCT_ID,
             googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
         )
     }

@@ -936,6 +936,124 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   .cta-panel{transition:none !important}
   .btn--primary::after{display:none}
 }
+
+/* ============ PRO · MAX NOTICE (announcement ribbon) ============ */
+.pro-notice{
+  position:relative;overflow:hidden;margin:0 0 0;border-top:1px solid rgba(232,169,42,.28);
+  background:
+    radial-gradient(720px 240px at 18% -40%, rgba(232,169,42,.16), transparent 60%),
+    radial-gradient(560px 220px at 92% -30%, rgba(11,107,58,.08), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.55), rgba(243,241,234,.35));
+  border-bottom:1px solid var(--divider);
+}
+.pro-notice::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg, rgba(214,210,198,.10) 0 1px, transparent 1px 26px)}
+.pro-notice .wrap{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center;padding-block:18px}
+.pro-notice-badge{
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  background:var(--crimson);color:#fff;border-radius:var(--r-s);
+  font:700 10.5px/1 var(--body);letter-spacing:2px;text-transform:uppercase;
+  padding:8px 13px;box-shadow:0 10px 20px -12px rgba(200,16,46,.7);
+  animation:noticeGlow 3.4s ease-in-out infinite}
+.pro-notice-badge svg{width:13px;height:13px}
+@keyframes noticeGlow{0%,100%{box-shadow:0 10px 20px -12px rgba(200,16,46,.7)}50%{box-shadow:0 10px 26px -8px rgba(200,16,46,.95)}}
+.pro-notice-copy h3{font:700 clamp(17px,2.4vw,22px)/1.15 var(--display);letter-spacing:1px;color:var(--ink)}
+.pro-notice-copy p{margin-top:3px;font-size:13.5px;color:var(--sub);max-width:78ch}
+.pro-notice-copy p b{color:var(--crimson-deep);font-weight:600}
+.pro-notice-cta{white-space:nowrap}
+@media (max-width:820px){
+  .pro-notice .wrap{grid-template-columns:1fr;gap:12px;text-align:left}
+  .pro-notice-cta{width:100%}
+  .pro-notice-cta .btn{width:100%}
+}
+
+/* ============ PRO · MAX PRICING (premium bento) ============ */
+.pro-head{display:grid;grid-template-columns:1fr auto;gap:20px 48px;align-items:end;margin-bottom:clamp(34px,4vw,54px)}
+.pro-head p{max-width:40ch;font-size:14.5px;color:var(--sub)}
+@media (max-width:760px){.pro-head{grid-template-columns:1fr}.pro-head p{text-align:left}}
+.pro-note{font:600 10.5px/1.5 var(--body);letter-spacing:2px;text-transform:uppercase;color:var(--gold-deep);display:inline-flex;align-items:center;gap:8px}
+.pro-note::before{content:'';width:26px;height:1px;background:var(--gold-deep)}
+
+/* Double-bezel bento pricing grid */
+.pri-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px;align-items:stretch}
+.pri{position:relative;display:flex;flex-direction:column}
+/* Outer shell + inner core (double-bezel) */
+.pri-shell{background:rgba(243,241,234,.6);border:1px solid var(--divider);border-radius:calc(var(--r-l) + 7px);padding:7px;transition:transform .34s var(--ease-out), box-shadow .34s var(--ease-out)}
+.pri-core{position:relative;display:flex;flex-direction:column;height:100%;background:#fff;border-radius:var(--r-l);padding:26px 24px 24px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7);overflow:hidden}
+.pri:hover .pri-shell{transform:translateY(-6px);box-shadow:0 30px 60px -34px rgba(26,26,26,.35)}
+.pri--pro .pri-shell{border-color:rgba(232,169,42,.55);background:linear-gradient(180deg, rgba(232,169,42,.14), rgba(243,241,234,.5))}
+.pri--max .pri-success{opacity:1}
+.pri--max .pri-shell{transform:none}
+.pri--max:hover .pri-shell{transform:translateY(-6px)}
+/* Free = 3 cols, Pro = 4 cols, Max = 5 cols asymmetric */
+.pri--free{grid-column:span 3}
+.pri--pro{grid-column:span 4}
+.pri--max{grid-column:span 5}
+@media (max-width:980px){
+  .pri--free,.pri--pro,.pri--max{grid-column:span 6}
+}
+@media (max-width:640px){
+  .pri--free,.pri--pro,.pri--max{grid-column:span 12}
+}
+.pri-flag{position:absolute;top:0;left:0;right:0;height:5px;background:var(--crimson);z-index:2}
+.pri--pro .pri-flag{background:linear-gradient(90deg,var(--gold-deep),var(--gold-soft))}
+.pri--max .pri-flag{background:linear-gradient(90deg,var(--crimson),var(--crimson-soft))}
+.pri-eyebrow{font:600 11px/1.4 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--sub)}
+.pri--pro .pri-eyebrow{color:var(--gold-deep)}
+.pri--max .pri-eyebrow{color:var(--crimson)}
+.pri-title{font:700 24px/1 var(--display);letter-spacing:1px;margin-top:10px;color:var(--ink)}
+.pri-tag{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font:700 9.5px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;
+  padding:5px 9px;border-radius:var(--r-xs)}
+.pri--free .pri-tag{background:var(--raised);color:var(--muted);border:1px solid var(--divider)}
+.pri--pro .pri-tag{background:rgba(232,169,42,.14);color:var(--gold-deep);border:1px solid rgba(232,169,42,.4)}
+.pri--max .pri-tag{background:rgba(200,16,46,.1);color:var(--crimson);border:1px solid rgba(200,16,46,.35)}
+.pri-price{font:700 clamp(30px,3.4vw,40px)/1 var(--display);letter-spacing:1px;margin-top:18px;color:var(--ink)}
+.pri-price small{font:600 13px/1 var(--body);color:var(--muted);letter-spacing:0}
+.pri-sub{font-size:13px;color:var(--sub);margin-top:6px}
+.pri-divider{height:1px;background:var(--divider);margin:20px 0 16px}
+.pri-list{list-style:none;display:grid;gap:11px;margin:0 0 22px}
+.pri-list li{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:var(--ink);line-height:1.5}
+.pri-list li svg{width:17px;height:17px;flex:none;margin-top:1px}
+.pri--free .pri-list li svg{color:var(--muted)}
+.pri--pro .pri-list li svg{color:var(--green)}
+.pri--max .pri-list li svg{color:var(--crimson)}
+.pri-list li b{font-weight:600}
+.pri-cta{margin-top:auto;display:grid;gap:9px}
+.pri-cta .btn{width:100%}
+.pri-cta-note{font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+/* Button-in-button trailing arrow (nested island) */
+.btn-arr{display:inline-flex;align-items:center;justify-content:center;gap:12px}
+.btn-arr .arr{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;transition:transform .28s var(--ease-out)}
+.btn:hover .btn-arr .arr{transform:translate(2px,-2px)}
+.btn-arr .arr svg{width:15px;height:15px}
+/* Max flagship: inset gold/crimson aura + success seal */
+.pri--max .pri-core{background:
+  radial-gradient(420px 220px at 88% -10%, rgba(232,169,42,.16), transparent 60%),
+  radial-gradient(300px 200px at 6% 110%, rgba(200,16,46,.08), transparent 55%), #fff}
+.pri-success{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold-deep));color:#fff;box-shadow:0 10px 18px -10px rgba(184,136,30,.7);opacity:.92}
+.pri-success svg{width:17px;height:17px}
+/* Entrance stagger for pricing cards */
+.pri-shell{opacity:0;transform:translateY(26px) scale(.985);transition:opacity .7s var(--ease-out), transform .7s var(--ease-out), box-shadow .34s var(--ease-out)}
+.pri-shell.in{opacity:1;transform:translateY(0) scale(1)}
+.pri--free .pri-shell{transition-delay:.05s}
+.pri--pro .pri-shell{transition-delay:.15s}
+.pri--max .pri-shell{transition-delay:.25s}
+@media (prefers-reduced-motion: reduce){
+  .pro-notice-badge{animation:none}
+  .pri-shell{opacity:1;transform:none;transition:none}
+}
+/* Enhanced Pro/Max promotion: wire the bento entrance + premium touches */
+.pri-grid.in .pri-shell{opacity:1;transform:translateY(0) scale(1)}
+.pri--pro .pri-popular{position:absolute;top:18px;right:18px;z-index:3;display:inline-flex;align-items:center;gap:6px;
+  font:700 9.5px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:#fff;
+  background:linear-gradient(135deg,var(--gold-soft),var(--gold-deep));padding:6px 11px;border-radius:999px;
+  box-shadow:0 10px 18px -10px rgba(184,136,30,.65);white-space:nowrap}
+.pri-cta .btn[disabled]{opacity:.72;cursor:default}
+@media (max-width:640px){
+  .pri--pro .pri-popular{top:16px;right:16px}
+}
 </style>
 </head>
 <body>
@@ -1011,6 +1129,26 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </div>
   </div><!-- .wrap.hero-grid -->
 </section>
+
+<!-- ================= PRO · MAX NOTICE ================= -->
+<div class="pro-notice" role="region" aria-label="Announcement: Pro and Max subscriptions available">
+  <div class="wrap">
+    <span class="pro-notice-badge reveal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.2L6.7 19.4l1.3-6L3.4 9.2l6.1-.6z"/></svg>
+      New
+    </span>
+    <div class="pro-notice-copy reveal">
+      <h3>Pro &amp; Max subscriptions are here.</h3>
+      <p>Unlock <b>unlimited logging</b>, <b>lifetime history</b>, <b>full-period analytics</b>, and — with <b>Max</b> — a Google NotebookLM AI Financial Advisor. 3-day free trial on every paid tier.</p>
+    </div>
+    <div class="pro-notice-cta reveal">
+      <a class="btn btn--primary btn-arr" href="#pro-pricing">
+        See Pro &amp; Max
+        <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+      </a>
+    </div>
+  </div>
+</div>
 
 <!-- ================= RECEIPT TICKER ================= -->
 <div class="ticker" aria-hidden="true">
@@ -1318,6 +1456,130 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         </div>
         <p class="phone-cap"><b>Settings</b> Currency, larger text for readability, light/dark themes — daily budget lives on Log.</p>
       </div>
+
+      <!-- FINANCIAL ADVISOR -->
+      <div class="phone-slot reveal">
+        <div class="phone" aria-label="Financial Advisor screen preview">
+          <div class="phone-bezel">
+            <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
+            <div class="phone-body app-inner">
+              <span class="app-tag" style="background:var(--gold-soft);color:#1a1a1a">Max Tier</span>
+              <p class="eyebrow" style="color:var(--gold-soft)">Advisor · NotebookLM</p>
+              <h3 style="margin-top:4px">Source of Truth</h3>
+              <p class="app-cap">Google NotebookLM (Max Feature)</p>
+              <div class="card" style="background:#fff;border:1px solid var(--gold-soft);padding:12px;border-radius:10px;margin-top:10px">
+                <p class="eyebrow" style="font-size:10px;color:var(--crimson)">ADVISOR RECOMMENDATION</p>
+                <b style="display:block;font-size:12px;margin:4px 0">Budgetary Equilibrium Active</b>
+                <p style="font-size:11px;color:#4a4a4a;line-height:1.4">Based on your Economic Study Notebook #1, essential Needs form the anchor of your spending velocity.</p>
+                <div style="border-top:1px solid rgba(0,0,0,.08);margin-top:8px;padding-top:6px">
+                  <span style="font-size:9px;font-weight:700;color:var(--gold-soft);letter-spacing:1px;display:block">CITATIONS</span>
+                  <span style="font-size:10px;font-weight:600;display:block">• Notebook #1: Equilibrium</span>
+                  <span style="font-size:9px;color:#777">NotebookLM Section 1.2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="phone-cap"><b>Financial Advisor</b> (Max Tier · Upcoming Subscription) Zero-hallucination guidance grounded in your Google NotebookLM economic study notebooks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRO PRICING & PAYPAL ================= -->
+<section id="pro-pricing" aria-label="Pro Subscription &amp; Direct Purchase">
+  <div class="wrap">
+    <div class="pro-head reveal">
+      <div>
+        <p class="pro-note">Pro · Max · Direct Access</p>
+        <h2 class="title">Unlimited Diary. Lifetime History.</h2>
+      </div>
+      <p>Free keeps the honest 20-sheet, 35-day trainer. Pro removes the limits. Max adds the AI Financial Advisor. 3-day free trial on every paid tier.</p>
+    </div>
+    <div class="pri-grid reveal">
+
+      <article class="pri pri--free">
+        <div class="pri-shell">
+          <div class="pri-core">
+            <div class="pri-flag" aria-hidden="true"></div>
+            <p class="pri-eyebrow">Free Plan</p>
+            <h3 class="pri-title">The Trainer</h3>
+            <span class="pri-tag">Default · Offline</span>
+            <p class="pri-price">₱0<small> forever</small></p>
+            <p class="pri-sub">The honest daily trainer, free from day one.</p>
+            <div class="pri-divider" aria-hidden="true"></div>
+            <ul class="pri-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>20 entries per sheet</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>35-day retention window</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Daily budget meter</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>4 theme appearances</li>
+            </ul>
+            <div class="pri-cta">
+              <button class="btn btn--outline" type="button" disabled>Active by default</button>
+              <p class="pri-cta-note">No account needed · No network</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="pri pri--pro">
+        <div class="pri-shell">
+          <div class="pri-core">
+            <div class="pri-flag" aria-hidden="true"></div>
+            <span class="pri-popular" aria-hidden="true">Most popular</span>
+            <p class="pri-eyebrow">Pro Subscription</p>
+            <h3 class="pri-title">Unlimited</h3>
+            <span class="pri-tag">3-Day Free Trial</span>
+            <p class="pri-price">₱249<small> / mo · $4.99</small></p>
+            <p class="pri-sub">Unlimited logging, lifetime history, full analytics.</p>
+            <div class="pri-divider" aria-hidden="true"></div>
+            <ul class="pri-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Unlimited</b> entries per log sheet</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Lifetime</b> history retention</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Full period summary analytics</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Priority updates &amp; direct APK activation</li>
+            </ul>
+            <div class="pri-cta">
+              <div id="paypal-button-container">
+                <button class="btn btn--primary btn-arr" type="button" id="payPalSeamBtn" style="background:#0070ba;border-color:#0070ba">
+                  Pay with PayPal / Card
+                  <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+                </button>
+              </div>
+              <p class="pri-cta-note">3-day free trial · Cancel anytime</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="pri pri--max">
+        <div class="pri-shell">
+          <div class="pri-core">
+            <div class="pri-flag" aria-hidden="true"></div>
+            <span class="pri-success" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+            <p class="pri-eyebrow">Max Subscription</p>
+            <h3 class="pri-title">Complete Intelligence</h3>
+            <span class="pri-tag">AI Powered</span>
+            <p class="pri-price">₱499<small> / mo · $9.99</small></p>
+            <p class="pri-sub">Everything in Pro, plus the AI Financial Advisor.</p>
+            <div class="pri-divider" aria-hidden="true"></div>
+            <ul class="pri-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Everything in Pro</b> · unlimited &amp; lifetime</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Google NotebookLM</b> AI Financial Advisor</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Zero-hallucination grounded citations</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Real-time overspend recovery &amp; chatbot</li>
+            </ul>
+            <div class="pri-cta">
+              <a class="btn btn--primary btn-arr" href="#get">
+                Upgrade to Max
+                <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+              </a>
+              <p class="pri-cta-note">3-day free trial</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
     </div>
   </div>
 </section>

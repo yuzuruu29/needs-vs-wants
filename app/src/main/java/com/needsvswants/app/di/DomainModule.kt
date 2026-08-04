@@ -1,6 +1,7 @@
 package com.needsvswants.app.di
 
 import com.needsvswants.app.data.db.EntryDao
+import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.SummaryUseCase
@@ -15,8 +16,11 @@ import javax.inject.Singleton
 object DomainModule {
     @Provides
     @Singleton
-    fun provideSummaryUseCase(dao: EntryDao): SummaryUseCase {
-        return SummaryUseCase(dao)
+    fun provideSummaryUseCase(
+        dao: EntryDao,
+        entitlementRepository: EntitlementRepository
+    ): SummaryUseCase {
+        return SummaryUseCase(dao, entitlementRepository)
     }
 
     @Provides
