@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.needsvswants.app.domain.toMoney
 import kotlinx.coroutines.launch
@@ -68,6 +69,7 @@ fun Modifier.fadeSlideEnter(
     visible: Boolean,
     offsetY: Float = 12f
 ): Modifier = composed {
+    val density = LocalDensity.current
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
         animationSpec = Motion.entrance(),
@@ -80,7 +82,7 @@ fun Modifier.fadeSlideEnter(
     )
     this
         .alpha(alpha)
-        .offset(y = offset.dp)
+        .offset { IntOffset(0, with(density) { offset.dp.roundToPx() }) }
 }
 
 /**
