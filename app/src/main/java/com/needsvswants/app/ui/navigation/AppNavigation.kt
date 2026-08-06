@@ -1,14 +1,11 @@
 package com.needsvswants.app.ui.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -25,9 +22,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,15 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.needsvswants.app.ui.screens.advisor.FinancialAdvisorScreen
 import com.needsvswants.app.ui.screens.history.HistoryScreen
 import com.needsvswants.app.ui.screens.input.InputScreen
@@ -55,8 +48,7 @@ import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.rememberAppHaptics
-
-private const val ROUTE_PAYWALL = "paywall"
+import kotlinx.coroutines.launch
 
 data class BottomNavItem(
     val route: String,
@@ -79,12 +71,12 @@ fun AppNavigation(
     startDestination: String = "summary",
     launchVm: LaunchPaywallViewModel = hiltViewModel()
 ) {
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route
+    val initialPage = MainTab.indexOf(startDestination)
+    val pagerState = rememberPagerState(initialPage = initialPage) { MainTab.COUNT }
+    val scope = rememberCoroutineScope()
     val shouldOfferSoftPaywall by launchVm.shouldOfferSoftPaywall.collectAsStateWithLifecycle()
     var softPaywallLaunched by remember { mutableStateOf(false) }
+    var paywallOpen by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
 
     // Soft paywall only on normal cold start — not when deep-linking to Log from a reminder.
@@ -92,135 +84,106 @@ fun AppNavigation(
         if (startDestination != "summary") return@LaunchedEffect
         if (shouldOfferSoftPaywall && !softPaywallLaunched) {
             softPaywallLaunched = true
-            navController.navigate(ROUTE_PAYWALL) {
-                launchSingleTop = true
-            }
+            paywallOpen = true
         }
     }
 
-    Scaffold(
-        containerColor = AppTheme.colors.background,
-        bottomBar = {
-            if (currentRoute != ROUTE_PAYWALL) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        color = AppTheme.colors.surfaceCard,
-                        shadowElevation = 10.dp,
-                        tonalElevation = 0.dp,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            AppTheme.colors.gold.copy(alpha = 0.38f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+    // Light tick when a swipe settles on a new page. Skip the settle that follows
+    // a pill tap so we don't double-tick (the tap already ticks).
+    var lastTappedPage by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { pagerState.settledPage }
+            .collect { page ->
+                if (page != lastTappedPage) {
+                    haptics.tick()
+                }
+                lastTappedPage = -1
+            }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.background)) {
+        Scaffold(
+            containerColor = AppTheme.colors.background,
+            bottomBar = {
+                if (!paywallOpen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 2.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = AppTheme.colors.surfaceCard,
+                            shadowElevation = 10.dp,
+                            tonalElevation = 0.dp,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                AppTheme.colors.gold.copy(alpha = 0.38f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            bottomNavItems.forEach { item ->
-                                val selected =
-                                    currentDestination?.hierarchy?.any { it.route == item.route } == true
-                                NavPill(
-                                    item = item,
-                                    selected = selected,
-                                    onClick = {
-                                        haptics.tick()
-                                        navController.navigate(item.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 2.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                bottomNavItems.forEachIndexed { index, item ->
+                                    NavPill(
+                                        item = item,
+                                        selected = pagerState.currentPage == index,
+                                        onClick = {
+                                            haptics.tick()
+                                            lastTappedPage = index
+                                            scope.launch {
+                                                pagerState.animateScrollToPage(index)
                                             }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+        ) { innerPadding ->
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = !paywallOpen,
+                beyondViewportPageCount = 1,
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+            ) { page ->
+                when (MainTab.entries[page]) {
+                    MainTab.Home -> SummaryScreen(onNavigateToInput = {
+                        lastTappedPage = MainTab.Log.ordinal
+                        scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                    })
+                    MainTab.Log -> InputScreen()
+                    MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
+                        paywallOpen = true
+                    })
+                    MainTab.History -> HistoryScreen(onNavigateToInput = {
+                        lastTappedPage = MainTab.Log.ordinal
+                        scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                    })
+                    MainTab.Settings -> SettingsScreen(onOpenPaywall = {
+                        paywallOpen = true
+                    })
+                }
+            }
         }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = {
-                fadeIn(Motion.navEnter()) + slideInHorizontally(
-                    animationSpec = Motion.navEnter(),
-                    initialOffsetX = { it / 24 }
-                )
-            },
-            exitTransition = {
-                fadeOut(Motion.navExit()) + slideOutHorizontally(
-                    animationSpec = Motion.navExit(),
-                    targetOffsetX = { -it / 32 }
-                )
-            },
-            popEnterTransition = {
-                fadeIn(Motion.navEnter()) + slideInHorizontally(
-                    animationSpec = Motion.navEnter(),
-                    initialOffsetX = { -it / 24 }
-                )
-            },
-            popExitTransition = {
-                fadeOut(Motion.navExit()) + slideOutHorizontally(
-                    animationSpec = Motion.navExit(),
-                    targetOffsetX = { it / 32 }
-                )
-            }
-        ) {
-            composable("summary") {
-                SummaryScreen(onNavigateToInput = {
-                    navController.navigate("input") {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                })
-            }
-            composable("input") { InputScreen() }
-            composable("advisor") {
-                FinancialAdvisorScreen(
-                    onOpenPaywall = { navController.navigate(ROUTE_PAYWALL) }
-                )
-            }
-            composable("history") {
-                HistoryScreen(onNavigateToInput = {
-                    navController.navigate("input") {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                })
-            }
-            composable("settings") {
-                SettingsScreen(
-                    onOpenPaywall = { navController.navigate(ROUTE_PAYWALL) }
-                )
-            }
-            composable(ROUTE_PAYWALL) {
-                PaywallScreen(
-                    onClose = {
-                        launchVm.dismissSoftPaywallForSession()
-                        if (!navController.popBackStack()) {
-                            navController.navigate("summary") {
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-                )
-            }
+
+        // Paywall is a full-screen overlay — never a swipeable pager page.
+        if (paywallOpen) {
+            PaywallScreen(onClose = {
+                paywallOpen = false
+                launchVm.dismissSoftPaywallForSession()
+            })
         }
     }
 }
