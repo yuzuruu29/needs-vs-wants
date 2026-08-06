@@ -90,7 +90,7 @@ fun AppNavigation(
 
     // Light tick when a swipe settles on a new page. Skip the settle that follows
     // a pill tap so we don't double-tick (the tap already ticks).
-    var lastTappedPage by remember { mutableIntStateOf(-1) }
+    var lastTappedPage by remember { mutableIntStateOf(initialPage) }
     LaunchedEffect(Unit) {
         snapshotFlow { pagerState.settledPage }
             .collect { page ->
