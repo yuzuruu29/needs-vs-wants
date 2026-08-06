@@ -1,6 +1,6 @@
 # Plan: Daily free log quota + optional rewarded ads
 
-**Status:** Approved and implemented (Phases 1-4, D80-D84). **AdMob on hold (D85, 2026-08-07):** no AdMob account yet, app not on Play Store — `AdsConfig.ENABLED = false` (kill switch) keeps all ads inactive; version stays 1.5.0. Enable when the AdMob account + production App ID/unit exist.
+**Status:** Approved and implemented (Phases 1-4, D80-D84). **AdMob on hold + SDK STRIPPED from the build (D85, D87, 2026-08-07):** no AdMob account yet, app not on Play Store — deps commented out, ads/ AdMob impl removed (restore from git 5622b7e), `AdsConfig.ENABLED = false`, version stays 1.5.0, lean 5.34 MB release APK. Enable when the AdMob account + production App ID/unit exist.
 
 **Related product:** Needs vs Wants expense trainer  
 **Scope (recommended):** Android native APK only (`app/`)  
