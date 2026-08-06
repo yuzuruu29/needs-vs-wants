@@ -579,28 +579,36 @@ private fun LogDailyBudgetSection(
     onRequestSetBudget: () -> Unit
 ) {
     val budgetOn = budgetStatus is BudgetStatus.On
+    val onStatus = budgetStatus as? BudgetStatus.On
+    var lastOnStatus by remember { mutableStateOf<BudgetStatus.On?>(null) }
+    LaunchedEffect(onStatus) { if (onStatus != null) lastOnStatus = onStatus }
     val palette = AppTheme.colors
 
     // Meter + actions survive state flips: hoisted outside the `when` so the
     // enter/exit transitions can actually play — a `when` branch would dispose
     // the subtree the instant its condition flips false. Transform-only
-    // (fade/scale) so siblings never relayout.
+    // (fade/scale) so siblings never relayout. The exiting content keeps the
+    // last `On` status via [lastOnStatus] so the exit transition never casts
+    // an `Off` state into [BudgetStatus.On].
     AnimatedVisibility(
-        visible = budgetOn && !editingBudget,
-        enter = fadeIn(Motion.budget()) + scaleIn(initialScale = 0.96f, animationSpec = Motion.budget()),
-        exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.96f, animationSpec = Motion.feedback())
+        visible = onStatus != null && !editingBudget,
+        enter = fadeIn(Motion.budget()) + scaleIn(initialScale = Motion.RiseScale, animationSpec = Motion.budget()),
+        exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = Motion.RiseScale, animationSpec = Motion.feedback())
     ) {
-        Column {
-            DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GhostTextAction(text = "Change", onClick = onStartEdit)
-                GhostTextAction(text = "Turn off", onClick = onClear, danger = true)
+        val meterStatus = onStatus ?: lastOnStatus
+        if (meterStatus != null) {
+            Column {
+                DailyBudgetMeter(status = meterStatus, symbol = symbol)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GhostTextAction(text = "Change", onClick = onStartEdit)
+                    GhostTextAction(text = "Turn off", onClick = onClear, danger = true)
+                }
+                Spacer(Modifier.height(4.dp))
             }
-            Spacer(Modifier.height(4.dp))
         }
     }
 

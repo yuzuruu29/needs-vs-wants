@@ -555,8 +555,14 @@ fun SealStampOverlay(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(Motion.stamp()) + scaleIn(initialScale = 0.8f, animationSpec = Motion.sealSpring()),
-        exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.92f, animationSpec = Motion.feedback())
+        enter = fadeIn(Motion.stamp()) + scaleIn(
+            initialScale = Motion.StampLandingScale,
+            animationSpec = Motion.sealSpring()
+        ),
+        exit = fadeOut(Motion.feedback()) + scaleOut(
+            targetScale = Motion.StampLeavingScale,
+            animationSpec = Motion.feedback()
+        )
     ) {
         Box(
             modifier = modifier

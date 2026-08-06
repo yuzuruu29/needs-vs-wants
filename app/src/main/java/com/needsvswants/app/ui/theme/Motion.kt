@@ -31,6 +31,13 @@ object Motion {
     const val StaggerStepMs = 60
     const val PagerSettleMs = 350
 
+    /** Stamp landing scale — seal stamp grows in from here. */
+    const val StampLandingScale = 0.8f
+    /** Stamp leaving scale — seal stamp shrinks toward here on exit. */
+    const val StampLeavingScale = 0.92f
+    /** Rise scale for panels/meters/dialogs entering or exiting. */
+    const val RiseScale = 0.96f
+
     val EaseEmphasizedDecelerate: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
     val EaseOutQuint: Easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
     val EaseStandard: Easing = FastOutSlowInEasing
