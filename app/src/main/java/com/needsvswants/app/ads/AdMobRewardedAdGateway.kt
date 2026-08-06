@@ -37,10 +37,15 @@ class AdMobRewardedAdGateway @Inject constructor(
     private var rewardedAd: RewardedAd? = null
     private var loading = false
 
+    /** Bumped by [reset] to invalidate any in-flight consent/load flow. */
+    private var loadGeneration = 0
+
     override fun isReady(): Boolean = rewardedAd != null
 
     override fun reset() {
+        loadGeneration++
         rewardedAd = null
+        loading = false
     }
 
     override fun loadAndShow(
@@ -54,31 +59,41 @@ class AdMobRewardedAdGateway @Inject constructor(
             return
         }
         loading = true
+        val gen = loadGeneration
         consentHelper.gatherConsent(activity) { consentOk ->
+            if (gen != loadGeneration) return@gatherConsent // cancelled while gathering
             if (!consentOk) {
                 loading = false
                 onClosed(false, "Ad consent is not available right now. Please try again later.")
                 return@gatherConsent
             }
-            initializeSdk()
-            RewardedAd.load(
-                activity,
-                REWARDED_AD_UNIT_ID,
-                AdRequest.Builder().build(),
-                object : RewardedAdLoadCallback() {
-                    override fun onAdLoaded(ad: RewardedAd) {
-                        loading = false
-                        rewardedAd = ad
-                        present(activity, ad, onUserEarnedReward, onClosed)
-                    }
+            initializeSdk {
+                if (gen != loadGeneration) return@initializeSdk // cancelled during init
+                activity.runOnUiThread {
+                    RewardedAd.load(
+                        activity,
+                        REWARDED_AD_UNIT_ID,
+                        AdRequest.Builder().build(),
+                        object : RewardedAdLoadCallback() {
+                            override fun onAdLoaded(ad: RewardedAd) {
+                                // Cancelled generations must not touch state or show.
+                                if (gen != loadGeneration) return
+                                loading = false
+                                rewardedAd = ad
+                                present(activity, ad, onUserEarnedReward, onClosed)
+                            }
 
-                    override fun onAdFailedToLoad(error: LoadAdError) {
-                        loading = false
-                        rewardedAd = null
-                        onClosed(false, "The ad could not be loaded. Check your connection and try again.")
-                    }
+                            override fun onAdFailedToLoad(error: LoadAdError) {
+                                // Cancelled generations must not touch state or report.
+                                if (gen != loadGeneration) return
+                                loading = false
+                                rewardedAd = null
+                                onClosed(false, "The ad could not be loaded. Check your connection and try again.")
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 
@@ -106,9 +121,16 @@ class AdMobRewardedAdGateway @Inject constructor(
         }
     }
 
-    private fun initializeSdk() {
-        if (sdkInitialized.getAndSet(true)) return
-        MobileAds.initialize(appContext) {}
+    /**
+     * Initializes the SDK once (lazy), then runs [onReady]. Ad loads must be
+     * requested on the main thread — callers wrap with activity.runOnUiThread.
+     */
+    private fun initializeSdk(onReady: () -> Unit) {
+        if (sdkInitialized.getAndSet(true)) {
+            onReady()
+            return
+        }
+        MobileAds.initialize(appContext) { onReady() }
     }
 
     companion object {

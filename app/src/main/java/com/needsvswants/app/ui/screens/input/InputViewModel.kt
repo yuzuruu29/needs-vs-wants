@@ -160,6 +160,8 @@ class InputViewModel @Inject constructor(
     fun dismissQuotaBlocked() {
         _quotaBlocked.value = null
         _adState.value = AdState.Idle
+        // Cancel any in-flight consent/load so no ad pops up after dismissal.
+        rewardedAdGateway.reset()
     }
 
     /**
@@ -174,7 +176,8 @@ class InputViewModel @Inject constructor(
         val today = todayString()
         val rolled = DailyLogQuota.rollDayIfNeeded(quotaState.value, today)
         if (!DailyLogQuota.canWatchAd(rolled, today)) {
-            _adState.value = AdState.Failed("You've reached the 3-ads-per-day limit.")
+            // Cap reached: the dialog body already shows the limit copy and
+            // hides the button — nothing else to say (avoids duplicate text).
             return
         }
         _adState.value = AdState.Loading

@@ -412,19 +412,34 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                 title = "You've used your free logs for today.",
                 bodyContent = {
                     Column {
-                        Text(
-                            "Watch a short ad to unlock +8 more logs today?",
-                            color = palette.textSecondary,
-                            style = AppType.body
-                        )
+                        if (AdsConfig.ENABLED) {
+                            Text(
+                                if (canWatchAdToday) {
+                                    "Watch a short ad to unlock +8 more logs today?"
+                                } else {
+                                    "You've reached the 3-ads-per-day limit."
+                                },
+                                color = palette.textSecondary,
+                                style = AppType.body
+                            )
+                        }
+                        (adState as? AdState.Failed)?.let { failed ->
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                failed.message,
+                                style = AppType.bodySm,
+                                color = palette.danger
+                            )
+                        }
                         Spacer(Modifier.height(16.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (AdsConfig.ENABLED && canWatchAdToday) {
+                                val activity = context as? Activity
                                 GiltButton(
-                                    onClick = { viewModel.onWatchAd(context as Activity) },
+                                    onClick = { activity?.let { viewModel.onWatchAd(it) } },
                                     text = if (adState is AdState.Loading) "Loading ad…" else "Watch Ad",
                                     modifier = Modifier.weight(1f),
                                     height = 48.dp,
@@ -437,14 +452,6 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             ) {
                                 Text("Come back tomorrow", color = palette.textMuted)
                             }
-                        }
-                        (adState as? AdState.Failed)?.let { failed ->
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                failed.message,
-                                style = AppType.bodySm,
-                                color = palette.danger
-                            )
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
