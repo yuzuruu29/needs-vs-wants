@@ -1,6 +1,8 @@
 package com.needsvswants.app.ui.theme
 
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -41,26 +43,31 @@ class MotionTokensTest {
     }
 
     @Test
-    fun disabled_pagerSettleSpringKeepsCrispProfile() {
-        // Spring specs have no durationMillis to collapse, but the spring
-        // profile must remain a crisp (no-bounce) snap regardless of enabled.
+    fun disabled_springsCollapseToOneMsTween() {
+        // Reduced motion: every spring collapses to a near-instant tween,
+        // so no spring profile survives when disabled.
         enableMotion(false)
-        val spring = Motion.pagerSettle()
-        assertEquals(Spring.DampingRatioNoBouncy, spring.dampingRatio)
-        assertEquals(Spring.StiffnessMedium, spring.stiffness)
+        assertEquals(1, (Motion.pagerSettle() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.spatialSpring() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.selectionSpring() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.sealSpring() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.pressSpring() as TweenSpec<Float>).durationMillis)
     }
 
     @Test
     fun enabled_pagerSettleSpringKeepsCrispProfile() {
+        // Spring specs have no durationMillis, but the spring profile must
+        // remain a crisp (no-bounce) snap when motion is enabled.
         enableMotion(true)
-        val spring = Motion.pagerSettle()
+        val spring = Motion.pagerSettle() as SpringSpec<Float>
         assertEquals(Spring.DampingRatioNoBouncy, spring.dampingRatio)
         assertEquals(Spring.StiffnessMedium, spring.stiffness)
     }
 
     @Test
     fun spatialSpring_usesLowBouncyMediumStiffness() {
-        val spring = Motion.spatialSpring()
+        enableMotion(true)
+        val spring = Motion.spatialSpring() as SpringSpec<Float>
         assertEquals(Spring.DampingRatioLowBouncy, spring.dampingRatio)
         assertEquals(Spring.StiffnessMedium, spring.stiffness)
     }

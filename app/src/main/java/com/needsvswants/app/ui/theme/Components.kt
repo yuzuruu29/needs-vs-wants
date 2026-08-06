@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -553,33 +555,22 @@ fun SealStampOverlay(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(Motion.stamp()),
-        exit = fadeOut(Motion.feedback())
+        enter = fadeIn(Motion.stamp()) + scaleIn(initialScale = 0.8f, animationSpec = Motion.sealSpring()),
+        exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.92f, animationSpec = Motion.feedback())
     ) {
-        val scale by animateFloatAsState(
-            targetValue = 1f,
-            animationSpec = Motion.sealSpring(),
-            label = "sealStampScale"
-        )
-        val alpha by animateFloatAsState(
-            targetValue = 1f,
-            animationSpec = Motion.stamp(),
-            label = "sealStampAlpha"
-        )
         Box(
             modifier = modifier
                 .semantics {
                     contentDescription = label
                     liveRegion = LiveRegionMode.Polite
                 }
-                .scale(scale)
                 .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = label,
                 style = AppType.stamp,
-                color = AppTheme.colors.gold.copy(alpha = alpha * 0.92f)
+                color = AppTheme.colors.gold.copy(alpha = 0.92f)
             )
         }
     }

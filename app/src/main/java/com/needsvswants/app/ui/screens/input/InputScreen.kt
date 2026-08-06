@@ -5,10 +5,10 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,7 +32,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -272,13 +272,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                                             )
                                             Spacer(Modifier.width(10.dp))
                                             TypeChip("NEED", type == EntryType.NEED, palette.need) {
-                                                haptics.tick()
+                                                if (type != EntryType.NEED) haptics.tick()
                                                 viewModel.activeType.value = EntryType.NEED
                                                 viewModel.trySeal()
                                             }
                                             Spacer(Modifier.width(8.dp))
                                             TypeChip("WANT", type == EntryType.WANT, palette.want) {
-                                                haptics.tick()
+                                                if (type != EntryType.WANT) haptics.tick()
                                                 viewModel.activeType.value = EntryType.WANT
                                                 viewModel.trySeal()
                                             }
@@ -353,7 +353,11 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                         showCard = true,
                         modifier = Modifier
                             .padding(horizontal = 20.dp, vertical = 4.dp)
-                            .animateItem()
+                            .animateItem(
+                                fadeInSpec = Motion.entrance(),
+                                placementSpec = Motion.state<IntOffset>(),
+                                fadeOutSpec = Motion.feedback()
+                            )
                     )
                 }
             } else {
@@ -577,6 +581,29 @@ private fun LogDailyBudgetSection(
     val budgetOn = budgetStatus is BudgetStatus.On
     val palette = AppTheme.colors
 
+    // Meter + actions survive state flips: hoisted outside the `when` so the
+    // enter/exit transitions can actually play — a `when` branch would dispose
+    // the subtree the instant its condition flips false. Transform-only
+    // (fade/scale) so siblings never relayout.
+    AnimatedVisibility(
+        visible = budgetOn && !editingBudget,
+        enter = fadeIn(Motion.budget()) + scaleIn(initialScale = 0.96f, animationSpec = Motion.budget()),
+        exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.96f, animationSpec = Motion.feedback())
+    ) {
+        Column {
+            DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GhostTextAction(text = "Change", onClick = onStartEdit)
+                GhostTextAction(text = "Turn off", onClick = onClear, danger = true)
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+
     when {
         // Compact invite — do not eat half the screen when budget is off.
         !budgetOn && !editingBudget -> {
@@ -608,26 +635,7 @@ private fun LogDailyBudgetSection(
             Spacer(Modifier.height(8.dp))
         }
 
-        budgetOn && !editingBudget -> {
-            AnimatedVisibility(
-                visible = true,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GhostTextAction(text = "Change", onClick = onStartEdit)
-                GhostTextAction(text = "Turn off", onClick = onClear, danger = true)
-            }
-            Spacer(Modifier.height(4.dp))
-        }
-
-        else -> {
+        editingBudget -> {
             // Editing form (set or update).
             if (budgetOn) {
                 DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)

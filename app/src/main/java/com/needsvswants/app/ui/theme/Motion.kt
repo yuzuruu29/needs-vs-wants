@@ -4,6 +4,7 @@ import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
@@ -17,7 +18,8 @@ import androidx.compose.ui.platform.LocalContext
  * All custom animations should consume these — no magic numbers in screens.
  *
  * When the system animator duration scale is 0 (reduced motion / a11y),
- * [enabled] is false and specs collapse to near-instant tweens.
+ * [enabled] is false and every spec — tweens and springs — collapses to a
+ * near-instant 1ms tween.
  */
 object Motion {
     const val FeedbackMs = 120
@@ -88,31 +90,51 @@ object Motion {
     )
 
     /** Pager settle spring — crisp page snap with no overshoot. */
-    fun pagerSettle() = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
+    fun pagerSettle(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    } else {
+        tween<Float>(1)
+    }
 
     /** Spatial spring for page/slide moves. */
-    fun spatialSpring() = spring<Float>(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
+    fun spatialSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    } else {
+        tween<Float>(1)
+    }
 
-    fun selectionSpring() = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
+    fun selectionSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    } else {
+        tween<Float>(1)
+    }
 
-    fun sealSpring() = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
+    fun sealSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    } else {
+        tween<Float>(1)
+    }
 
-    fun pressSpring() = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessHigh
-    )
+    fun pressSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessHigh
+        )
+    } else {
+        tween<Float>(1)
+    }
 }
 
 /**
