@@ -44,5 +44,15 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!--
+            AdMob App ID. TEST ID below — replace with the production AdMob
+            App ID before release (locked Phase 3 decision: test IDs until a
+            real AdMob app exists). The SDK is initialized lazily on the first
+            "Watch ad" tap, so this meta-data alone does nothing on cold start.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
 </manifest>

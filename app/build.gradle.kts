@@ -136,6 +136,13 @@ dependencies {
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
 
+    // --- Phase 3: Rewarded ads (AdMob + UMP) ---
+    // Lazy init only: SDK initializes on the first "Watch ad" tap, never on
+    // cold start. To strip monetization: remove these two deps + ads/ package
+    // + AdsModule binding + quota prefs keys.
+    implementation(libs.google.play.services.ads)
+    implementation(libs.google.ump)
+
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 

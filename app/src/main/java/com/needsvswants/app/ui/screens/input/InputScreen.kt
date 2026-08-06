@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.input
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -54,6 +56,7 @@ import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -85,6 +88,8 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val type by viewModel.activeType.collectAsStateWithLifecycle()
     val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
     val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
+    val adState by viewModel.adState.collectAsStateWithLifecycle()
+    val canWatchAdToday by viewModel.canWatchAdToday.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
@@ -98,6 +103,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     var showNewSheetConfirm by remember { mutableStateOf(false) }
     var showSealStamp by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     val palette = AppTheme.colors
 
@@ -416,14 +422,29 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Phase 1: "Watch Ad" button hidden (no AdMob SDK yet).
-                            // Phase 3: re-enable this GiltButton and wire viewModel.onWatchAd().
+                            if (AdsConfig.ENABLED && canWatchAdToday) {
+                                GiltButton(
+                                    onClick = { viewModel.onWatchAd(context as Activity) },
+                                    text = if (adState is AdState.Loading) "Loading ad…" else "Watch Ad",
+                                    modifier = Modifier.weight(1f),
+                                    height = 48.dp,
+                                    enabled = adState !is AdState.Loading
+                                )
+                            }
                             TextButton(
                                 onClick = { viewModel.dismissQuotaBlocked() },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Come back tomorrow", color = palette.textMuted)
                             }
+                        }
+                        (adState as? AdState.Failed)?.let { failed ->
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                failed.message,
+                                style = AppType.bodySm,
+                                color = palette.danger
+                            )
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(

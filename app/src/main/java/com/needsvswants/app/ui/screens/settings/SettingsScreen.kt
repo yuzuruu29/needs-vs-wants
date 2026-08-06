@@ -303,6 +303,12 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = palette.inkDivider)
                     QuotaStatRow(
+                        label = "Bonus from ads",
+                        value = "+${freeLogs.bonusLogsToday}",
+                        valueColor = if (freeLogs.bonusLogsToday > 0) palette.gilt else palette.textSecondary
+                    )
+                    HorizontalDivider(color = palette.inkDivider)
+                    QuotaStatRow(
                         label = "Ads watched",
                         value = "${freeLogs.adsWatchedToday} of ${freeLogs.maxAdsPerDay}",
                         valueColor = palette.textSecondary

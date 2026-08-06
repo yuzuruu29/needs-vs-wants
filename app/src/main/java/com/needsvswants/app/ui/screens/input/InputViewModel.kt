@@ -1,12 +1,15 @@
 package com.needsvswants.app.ui.screens.input
 
+import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.needsvswants.app.ads.RewardedAdGateway
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.DailyBudgetUseCase
@@ -30,11 +33,19 @@ sealed class SealEvent {
 
 data class QuotaBlocked(val item: String, val costCents: Long, val type: EntryType)
 
+/** Rewarded-ad dialog state (Phase 3). */
+sealed class AdState {
+    object Idle : AdState()
+    object Loading : AdState()
+    data class Failed(val message: String) : AdState()
+}
+
 @HiltViewModel
 class InputViewModel @Inject constructor(
     private val entries: EntryRepository,
     private val preferences: AppPreferences,
     private val dailyBudgetUseCase: DailyBudgetUseCase,
+    private val rewardedAdGateway: RewardedAdGateway,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     val sheetEntries: StateFlow<List<Entry>> = entries.observeAll()
@@ -72,6 +83,14 @@ class InputViewModel @Inject constructor(
 
     private val _quotaBlocked = MutableStateFlow<QuotaBlocked?>(null)
     val quotaBlocked: StateFlow<QuotaBlocked?> = _quotaBlocked.asStateFlow()
+
+    private val _adState = MutableStateFlow<AdState>(AdState.Idle)
+    val adState: StateFlow<AdState> = _adState.asStateFlow()
+
+    /** Can the free user watch another rewarded ad today (max-3 cap)? */
+    val canWatchAdToday: StateFlow<Boolean> = preferences.quotaState
+        .map { DailyLogQuota.canWatchAd(it, todayString()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _sealEvents = MutableSharedFlow<SealEvent>(extraBufferCapacity = 1)
     val sealEvents: SharedFlow<SealEvent> = _sealEvents.asSharedFlow()
@@ -140,16 +159,53 @@ class InputViewModel @Inject constructor(
 
     fun dismissQuotaBlocked() {
         _quotaBlocked.value = null
+        _adState.value = AdState.Idle
     }
 
-    fun onWatchAd() {
-        // Phase 3: gateway.loadAndShow() + grant on onUserEarnedReward.
-        // Phase 1: button is hidden; this is a no-op stub kept for the dialog to call.
+    /**
+     * Phase 3: watch a rewarded ad to unlock more logs today.
+     * Called from the QuotaBlocked dialog only (explicit user opt-in).
+     * Grant happens ONLY in the gateway's onUserEarnedReward callback.
+     */
+    fun onWatchAd(activity: Activity) {
+        if (_adState.value is AdState.Loading) return
+        val blocked = _quotaBlocked.value ?: return
+        if (!AdsConfig.ENABLED) return
+        val today = todayString()
+        val rolled = DailyLogQuota.rollDayIfNeeded(quotaState.value, today)
+        if (!DailyLogQuota.canWatchAd(rolled, today)) {
+            _adState.value = AdState.Failed("You've reached the 3-ads-per-day limit.")
+            return
+        }
+        _adState.value = AdState.Loading
+        rewardedAdGateway.loadAndShow(
+            activity = activity,
+            onUserEarnedReward = { grantAndRetrySeal(blocked) },
+            onClosed = { earned, error ->
+                if (error != null) {
+                    _adState.value = AdState.Failed(error)
+                } else if (!earned) {
+                    _adState.value = AdState.Idle
+                }
+                // earned → grantAndRetrySeal already cleared the pending state.
+            }
+        )
     }
 
-    fun retrySealAfterReward() {
-        // Phase 3: grant bonus → retry pending seal.
-        // Phase 1: no-op stub.
+    /**
+     * Grant +8 bonus logs (adsWatched capped at 3/day) and immediately retry
+     * the pending seal with the draft snapshot held in QuotaBlocked.
+     */
+    private fun grantAndRetrySeal(blocked: QuotaBlocked) {
+        viewModelScope.launch {
+            val today = todayString()
+            val current = preferences.quotaState.first()
+            val rolled = DailyLogQuota.rollDayIfNeeded(current, today)
+            preferences.setQuotaState(DailyLogQuota.grantBonus(rolled, today))
+            _quotaBlocked.value = null
+            _adState.value = AdState.Idle
+            sealNow(blocked.item, blocked.costCents, blocked.type, System.currentTimeMillis())
+        }
     }
 
     private fun sealNow(item: String, costCents: Long, type: EntryType, now: Long) {
