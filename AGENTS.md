@@ -112,6 +112,13 @@ Handoff for external planner: `HANDOFF_QWEN_SOFT_LAUNCH_PLAN.md`
 
 ---
 
+## Release signing (security — D86)
+
+- **Never commit** `release.keystore`, `.local/`, or signing passwords. The original keystore was public on GitHub from 2026-07-29 and is BURNED.
+- Credentials live in `~/.gradle/gradle.properties` (user home) + `.local/keystore.properties` (gitignored), mirrored; env-var fallback in `app/build.gradle.kts` for CI.
+- New key since 2026-08-07: `.local/release.keystore`, alias `release`, cert SHA-256 `5fc43fb6…`. Old APKs (1.0.0–1.5.0) keep the old signature; future releases use the new key.
+- If the new keystore/passwords are ever lost, the app can never be updated in place again — back up `.local/` off-machine.
+
 ## After code changes
 
 1. Update `Projects/Needs vs Wants/Tasks.md` progress (also tick during long sessions, not only at the end)
