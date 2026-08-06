@@ -73,6 +73,30 @@ class MotionTokensTest {
     }
 
     @Test
+    fun enabled_selectionSpring_usesMediumBouncyMediumStiffness() {
+        enableMotion(true)
+        val spring = Motion.selectionSpring() as SpringSpec<Float>
+        assertEquals(Spring.DampingRatioMediumBouncy, spring.dampingRatio)
+        assertEquals(Spring.StiffnessMedium, spring.stiffness)
+    }
+
+    @Test
+    fun enabled_sealSpring_usesMediumBouncyMediumLowStiffness() {
+        enableMotion(true)
+        val spring = Motion.sealSpring() as SpringSpec<Float>
+        assertEquals(Spring.DampingRatioMediumBouncy, spring.dampingRatio)
+        assertEquals(Spring.StiffnessMediumLow, spring.stiffness)
+    }
+
+    @Test
+    fun enabled_pressSpring_usesNoBouncyHighStiffness() {
+        enableMotion(true)
+        val spring = Motion.pressSpring() as SpringSpec<Float>
+        assertEquals(Spring.DampingRatioNoBouncy, spring.dampingRatio)
+        assertEquals(Spring.StiffnessHigh, spring.stiffness)
+    }
+
+    @Test
     fun staggerDelay_zeroIndexIsZero() {
         assertEquals(0, staggerDelay(0))
     }
