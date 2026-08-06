@@ -132,7 +132,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                 if (event.sheetComplete) {
                     haptics.success()
                     showSealStamp = true
-                    delay(1_200)
+                    delay(Motion.SealHoldMs.toLong())
                     showSealStamp = false
                 }
             }

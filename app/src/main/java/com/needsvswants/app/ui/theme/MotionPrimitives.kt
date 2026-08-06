@@ -158,6 +158,11 @@ fun Modifier.staggerIn(index: Int, offsetY: Float = 12f): Modifier = composed {
  */
 @Composable
 fun rememberIdleBreathAlpha(): Float {
+    // Gate the transition itself: when motion is disabled (or never observed),
+    // skip creating the infinite animation entirely — no off-screen recompose.
+    // Motion.enabled is set once at the theme root, so this conditional call
+    // order is stable across recompositions.
+    if (!Motion.enabled) return 1f
     val transition = rememberInfiniteTransition(label = "idleBreath")
     val alpha by transition.animateFloat(
         initialValue = 0.7f,
@@ -168,5 +173,5 @@ fun rememberIdleBreathAlpha(): Float {
         ),
         label = "idleBreathAlpha"
     )
-    return if (Motion.enabled) alpha else 1f
+    return alpha
 }

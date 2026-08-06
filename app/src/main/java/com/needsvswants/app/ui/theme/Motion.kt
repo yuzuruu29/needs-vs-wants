@@ -30,6 +30,7 @@ object Motion {
     const val BudgetMs = 600
     const val StaggerStepMs = 60
     const val PagerSettleMs = 350
+    const val SealHoldMs = 1200
     /** Idle breath period — slow ambient pulse for hero rings. */
     const val IdleMs = 2400
 
