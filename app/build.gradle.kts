@@ -61,10 +61,22 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(project.properties["RELEASE_STORE_FILE"] as String? ?: "release.keystore")
-            storePassword = project.properties["RELEASE_STORE_PASSWORD"] as String? ?: ""
-            keyAlias = project.properties["RELEASE_KEY_ALIAS"] as String? ?: ""
-            keyPassword = project.properties["RELEASE_KEY_PASSWORD"] as String? ?: ""
+            // Signing credentials live OUTSIDE the repo: ~/.gradle/gradle.properties
+            // (user home) or environment variables (CI). Never commit the keystore
+            // or passwords — the original release.keystore was public on GitHub
+            // since 2026-07-29 and was rotated 2026-08-07 (D86); it is BURNED.
+            val storeFileProp = (project.properties["RELEASE_STORE_FILE"] as String?)
+                ?: System.getenv("RELEASE_STORE_FILE")
+            val storePass = (project.properties["RELEASE_STORE_PASSWORD"] as String?)
+                ?: System.getenv("RELEASE_STORE_PASSWORD")
+            val aliasProp = (project.properties["RELEASE_KEY_ALIAS"] as String?)
+                ?: System.getenv("RELEASE_KEY_ALIAS")
+            val keyPass = (project.properties["RELEASE_KEY_PASSWORD"] as String?)
+                ?: System.getenv("RELEASE_KEY_PASSWORD")
+            storeFile = file(storeFileProp ?: "release.keystore")
+            storePassword = storePass ?: ""
+            keyAlias = aliasProp ?: ""
+            keyPassword = keyPass ?: ""
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true

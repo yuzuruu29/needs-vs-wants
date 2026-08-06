@@ -55,3 +55,6 @@ website/graphify-out/
 # Python caches
 docs/**/__pycache__/
 *.pyc
+
+# Local-only release signing (keystore + passwords) — never commit
+.local/
