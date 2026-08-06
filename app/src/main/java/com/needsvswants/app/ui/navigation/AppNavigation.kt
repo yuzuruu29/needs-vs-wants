@@ -1,6 +1,7 @@
 package com.needsvswants.app.ui.navigation
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,7 +32,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,7 +68,7 @@ val bottomNavItems = listOf(
     BottomNavItem("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
     startDestination: String = "summary",
@@ -158,22 +161,41 @@ fun AppNavigation(
                     .padding(innerPadding)
                     .fillMaxSize()
             ) { page ->
-                when (MainTab.entries[page]) {
-                    MainTab.Home -> SummaryScreen(onNavigateToInput = {
-                        lastTappedPage = MainTab.Log.ordinal
-                        scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
-                    })
-                    MainTab.Log -> InputScreen()
-                    MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
-                        paywallOpen = true
-                    })
-                    MainTab.History -> HistoryScreen(onNavigateToInput = {
-                        lastTappedPage = MainTab.Log.ordinal
-                        scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
-                    })
-                    MainTab.Settings -> SettingsScreen(onOpenPaywall = {
-                        paywallOpen = true
-                    })
+                // Subtle page parallax: content lags the page edge by up to 12dp
+                // (transform-only; off entirely under reduced motion — the offset
+                // state read is skipped too, so reduced motion costs nothing).
+                val pageOffset = if (Motion.enabled) {
+                    // Foundation 1.7 has no calculateCurrentOffsetForPage — use the
+                    // classic formula: (currentPage - page) + currentPageOffsetFraction.
+                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).toFloat()
+                } else {
+                    0f
+                }
+                val parallaxPx = with(LocalDensity.current) { 12.dp.toPx() }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            translationX = pageOffset * parallaxPx
+                        }
+                ) {
+                    when (MainTab.entries[page]) {
+                        MainTab.Home -> SummaryScreen(onNavigateToInput = {
+                            lastTappedPage = MainTab.Log.ordinal
+                            scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                        })
+                        MainTab.Log -> InputScreen()
+                        MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
+                            paywallOpen = true
+                        })
+                        MainTab.History -> HistoryScreen(onNavigateToInput = {
+                            lastTappedPage = MainTab.Log.ordinal
+                            scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                        })
+                        MainTab.Settings -> SettingsScreen(onOpenPaywall = {
+                            paywallOpen = true
+                        })
+                    }
                 }
             }
         }
@@ -203,6 +225,11 @@ private fun NavPill(
     )
     val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, palette.crimson, tintProgress)
     val bg = palette.crimson.copy(alpha = 0.10f * tintProgress)
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = Motion.selectionSpring(),
+        label = "navPillIconScale"
+    )
 
     Column(
         modifier = modifier
@@ -218,7 +245,12 @@ private fun NavPill(
             imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
             contentDescription = item.label,
             tint = tint,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
         )
         Spacer(Modifier.height(2.dp))
         Text(

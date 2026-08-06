@@ -77,6 +77,7 @@ import com.needsvswants.app.domain.Insight
 import com.needsvswants.app.domain.InsightAccent
 import com.needsvswants.app.domain.StreakMilestone
 import com.needsvswants.app.domain.toMoney
+import kotlinx.coroutines.delay
 
 /** Soft vertical wash used on every screen — light top → slightly warmer raised base. */
 fun inkWash(top: Color, bottom: Color) = Brush.verticalGradient(
@@ -500,60 +501,88 @@ fun PremiumDialog(
     bodyContent: (@Composable () -> Unit)? = null
 ) {
     val c = AppTheme.colors
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = c.surfaceCard,
-            border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
-            shadowElevation = 8.dp
+    var dismissed by remember { mutableStateOf(false) }
+    var confirmed by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = { dismissed = true }) {
+        // Fire the real callback only after the exit animation finishes. Keyed on both
+        // flags so the callback can never double-fire; once the caller clears its dialog
+        // state, this composition (and effect) leaves the tree and the effect is cancelled.
+        LaunchedEffect(dismissed, confirmed) {
+            if (dismissed) {
+                delay((if (Motion.enabled) Motion.FeedbackMs else 1).toLong())
+                onDismissRequest()
+            } else if (confirmed) {
+                delay((if (Motion.enabled) Motion.FeedbackMs else 1).toLong())
+                onConfirm()
+            }
+        }
+
+        AnimatedVisibility(
+            visible = !dismissed && !confirmed,
+            enter = fadeIn(Motion.state()) + scaleIn(
+                initialScale = Motion.RiseScale,
+                animationSpec = Motion.state()
+            ),
+            exit = fadeOut(Motion.feedback()) + scaleOut(
+                targetScale = Motion.RiseScale,
+                animationSpec = Motion.feedback()
+            )
         ) {
-            Column(modifier = Modifier.padding(22.dp)) {
-                if (eyebrow != null) {
-                    Eyebrow(eyebrow, color = eyebrowColor ?: c.crimson)
-                    Spacer(Modifier.height(6.dp))
-                }
-                Text(
-                    text = title,
-                    style = AppType.dialogTitle,
-                    color = c.textPrimary
-                )
-                Spacer(Modifier.height(8.dp))
-                GiltRule(width = 32.dp)
-                Spacer(Modifier.height(14.dp))
-                if (bodyContent != null) {
-                    bodyContent()
-                } else if (body != null) {
-                    Text(body, style = AppType.body, color = c.textSecondary)
-                }
-                Spacer(Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismissRequest, modifier = Modifier.weight(1f)) {
-                        Text(dismissLabel, color = c.textMuted)
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = c.surfaceCard,
+                border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
+                shadowElevation = 8.dp
+            ) {
+                Column(modifier = Modifier.padding(22.dp)) {
+                    if (eyebrow != null) {
+                        Eyebrow(eyebrow, color = eyebrowColor ?: c.crimson)
+                        Spacer(Modifier.height(6.dp))
                     }
-                    if (confirmDanger) {
-                        Button(
-                            onClick = onConfirm,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = c.danger.copy(alpha = 0.18f),
-                                contentColor = c.danger
-                            ),
-                            border = BorderStroke(1.dp, c.danger),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(confirmLabel, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = title,
+                        style = AppType.dialogTitle,
+                        color = c.textPrimary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GiltRule(width = 32.dp)
+                    Spacer(Modifier.height(14.dp))
+                    if (bodyContent != null) {
+                        bodyContent()
+                    } else if (body != null) {
+                        Text(body, style = AppType.body, color = c.textSecondary)
+                    }
+                    Spacer(Modifier.height(20.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { dismissed = true }, modifier = Modifier.weight(1f)) {
+                            Text(dismissLabel, color = c.textMuted)
                         }
-                    } else {
-                        GiltButton(
-                            onClick = onConfirm,
-                            text = confirmLabel,
-                            height = 46.dp,
-                            modifier = Modifier.weight(1f)
-                        )
+                        if (confirmDanger) {
+                            Button(
+                                onClick = { confirmed = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = c.danger.copy(alpha = 0.18f),
+                                    contentColor = c.danger
+                                ),
+                                border = BorderStroke(1.dp, c.danger),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(confirmLabel, fontWeight = FontWeight.SemiBold)
+                            }
+                        } else {
+                            GiltButton(
+                                onClick = { confirmed = true },
+                                text = confirmLabel,
+                                height = 46.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
