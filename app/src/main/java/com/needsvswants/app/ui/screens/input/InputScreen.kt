@@ -2,10 +2,13 @@ package com.needsvswants.app.ui.screens.input
 
 import android.app.Activity
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -269,11 +272,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                                             )
                                             Spacer(Modifier.width(10.dp))
                                             TypeChip("NEED", type == EntryType.NEED, palette.need) {
+                                                haptics.tick()
                                                 viewModel.activeType.value = EntryType.NEED
                                                 viewModel.trySeal()
                                             }
                                             Spacer(Modifier.width(8.dp))
                                             TypeChip("WANT", type == EntryType.WANT, palette.want) {
+                                                haptics.tick()
                                                 viewModel.activeType.value = EntryType.WANT
                                                 viewModel.trySeal()
                                             }
@@ -604,7 +609,13 @@ private fun LogDailyBudgetSection(
         }
 
         budgetOn && !editingBudget -> {
-            DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
+            AnimatedVisibility(
+                visible = true,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
