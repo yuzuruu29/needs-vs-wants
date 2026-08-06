@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -143,7 +145,7 @@ fun SettingsScreen(
                     val selected = option.code == currentCode
                     PreferenceRow(
                         selected = selected,
-                        onClick = { haptics.tick(); viewModel.setCurrency(option.symbol, option.code) },
+                        onClick = { if (!selected) haptics.tick(); viewModel.setCurrency(option.symbol, option.code) },
                         leading = {
                             Text(
                                 option.symbol,
@@ -180,7 +182,7 @@ fun SettingsScreen(
                     val selected = option.step == fontScaleStep
                     PreferenceRow(
                         selected = selected,
-                        onClick = { haptics.tick(); viewModel.setFontScaleStep(option.step) },
+                        onClick = { if (!selected) haptics.tick(); viewModel.setFontScaleStep(option.step) },
                         leading = {
                             Text(
                                 option.label,
@@ -224,7 +226,7 @@ fun SettingsScreen(
                     }
                     PreferenceRow(
                         selected = selected,
-                        onClick = { haptics.tick(); viewModel.setThemeId(option.id) },
+                        onClick = { if (!selected) haptics.tick(); viewModel.setThemeId(option.id) },
                         leading = {
                             ThemeSwatches(swatch)
                             Spacer(Modifier.width(12.dp))
@@ -501,28 +503,41 @@ private fun PreferenceRow(
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val fillAlpha by animateFloatAsState(
+            targetValue = if (selected) 1f else 0f,
+            animationSpec = Motion.state(),
+            label = "prefIndicatorFill"
+        )
+        val dotScale by animateFloatAsState(
+            targetValue = if (selected) 1f else 0f,
+            animationSpec = Motion.selectionSpring(),
+            label = "prefIndicatorDot"
+        )
         Box(
             modifier = Modifier
                 .size(18.dp)
-                .then(
-                    if (selected) {
-                        Modifier.background(
-                            Brush.horizontalGradient(listOf(palette.gilt, palette.giltSoft)),
-                            RoundedCornerShape(9.dp)
-                        )
-                    } else {
-                        Modifier.border(1.dp, palette.inkDividerStrong, RoundedCornerShape(9.dp))
-                    }
-                )
+                .border(1.dp, palette.inkDividerStrong, RoundedCornerShape(9.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .background(palette.background, RoundedCornerShape(3.dp))
-                        .fillMaxSize()
-                )
-            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(listOf(palette.gilt, palette.giltSoft)),
+                        RoundedCornerShape(9.dp)
+                    )
+                    .graphicsLayer { alpha = fillAlpha }
+            )
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .fillMaxSize()
+                    .background(palette.background, RoundedCornerShape(3.dp))
+                    .graphicsLayer {
+                        scaleX = dotScale
+                        scaleY = dotScale
+                    }
+            )
         }
         Spacer(Modifier.width(14.dp))
         Row(
