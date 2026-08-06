@@ -30,6 +30,8 @@ object Motion {
     const val BudgetMs = 600
     const val StaggerStepMs = 60
     const val PagerSettleMs = 350
+    /** Idle breath period — slow ambient pulse for hero rings. */
+    const val IdleMs = 2400
 
     /** Stamp landing scale — seal stamp grows in from here. */
     const val StampLandingScale = 0.8f
@@ -62,6 +64,15 @@ object Motion {
 
     fun <T> entrance(): TweenSpec<T> = tween(
         durationMillis = if (enabled) EntranceMs else 1,
+        easing = EaseEmphasizedDecelerate
+    )
+
+    /**
+     * Entrance with stagger delay (see [staggerDelay]).
+     */
+    fun <T> entranceStagger(delayMs: Int): TweenSpec<T> = tween(
+        durationMillis = if (enabled) EntranceMs else 1,
+        delayMillis = if (enabled) delayMs else 0,
         easing = EaseEmphasizedDecelerate
     )
 

@@ -5,6 +5,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -22,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -47,6 +50,7 @@ import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 @Composable
 fun SummaryScreen(
@@ -77,6 +81,15 @@ fun SummaryScreen(
         viewModel.newMilestone.collect { ms ->
             currentMilestone = ms
         }
+    }
+
+    // Warn once per crossing into the over-budget state (haptics allowed under reduced motion).
+    var wasOver by remember { mutableStateOf(false) }
+    LaunchedEffect(budgetStatus) {
+        val status = budgetStatus
+        val isOver = status is BudgetStatus.On && status.remainingCents < 0
+        if (isOver && !wasOver) haptics.warn()
+        wasOver = isOver
     }
 
     if (showInstructions) {
@@ -217,7 +230,18 @@ fun SummaryScreen(
         AnimatedContent(
             targetState = period,
             transitionSpec = {
-                fadeIn(Motion.state()) togetherWith fadeOut(Motion.feedback())
+                val forward = targetState.ordinal > initialState.ordinal
+                (
+                    fadeIn(Motion.state()) +
+                        slideInHorizontally(animationSpec = Motion.state()) {
+                            (it * 0.04f).roundToInt() * (if (forward) 1 else -1)
+                        }
+                    ).togetherWith(
+                    fadeOut(Motion.feedback()) +
+                        slideOutHorizontally(animationSpec = Motion.feedback()) {
+                            (it * 0.04f).roundToInt() * (if (forward) -1 else 1)
+                        }
+                )
             },
             label = "periodBody",
             modifier = Modifier.fillMaxWidth()
@@ -249,6 +273,7 @@ fun SummaryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (stats.totalCents == 0L) {
+                        val ringBreath = rememberIdleBreathAlpha()
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
@@ -263,7 +288,11 @@ fun SummaryScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Canvas(Modifier.size(150.dp)) {
+                                Canvas(
+                                    modifier = Modifier
+                                        .size(150.dp)
+                                        .alpha(ringBreath)
+                                ) {
                                     drawArc(
                                         color = palette.inkDivider,
                                         startAngle = 0f,
@@ -338,17 +367,18 @@ fun SummaryScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Eyebrow("TOTAL", color = palette.textMuted, size = 10)
                                     Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        stats.totalCents.toMoney(symbol),
+                                    AnimatedMoney(
+                                        cents = stats.totalCents,
+                                        symbol = symbol,
                                         style = AppType.moneyLg.copy(
                                             fontSize = adaptiveMoneySize(
                                                 stats.totalCents.toMoney(symbol),
                                                 22.sp
-                                            )
+                                            ),
+                                            color = palette.textPrimary
                                         ),
-                                        color = palette.textPrimary,
-                                        softWrap = false,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -369,9 +399,29 @@ fun SummaryScreen(
 
                 // Stat cards
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard("NEEDS", stats.needsTotalCents.toMoney(symbol), palette.need, stats.needsPct, Modifier.weight(1f))
-                    StatCard("WANTS", stats.wantsTotalCents.toMoney(symbol), palette.want, stats.wantsPct, Modifier.weight(1f))
-                    StatCard("NEED %", "${stats.needsPct}%", palette.gilt, stats.needsPct, Modifier.weight(1f))
+                    StatCard(
+                        label = "NEEDS",
+                        cents = stats.needsTotalCents,
+                        symbol = symbol,
+                        accent = palette.need,
+                        pct = stats.needsPct,
+                        modifier = Modifier.weight(1f).staggerIn(0)
+                    )
+                    StatCard(
+                        label = "WANTS",
+                        cents = stats.wantsTotalCents,
+                        symbol = symbol,
+                        accent = palette.want,
+                        pct = stats.wantsPct,
+                        modifier = Modifier.weight(1f).staggerIn(1)
+                    )
+                    StatCard(
+                        label = "NEED %",
+                        value = "${stats.needsPct}%",
+                        accent = palette.gilt,
+                        pct = stats.needsPct,
+                        modifier = Modifier.weight(1f).staggerIn(2)
+                    )
                 }
             }
         }
@@ -382,14 +432,14 @@ fun SummaryScreen(
             StreakLine(
                 currentStreak = streakDays,
                 bestStreak = bestStreak,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().staggerIn(3)
             )
         }
 
         val topInsight = insights.firstOrNull()
         if (topInsight != null) {
             Spacer(Modifier.height(12.dp))
-            InsightStrip(insight = topInsight)
+            InsightStrip(insight = topInsight, modifier = Modifier.staggerIn(4))
         }
 
         Spacer(Modifier.height(20.dp))
@@ -428,7 +478,15 @@ private fun LegendChip(color: Color, label: String, pct: Int) {
 }
 
 @Composable
-private fun StatCard(label: String, value: String, accent: Color, pct: Int, modifier: Modifier) {
+private fun StatCard(
+    label: String,
+    value: String? = null,
+    cents: Long? = null,
+    symbol: String = "",
+    accent: Color,
+    pct: Int,
+    modifier: Modifier
+) {
     val palette = AppTheme.colors
     val dividerColor = palette.inkDivider
     Column(
@@ -439,13 +497,26 @@ private fun StatCard(label: String, value: String, accent: Color, pct: Int, modi
     ) {
         Eyebrow(label, color = palette.textMuted, size = 9)
         Spacer(Modifier.height(6.dp))
-        Text(
-            value,
-            color = accent,
-            style = AppType.moneyMd.copy(fontSize = adaptiveMoneySize(value, 15.sp)),
-            maxLines = 1,
-            softWrap = false
-        )
+        if (cents != null && symbol.isNotEmpty()) {
+            AnimatedMoney(
+                cents = cents,
+                symbol = symbol,
+                style = AppType.moneyMd.copy(
+                    fontSize = adaptiveMoneySize(cents.toMoney(symbol), 15.sp),
+                    color = accent
+                ),
+                maxLines = 1,
+                softWrap = false
+            )
+        } else {
+            Text(
+                value ?: "",
+                color = accent,
+                style = AppType.moneyMd.copy(fontSize = adaptiveMoneySize(value ?: "", 15.sp)),
+                maxLines = 1,
+                softWrap = false
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Canvas(Modifier.fillMaxWidth().height(3.dp)) {
             drawRect(color = dividerColor, size = Size(size.width, size.height))

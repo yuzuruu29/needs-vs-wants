@@ -1,20 +1,31 @@
 package com.needsvswants.app.ui.theme
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.offset
 import com.needsvswants.app.domain.toMoney
+import kotlinx.coroutines.launch
 
 /**
  * Reusable motion primitives built on [Motion] tokens.
@@ -83,12 +94,18 @@ fun Modifier.fadeSlideEnter(
  * @param cents target amount in cents
  * @param symbol currency symbol (e.g. "₱")
  * @param style text style — defaults to [AppType.moneyLg]
+ * @param color optional text color
+ * @param maxLines max lines for the money text
+ * @param softWrap whether the money text may soft-wrap
  */
 @Composable
 fun AnimatedMoney(
     cents: Long,
     symbol: String,
-    style: TextStyle = AppType.moneyLg
+    style: TextStyle = AppType.moneyLg,
+    color: Color? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    softWrap: Boolean = true
 ) {
     val target = cents.toFloat()
     val animated by animateFloatAsState(
@@ -98,6 +115,56 @@ fun AnimatedMoney(
     )
     Text(
         text = animated.toLong().toMoney(symbol),
-        style = style
+        style = style,
+        color = color ?: Color.Unspecified,
+        maxLines = maxLines,
+        softWrap = softWrap
     )
+}
+
+/**
+ * Entrance stagger — content fades in and rises from [offsetY] while later
+ * siblings wait their [staggerDelay] turn. Transform-only (alpha + translationY).
+ *
+ * Replays when the host content re-enters composition (e.g. inside an
+ * AnimatedContent period switch), which is intended.
+ *
+ * @param index stagger slot; delay = [staggerDelay](index)
+ * @param offsetY starting vertical offset in dp (default 12.dp)
+ */
+@Composable
+fun Modifier.staggerIn(index: Int, offsetY: Float = 12f): Modifier = composed {
+    val offsetPx = with(LocalDensity.current) { offsetY.dp.toPx() }
+    val fadeAlpha = remember { Animatable(if (Motion.enabled) 0f else 1f) }
+    val slideY = remember { Animatable(if (Motion.enabled) offsetPx else 0f) }
+    LaunchedEffect(Unit) {
+        if (Motion.enabled) {
+            val spec = Motion.entranceStagger<Float>(staggerDelay(index))
+            launch { fadeAlpha.animateTo(1f, spec) }
+            launch { slideY.animateTo(0f, spec) }
+        }
+    }
+    this.graphicsLayer {
+        alpha = fadeAlpha.value
+        translationY = slideY.value
+    }
+}
+
+/**
+ * Idle breath alpha for hero rings — slow 0.7→1 pulse on [Motion.IdleMs].
+ * Returns 1f when motion is disabled so reduced motion shows a steady ring.
+ */
+@Composable
+fun rememberIdleBreathAlpha(): Float {
+    val transition = rememberInfiniteTransition(label = "idleBreath")
+    val alpha by transition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(Motion.IdleMs, easing = Motion.EaseStandard),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "idleBreathAlpha"
+    )
+    return if (Motion.enabled) alpha else 1f
 }

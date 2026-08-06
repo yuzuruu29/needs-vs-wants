@@ -1,6 +1,7 @@
 package com.needsvswants.app.ui.theme
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +50,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Shape
@@ -196,6 +199,14 @@ fun DailyBudgetMeter(
         label = "budgetProgress"
     )
     val edge = if (over) AppTheme.colors.crimson.copy(alpha = 0.45f) else AppTheme.colors.gold.copy(alpha = 0.28f)
+    // One-shot pulse on the over/remaining line when the budget flips over.
+    val pulse = remember { Animatable(1f) }
+    LaunchedEffect(over) {
+        if (over && Motion.enabled) {
+            pulse.animateTo(1.05f, Motion.budget())
+            pulse.animateTo(1f, Motion.feedback())
+        }
+    }
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AppTheme.colors.surfaceCard,
@@ -225,7 +236,11 @@ fun DailyBudgetMeter(
                 if (over) "Over by ${(-status.remainingCents).toMoney(symbol)}"
                 else "Remaining ${status.remainingCents.toMoney(symbol)}",
                 style = AppType.bodyMd,
-                color = if (over) AppTheme.colors.crimson else AppTheme.colors.textSecondary
+                color = if (over) AppTheme.colors.crimson else AppTheme.colors.textSecondary,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = pulse.value
+                    scaleY = pulse.value
+                }
             )
         }
     }
