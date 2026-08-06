@@ -13,8 +13,13 @@ core-splashscreen = "1.0.1"
 activity-compose = "1.9.2"
 credentials = "1.3.0"
 googleid = "1.1.1"
-play-services-ads = "23.6.0"
-ump = "2.2.0"
+# Google Mobile Ads (Phase 3) — SDK STRIPPED from the build (D87, lean
+# 1.5.0-sized APK; no AdMob account yet). To restore: uncomment these two
+# lines AND the matching implementation(...) lines in app/build.gradle.kts,
+# restore ads/AdMobRewardedAdGateway.kt + ads/ConsentHelper.kt from git
+# commit 5622b7e, and set AdsConfig.ENABLED = true with production IDs.
+# play-services-ads = "23.6.0"
+# ump = "2.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -40,8 +45,8 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
-google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
-google-ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
+# google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
+# google-ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
 
 # Google Play Billing (Task 3 paywall seam).
 # Intentionally commented out so the project keeps building OFFLINE (no cached artifacts).

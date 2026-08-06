@@ -5,11 +5,17 @@ import android.app.Activity
 /**
  * Rewarded-ad gateway seam. The only ads surface the app talks to.
  *
- * To strip monetization entirely: delete this package, drop the
- * AdsModule binding, remove the play-services-ads + UMP deps from
- * app/build.gradle.kts, and remove the quota prefs keys
- * (quota_day / quota_logs_created / quota_bonus_logs / quota_ads_watched)
- * from AppPreferences.
+ * Since D87 the AdMob/UMP SDK is STRIPPED from the build (lean APK): the
+ * only bound implementation is [NoOpRewardedAdGateway]. To re-enable ads:
+ * restore `AdMobRewardedAdGateway.kt` + `ConsentHelper.kt` from git commit
+ * `5622b7e`, uncomment the ads deps in `gradle/libs.versions.toml` +
+ * `app/build.gradle.kts`, set `AdsConfig.ENABLED = true` with production
+ * IDs, and restore the conditional binding in `di/AdsModule.kt`.
+ *
+ * To strip monetization entirely (already done as of D87): drop the deps,
+ * delete this package + the AdsModule binding, and remove the quota prefs
+ * keys (quota_day / quota_logs_created / quota_bonus_logs /
+ * quota_ads_watched) from AppPreferences.
  */
 interface RewardedAdGateway {
 

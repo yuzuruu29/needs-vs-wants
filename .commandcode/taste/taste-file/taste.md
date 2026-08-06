@@ -16,3 +16,4 @@
 - Prefers a verification-first approach: do not infer missing behavior from notes — state when a claim is unsupported or still planned. Confidence: 0.85
 - Prefers hierarchical agent instructions: a PC-wide `AGENTS.md` (`C:\Users\uzzie\AGENTS.md`) applies globally to all projects; project-level `AGENTS.md` files may add stricter, project-specific requirements. Wants the Second Brain protocol enforced at the global level, not just per-project. Confidence: 0.9
 - Works on a Windows PC environment (paths are `C:\` based). Confidence: 0.8
+- For code reviews, prefers concise, actionable feedback in normal Markdown; avoid JSON or rigid review schemas, and use inline code-comment directives only when an issue is tied to a specific changed line. Confidence: 0.95
