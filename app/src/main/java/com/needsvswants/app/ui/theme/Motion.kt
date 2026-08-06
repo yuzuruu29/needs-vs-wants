@@ -27,6 +27,7 @@ object Motion {
     const val StampMs = 450
     const val BudgetMs = 600
     const val StaggerStepMs = 60
+    const val PagerSettleMs = 350
 
     val EaseEmphasizedDecelerate: Easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
     val EaseOutQuint: Easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
@@ -80,6 +81,24 @@ object Motion {
         easing = EaseStandard
     )
 
+    /** Count-up spec for [AnimatedMoney] and other numeric transitions. */
+    fun <T> number(): TweenSpec<T> = tween(
+        durationMillis = if (enabled) StampMs else 1,
+        easing = EaseOutQuint
+    )
+
+    /** Pager settle spring — crisp page snap with no overshoot. */
+    fun pagerSettle() = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    /** Spatial spring for page/slide moves. */
+    fun spatialSpring() = spring<Float>(
+        dampingRatio = Spring.DampingRatioLowBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
     fun selectionSpring() = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMedium
@@ -95,6 +114,12 @@ object Motion {
         stiffness = Spring.StiffnessHigh
     )
 }
+
+/**
+ * Returns the stagger delay (in ms) for [index] — each step is [Motion.StaggerStepMs].
+ * Consumers pass this to `animationSpec`/`delayMillis`; it is not an animation spec itself.
+ */
+fun staggerDelay(index: Int): Int = index * Motion.StaggerStepMs
 
 /** Syncs [Motion.enabled] from the system animator duration scale. Call once at theme root. */
 @Composable
