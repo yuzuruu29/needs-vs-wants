@@ -1,32 +1,63 @@
 package com.needsvswants.app.ui.screens.paywall
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
-import com.needsvswants.app.ui.theme.*
+import com.needsvswants.app.ui.theme.AppTheme
+import com.needsvswants.app.ui.theme.Eyebrow
+import com.needsvswants.app.ui.theme.GiltButton
+import com.needsvswants.app.ui.theme.GiltRule
+import com.needsvswants.app.ui.theme.MembershipPlan
+import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.NeedWantSealMark
+import com.needsvswants.app.ui.theme.PaywallNoticeSurface
+import com.needsvswants.app.ui.theme.PaywallType
+import com.needsvswants.app.ui.theme.PlanTierCard
+import com.needsvswants.app.ui.theme.TrialTimelineCard
+import com.needsvswants.app.ui.theme.rememberAppHaptics
+import com.needsvswants.app.ui.theme.themedInkWash
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.delay
 
 /**
- * Pro/Max paywall.
+ * Pro/Max membership desk.
  *
+ * Ledger / supermarket-receipt language aligned with website `#pro-pricing` (D55).
  * Google Sign-In is **not** offered while browsing free. It appears only after the user
  * taps Start trial or Upgrade while signed out; after sign-in, the pending purchase continues.
  */
@@ -37,6 +68,7 @@ fun PaywallScreen(
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     val hasMaxAccess by viewModel.hasMaxAccess.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
@@ -48,8 +80,19 @@ fun PaywallScreen(
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    var selected by remember {
+        mutableStateOf(
+            when {
+                hasMaxAccess -> MembershipPlan.Max
+                isPro -> MembershipPlan.Pro
+                else -> MembershipPlan.Pro
+            }
+        )
+    }
+
     LaunchedEffect(lastResult) {
         if (lastResult != null) {
+            if (lastResult == BillingResult.Success) haptics.success()
             delay(3000)
             viewModel.consumeResult()
         }
@@ -62,300 +105,330 @@ fun PaywallScreen(
         }
     }
 
+    fun closeFree() {
+        viewModel.cancelPendingSignIn()
+        onClose()
+    }
+
+    fun selectPlan(plan: MembershipPlan) {
+        if (selected != plan) {
+            selected = plan
+            haptics.tick()
+        }
+    }
+
+    val ctaEnabled = !busy && !authState.busy
+    val primaryLabel = when (selected) {
+        MembershipPlan.Free -> "Continue free"
+        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Start Pro 3-day free trial"
+        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Start Max plan"
+    }
+    val primaryEnabled = when (selected) {
+        MembershipPlan.Free -> true
+        MembershipPlan.Pro -> ctaEnabled && !isPro
+        MembershipPlan.Max -> ctaEnabled && !hasMaxAccess
+    }
+    val footerNote = when (selected) {
+        MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
+        MembershipPlan.Pro -> "Then ₱249 / mo · $4.99. Cancel anytime in Play."
+        MembershipPlan.Max -> "₱499 / mo · $9.99. Includes Pro + AI Advisor."
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(themedInkWash())
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp)
-                .padding(top = 20.dp, bottom = 28.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Eyebrow("PRO  ·  MAX", color = palette.gilt)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = {
-                    viewModel.cancelPendingSignIn()
-                    onClose()
-                }) {
-                    Text(
-                        "Continue free",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.textMuted
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            Box(
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .size(56.dp)
-                    .background(palette.crimson.copy(alpha = 0.12f), RoundedCornerShape(28.dp)),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 18.dp, bottom = 12.dp)
             ) {
-                Icon(
-                    Icons.Default.WorkspacePremium,
-                    contentDescription = null,
-                    tint = palette.crimson,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-            Spacer(Modifier.height(14.dp))
-
-            Text(
-                "Upgrade your spending trainer",
-                style = MaterialTheme.typography.displayLarge,
-                color = palette.textPrimary
-            )
-            Spacer(Modifier.height(6.dp))
-            GiltRule(width = 40.dp)
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "Go Pro for unlimited logging and full history. Go Max for the AI Financial Advisor.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = palette.textSecondary
-            )
-
-            Spacer(Modifier.height(22.dp))
-
-            ProBenefit("Unlimited diary", "No more 20-entry cap on your log.")
-            ProBenefit("Keep all history", "Free tier only retains the last 35 days.")
-            ProBenefit("Full period analytics", "Summary across all time, not just this week.")
-            ProBenefit("Max · AI Advisor", "Conversational coaching with cited economic studies.")
-
-            Spacer(Modifier.height(18.dp))
-
-            // Account status only — no free-standing Google button.
-            if (isSignedIn) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = palette.inkElevated,
-                    border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Eyebrow("MEMBERSHIP", color = palette.gilt)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { closeFree() }) {
                         Text(
-                            signedInEmail ?: "Signed in",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.textPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2
-                        )
-                        Text(
-                            "Purchases will apply to this account.",
-                            style = MaterialTheme.typography.bodySmall,
+                            "Continue free",
+                            style = PaywallType.meta,
                             color = palette.textMuted
                         )
                     }
                 }
-                Spacer(Modifier.height(18.dp))
-            }
 
-            // Google only after user chose trial/upgrade while signed out.
-            if (needsSignInForPurchase && !isSignedIn) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = palette.crimson.copy(alpha = 0.06f),
-                    border = BorderStroke(1.dp, palette.crimson.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
+                Spacer(Modifier.height(16.dp))
+                NeedWantSealMark()
+                Spacer(Modifier.height(14.dp))
+
+                Text(
+                    text = "Choose your sheet.",
+                    style = PaywallType.screenHero,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    softWrap = true,
+                    overflow = TextOverflow.Clip
+                )
+                Spacer(Modifier.height(8.dp))
+                GiltRule(width = 40.dp)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Free is the 20-sheet, 35-day trainer. Pro lifts the caps. Max adds the AI Advisor with cited notebooks.",
+                    style = PaywallType.screenLede,
+                    color = palette.textSecondary,
+                    softWrap = true
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // Free
+                PlanTierCard(
+                    plan = MembershipPlan.Free,
+                    selected = selected == MembershipPlan.Free,
+                    onClick = { selectPlan(MembershipPlan.Free) },
+                    eyebrow = "Free",
+                    title = "Trainer",
+                    tag = "On this device",
+                    price = "₱0",
+                    priceSuffix = "forever",
+                    subtitle = "Honest daily training. No account required.",
+                    features = listOf(
+                        "20 entries per sheet" to false,
+                        "35-day retention window" to false,
+                        "Daily budget meter" to false,
+                        "Four appearance themes" to false
+                    ),
+                    statusNote = if (!isPro) "Active on this device" else null
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Pro
+                PlanTierCard(
+                    plan = MembershipPlan.Pro,
+                    selected = selected == MembershipPlan.Pro,
+                    onClick = { selectPlan(MembershipPlan.Pro) },
+                    eyebrow = "Pro",
+                    title = "Unlimited",
+                    tag = "3-day free trial",
+                    price = "₱249",
+                    priceSuffix = "/ mo · $4.99",
+                    subtitle = "Unlimited sheets, full history, full period analytics.",
+                    features = listOf(
+                        "Unlimited entries per log sheet" to true,
+                        "Lifetime history retention" to true,
+                        "Full period summary analytics" to false,
+                        "Everything in Free" to false
+                    ),
+                    statusNote = if (isPro && !hasMaxAccess) "You're on Pro" else null
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                // Max — short title so it never clips on narrow screens
+                PlanTierCard(
+                    plan = MembershipPlan.Max,
+                    selected = selected == MembershipPlan.Max,
+                    onClick = { selectPlan(MembershipPlan.Max) },
+                    eyebrow = "Max",
+                    title = "AI Advisor",
+                    tag = "Includes Pro",
+                    price = "₱499",
+                    priceSuffix = "/ mo · $9.99",
+                    subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
+                    features = listOf(
+                        "Everything in Pro" to true,
+                        "AI Financial Advisor with citations" to true,
+                        "Footnotes from study notebooks" to false,
+                        "Overspend recovery coaching" to false
+                    ),
+                    statusNote = if (hasMaxAccess) "You're on Max" else null
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                AnimatedVisibility(
+                    visible = selected == MembershipPlan.Pro || selected == MembershipPlan.Max,
+                    enter = fadeIn(Motion.entrance()) + slideInVertically(Motion.entrance()) { it / 8 },
+                    exit = fadeOut(Motion.feedback())
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    TrialTimelineCard(forMax = selected == MembershipPlan.Max)
+                }
+
+                if (isSignedIn) {
+                    Spacer(Modifier.height(14.dp))
+                    PaywallNoticeSurface(accent = palette.gold) {
+                        Text(
+                            signedInEmail ?: "Signed in",
+                            style = PaywallType.planFeatureEmph,
+                            color = palette.textPrimary,
+                            maxLines = 2
+                        )
+                        Text(
+                            "Purchases will apply to this account.",
+                            style = PaywallType.planSub,
+                            color = palette.textMuted
+                        )
+                    }
+                }
+
+                if (needsSignInForPurchase && !isSignedIn) {
+                    Spacer(Modifier.height(14.dp))
+                    PaywallNoticeSurface(accent = palette.crimson) {
                         Text(
                             when (pending) {
                                 PendingPurchase.ProTrial -> "Sign in to start your Pro trial"
                                 PendingPurchase.MaxUpgrade -> "Sign in to upgrade to Max"
                                 else -> "Sign in to continue"
                             },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.textPrimary,
-                            fontWeight = FontWeight.SemiBold
+                            style = PaywallType.planFeatureEmph,
+                            color = palette.textPrimary
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Google is only used when you subscribe — free use stays private on this device.",
-                            style = MaterialTheme.typography.bodySmall,
+                            "Google is only used when you subscribe. Free use stays private on this device.",
+                            style = PaywallType.planSub,
                             color = palette.textMuted
                         )
                         Spacer(Modifier.height(12.dp))
-                        Button(
+                        GiltButton(
                             onClick = { authViewModel.signInWithGoogle(context) },
+                            text = if (authState.busy) "Signing in…" else "Continue with Google",
                             enabled = !authState.busy && authState.googleAvailable && !busy,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = palette.crimson),
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp)
-                        ) {
-                            Text(
-                                if (authState.busy) "Signing in…" else "Continue with Google",
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                            modifier = Modifier.fillMaxWidth(),
+                            height = 48.dp
+                        )
                         TextButton(
                             onClick = { viewModel.cancelPendingSignIn() },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 "Cancel",
-                                style = MaterialTheme.typography.labelLarge,
+                                style = PaywallType.meta,
                                 color = palette.textMuted
                             )
                         }
                         authState.error?.let { msg ->
-                            Spacer(Modifier.height(6.dp))
-                            Text(msg, style = MaterialTheme.typography.labelSmall, color = palette.crimson)
+                            Spacer(Modifier.height(4.dp))
+                            Text(msg, style = PaywallType.stickyNote, color = palette.crimson)
                         }
                         if (!authState.googleAvailable) {
-                            Spacer(Modifier.height(6.dp))
+                            Spacer(Modifier.height(4.dp))
                             Text(
                                 "Google Sign-In is not configured on this build.",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = PaywallType.stickyNote,
                                 color = palette.textMuted
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(18.dp))
-            }
 
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = palette.surfaceCard,
-                border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.5f)),
-                shadowElevation = 4.dp
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(18.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Spacer(Modifier.height(12.dp))
+                when (lastResult) {
+                    BillingResult.Unavailable -> StatusText(
+                        "Play billing isn't configured on this build yet.",
+                        color = palette.textMuted
+                    )
+                    BillingResult.Pending -> StatusText(
+                        "Your payment is processing…",
+                        color = palette.gilt
+                    )
+                    BillingResult.Success -> StatusText(
+                        if (hasMaxAccess) "Welcome to Max." else "Welcome to Pro.",
+                        color = palette.marketGreen
+                    )
+                    BillingResult.Failed -> StatusText(
+                        "Payment didn't go through. Try again.",
+                        color = palette.crimson
+                    )
+                    null -> Unit
+                }
+
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = { viewModel.restore() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !busy
                 ) {
-                    Eyebrow("3-DAY FREE TRIAL", color = palette.gilt)
-                    Spacer(Modifier.height(6.dp))
                     Text(
-                        "Start free for 3 days, then a simple monthly price.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textSecondary
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "≈ US$4.99 / month",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = palette.textPrimary
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Cancel anytime.",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Restore purchases",
+                        style = PaywallType.meta,
                         color = palette.textMuted
                     )
                 }
+
+                Spacer(Modifier.height(72.dp))
             }
 
-            Spacer(Modifier.height(18.dp))
-
-            GiltButton(
-                onClick = { if (!isPro) viewModel.startTrial() },
-                text = if (isPro) "You're Pro" else "Start Pro 3-day free trial (₱249/mo)",
-                enabled = !busy && !isPro && !authState.busy
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { if (!hasMaxAccess) viewModel.upgrade() },
-                enabled = !busy && !hasMaxAccess && !authState.busy,
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, palette.gold),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-            ) {
-                Text(
-                    "Upgrade to Max Tier (₱499/mo · AI Advisor)",
-                    color = palette.textPrimary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2
-                )
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            when (lastResult) {
-                BillingResult.Unavailable -> StatusText(
-                    "Play billing isn't configured on this build yet.",
-                    color = palette.textMuted
-                )
-                BillingResult.Pending -> StatusText("Your payment is processing…", color = palette.gilt)
-                BillingResult.Success -> StatusText("Welcome to Pro!", color = palette.marketGreen)
-                BillingResult.Failed -> StatusText("Payment didn't go through. Try again.", color = palette.crimson)
-                null -> StatusText(
-                    when {
-                        needsSignInForPurchase && !isSignedIn ->
-                            "Sign in with Google to finish your upgrade."
-                        isPro && !hasMaxAccess ->
-                            "You're on Pro — upgrade to Max for the AI Advisor."
-                        isSignedIn ->
-                            "Tap start to begin the 3-day free trial."
-                        else ->
-                            "Browse free. Google sign-in only appears when you start Pro or Max."
-                    },
-                    color = palette.textMuted
-                )
-            }
-
-            Spacer(Modifier.height(18.dp))
-            TextButton(
-                onClick = {
-                    viewModel.cancelPendingSignIn()
-                    onClose()
-                },
+            // Sticky CTA bar
+            Surface(
+                color = palette.surfaceCard,
+                shadowElevation = 8.dp,
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    "Continue with free plan",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = palette.textSecondary
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .height(3.dp)
+                            .fillMaxWidth(0.12f)
+                            .background(palette.gold.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+                    )
+                    GiltButton(
+                        onClick = {
+                            when (selected) {
+                                MembershipPlan.Free -> closeFree()
+                                MembershipPlan.Pro -> if (!isPro) viewModel.startTrial()
+                                MembershipPlan.Max -> if (!hasMaxAccess) viewModel.upgrade()
+                            }
+                        },
+                        text = primaryLabel,
+                        enabled = primaryEnabled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = footerNote,
+                        style = PaywallType.stickyNote,
+                        color = palette.textMuted,
+                        textAlign = TextAlign.Center,
+                        softWrap = true
+                    )
+                    if (selected != MembershipPlan.Free) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = when {
+                                needsSignInForPurchase && !isSignedIn ->
+                                    "Sign in with Google to finish your upgrade."
+                                isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
+                                    "You're on Pro. Select Max for the AI Advisor."
+                                else ->
+                                    "Browse free anytime. Sign-in only when you start Pro or Max."
+                            },
+                            style = PaywallType.stickyNote,
+                            color = palette.textMuted.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center,
+                            softWrap = true
+                        )
+                    }
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun ProBenefit(title: String, detail: String) {
-    val palette = AppTheme.colors
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .background(palette.gold.copy(alpha = 0.16f), RoundedCornerShape(9.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(palette.gold, RoundedCornerShape(3.dp))
-            )
-        }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = palette.textPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.textMuted
-            )
         }
     }
 }
@@ -364,7 +437,10 @@ private fun ProBenefit(title: String, detail: String) {
 private fun StatusText(text: String, color: Color) {
     Text(
         text,
-        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.2.sp),
-        color = color
+        style = PaywallType.stickyNote,
+        color = color,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        softWrap = true
     )
 }

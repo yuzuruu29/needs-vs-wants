@@ -1,8 +1,12 @@
 package com.needsvswants.app
 
 import android.app.Application
-import com.needsvswants.app.data.db.EntryDao
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.notification.ReminderScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,18 +16,32 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class NeedsVsWantsApp : Application() {
-    @Inject lateinit var entryDao: EntryDao
+class NeedsVsWantsApp : Application(), Configuration.Provider {
+    @Inject lateinit var entryRepository: EntryRepository
     @Inject lateinit var entitlementRepository: EntitlementRepository
+    @Inject lateinit var preferences: AppPreferences
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        appScope.launch {
             val cutoff = entitlementRepository.entitlement.first()
                 .retentionCutoffAt(System.currentTimeMillis())
             if (cutoff != null) {
-                entryDao.purgeBefore(cutoff)
+                entryRepository.purgeBefore(cutoff)
+            }
+            // Re-arm reminder if user had it enabled (e.g. after process death / reinstall of work).
+            if (preferences.reminderEnabled.first()) {
+                val hour = preferences.reminderHour.first()
+                ReminderScheduler.schedule(this@NeedsVsWantsApp, hour)
             }
         }
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }

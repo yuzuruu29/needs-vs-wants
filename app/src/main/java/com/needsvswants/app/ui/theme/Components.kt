@@ -1,9 +1,12 @@
 package com.needsvswants.app.ui.theme
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,27 +21,36 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,9 +59,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.BudgetStatus
+import com.needsvswants.app.domain.Insight
+import com.needsvswants.app.domain.InsightAccent
+import com.needsvswants.app.domain.StreakMilestone
 import com.needsvswants.app.domain.toMoney
 
 /** Soft vertical wash used on every screen — light top → slightly warmer raised base. */
@@ -73,40 +91,44 @@ fun themedInkWash(): Brush {
 /**
  * Glossy card surface: white/raised fill, soft elevation, gold-kissed border.
  * Prefer this over bare [Surface] on main screens for a premium feel.
+ *
+ * @param raised true = elevated gold-edge card; false = flat inset paper panel.
  */
 @Composable
 fun PremiumSurface(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(18.dp),
     goldEdge: Boolean = true,
+    raised: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val c = AppTheme.colors
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = shape,
-        color = c.surfaceCard,
-        shadowElevation = 5.dp,
+        color = if (raised) c.surfaceCard else c.surfaceSunken,
+        shadowElevation = if (raised) 5.dp else 0.dp,
         tonalElevation = 0.dp,
         border = BorderStroke(
             1.dp,
-            if (goldEdge) c.gold.copy(alpha = 0.28f) else c.divider
+            if (goldEdge) c.gold.copy(alpha = if (raised) 0.28f else 0.18f) else c.divider
         )
     ) {
-        // Subtle top sheen
         Box {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = if (c.isLightStatusBars) 0.55f else 0.06f),
-                                Color.Transparent
+            if (raised) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (c.isLightStatusBars) 0.55f else 0.06f),
+                                    Color.Transparent
+                                )
                             )
                         )
-                    )
-            )
+                )
+            }
             Column(content = content)
         }
     }
@@ -117,7 +139,7 @@ fun giltGlow(gold: Color, alpha: Float = 0.16f) = Brush.radialGradient(
     colors = listOf(gold.copy(alpha = alpha), Color.Transparent)
 )
 
-/** Eyebrow label — wide-spaced uppercase micro heading. */
+/** Eyebrow label — Inter tracked micro heading (Option A). */
 @Composable
 fun Eyebrow(
     text: String,
@@ -129,10 +151,7 @@ fun Eyebrow(
     maxLines: Int = Int.MAX_VALUE
 ) {
     val resolved = color ?: AppTheme.colors.crimson
-    val baseStyle = MaterialTheme.typography.labelSmall.copy(
-        fontSize = size.sp,
-        letterSpacing = (size * 0.12f).sp
-    )
+    val baseStyle = if (size <= 10) AppType.eyebrowSm else AppType.eyebrow
     Text(
         text = text.uppercase(),
         style = if (align != null) baseStyle.copy(textAlign = align) else baseStyle,
@@ -168,13 +187,16 @@ fun DailyBudgetMeter(
     val over = status.remainingCents < 0
     val animatedProgress by animateFloatAsState(
         targetValue = status.progress.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        animationSpec = Motion.budget(),
         label = "budgetProgress"
     )
+    val edge = if (over) AppTheme.colors.crimson.copy(alpha = 0.45f) else AppTheme.colors.gold.copy(alpha = 0.28f)
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = AppTheme.colors.surfaceCard,
-        border = BorderStroke(1.dp, if (over) AppTheme.colors.crimson.copy(alpha = 0.45f) else AppTheme.colors.divider),
+        border = BorderStroke(1.dp, edge),
+        shadowElevation = 2.dp,
+        tonalElevation = 0.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -182,7 +204,7 @@ fun DailyBudgetMeter(
             Spacer(Modifier.height(8.dp))
             Text(
                 "${status.spentCents.toMoney(symbol)} / ${status.budgetCents.toMoney(symbol)}",
-                style = MaterialTheme.typography.titleMedium,
+                style = AppType.moneyMd,
                 color = AppTheme.colors.textPrimary
             )
             Spacer(Modifier.height(8.dp))
@@ -197,9 +219,97 @@ fun DailyBudgetMeter(
             Text(
                 if (over) "Over by ${(-status.remainingCents).toMoney(symbol)}"
                 else "Remaining ${status.remainingCents.toMoney(symbol)}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppType.bodyMd,
                 color = if (over) AppTheme.colors.crimson else AppTheme.colors.textSecondary
             )
+        }
+    }
+}
+
+/**
+ * Quiet secondary text action (Change / Turn off / Skip / Restore).
+ * Avoids stock Material TextButton chrome while keeping a full 48dp hit target.
+ */
+@Composable
+fun GhostTextAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    danger: Boolean = false
+) {
+    val c = AppTheme.colors
+    val color = when {
+        !enabled -> c.textMuted.copy(alpha = 0.45f)
+        danger -> c.danger
+        else -> c.textSecondary
+    }
+    Box(
+        modifier = modifier
+            .heightIn(min = 44.dp)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = AppType.meta,
+            color = color
+        )
+    }
+}
+
+/** Preference / list panel shell — gold hairline card used on Settings + Summary. */
+@Composable
+fun SettingsPanel(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    PremiumSurface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        goldEdge = true,
+        raised = true,
+        content = content
+    )
+}
+
+/**
+ * 48dp gold-edge icon well for screen headers (Help, Share, Export, Send).
+ * Prefer over stock IconButton chrome.
+ */
+@Composable
+fun HeaderIconWell(
+    onClick: () -> Unit,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    filled: Boolean = false,
+    fillColor: Color? = null,
+    content: @Composable () -> Unit
+) {
+    val c = AppTheme.colors
+    val bg = when {
+        filled -> (fillColor ?: c.crimson)
+        else -> c.surfaceCard
+    }
+    val border = if (filled) {
+        BorderStroke(1.dp, (fillColor ?: c.crimson).copy(alpha = 0.85f))
+    } else {
+        BorderStroke(1.dp, c.gold.copy(alpha = 0.32f))
+    }
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (enabled) bg else bg.copy(alpha = 0.45f))
+            .border(border, RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+            content()
         }
     }
 }
@@ -231,7 +341,7 @@ fun GiltCard(
     PremiumSurface(modifier = modifier, shape = shape, goldEdge = true || giltAccent, content = content)
 }
 
-/** Primary action button — solid crimson with white text, premium weight. */
+/** Primary action button — solid crimson with white text, press scale physics. */
 @Composable
 fun GiltButton(
     onClick: () -> Unit,
@@ -240,9 +350,17 @@ fun GiltButton(
     text: String,
     height: Dp = 54.dp
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.97f else 1f,
+        animationSpec = Motion.pressSpring(),
+        label = "giltPress"
+    )
     Button(
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interaction,
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = AppTheme.colors.crimson,
@@ -250,20 +368,211 @@ fun GiltButton(
             disabledContainerColor = AppTheme.colors.crimson.copy(alpha = 0.35f),
             disabledContentColor = AppTheme.colors.surfaceCard.copy(alpha = 0.6f)
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 1.dp),
-        modifier = modifier.heightIn(min = height)
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 3.dp,
+            pressedElevation = 1.dp
+        ),
+        modifier = modifier
+            .scale(scale)
+            .heightIn(min = height)
     ) {
         Text(
             text = text.uppercase(),
-            style = TextStyle(
-                fontFamily = BodyFont,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                letterSpacing = 1.0.sp
-            ),
+            style = AppType.button,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * Paper-ledger text field: flat well, bottom rule that turns gold on focus,
+ * crimson error. Replaces stock OutlinedTextField on Log / budget / advisor.
+ */
+@Composable
+fun LedgerField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    textStyle: TextStyle = AppType.input
+) {
+    val c = AppTheme.colors
+    var focused by remember { mutableStateOf(false) }
+    val ruleColor = when {
+        isError -> c.crimson
+        focused -> c.gold
+        else -> c.dividerStrong
+    }
+    Column(modifier = modifier) {
+        Text(
+            text = label.uppercase(),
+            style = AppType.eyebrowSm,
+            color = if (isError) c.crimson else if (focused) c.crimson else c.textMuted
+        )
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = singleLine,
+            keyboardOptions = keyboardOptions,
+            textStyle = textStyle.copy(color = c.textPrimary),
+            cursorBrush = SolidColor(c.crimson),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focused = it.isFocused }
+                .background(c.surfaceCard, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .border(
+                    BorderStroke(1.dp, if (focused) c.gold.copy(alpha = 0.45f) else c.divider),
+                    RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            decorationBox = { inner ->
+                Box {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = label.lowercase().replaceFirstChar { it.titlecase() },
+                            style = textStyle,
+                            color = c.textMuted.copy(alpha = 0.72f)
+                        )
+                    }
+                    inner()
+                }
+            }
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(ruleColor)
+        )
+        if (supportingText != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = supportingText,
+                style = AppType.caption,
+                color = if (isError) c.danger else c.textMuted
+            )
+        }
+    }
+}
+
+/**
+ * Branded dialog: Inter dialog title (Option A), gold hairline, GiltButton actions.
+ * Replaces stock AlertDialog chrome across Log / History / Settings / Instructions.
+ */
+@Composable
+fun PremiumDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    eyebrow: String? = null,
+    eyebrowColor: Color? = null,
+    body: String? = null,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    dismissLabel: String = "Cancel",
+    confirmDanger: Boolean = false,
+    bodyContent: (@Composable () -> Unit)? = null
+) {
+    val c = AppTheme.colors
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = c.surfaceCard,
+            border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
+            shadowElevation = 8.dp
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                if (eyebrow != null) {
+                    Eyebrow(eyebrow, color = eyebrowColor ?: c.crimson)
+                    Spacer(Modifier.height(6.dp))
+                }
+                Text(
+                    text = title,
+                    style = AppType.dialogTitle,
+                    color = c.textPrimary
+                )
+                Spacer(Modifier.height(8.dp))
+                GiltRule(width = 32.dp)
+                Spacer(Modifier.height(14.dp))
+                if (bodyContent != null) {
+                    bodyContent()
+                } else if (body != null) {
+                    Text(body, style = AppType.body, color = c.textSecondary)
+                }
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismissRequest, modifier = Modifier.weight(1f)) {
+                        Text(dismissLabel, color = c.textMuted)
+                    }
+                    if (confirmDanger) {
+                        Button(
+                            onClick = onConfirm,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = c.danger.copy(alpha = 0.18f),
+                                contentColor = c.danger
+                            ),
+                            border = BorderStroke(1.dp, c.danger),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(confirmLabel, fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        GiltButton(
+                            onClick = onConfirm,
+                            text = confirmLabel,
+                            height = 46.dp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Gold "SEALED" stamp overlay for sheet-complete / day celebration. */
+@Composable
+fun SealStampOverlay(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    label: String = "SEALED"
+) {
+    if (!visible) return
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = Motion.sealSpring(),
+        label = "sealStampScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = Motion.stamp(),
+        label = "sealStampAlpha"
+    )
+    Box(
+        modifier = modifier
+            .semantics {
+                contentDescription = label
+                liveRegion = LiveRegionMode.Polite
+            }
+            .scale(scale)
+            .background(Color.Transparent),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = AppType.stamp,
+            color = AppTheme.colors.gold.copy(alpha = alpha * 0.92f)
         )
     }
 }
@@ -278,16 +587,37 @@ private fun ledgerScaled(base: Float): Dp {
     return (base * fs).dp
 }
 
+/**
+ * Shared ledger column widths. Item column owns flexible space; trailing cluster is tight
+ * so long product names stay readable (D8 + Log visibility fix).
+ */
+@Composable
+private fun ledgerColumnMetrics(): LedgerColumnMetrics {
+    return LedgerColumnMetrics(
+        timeW = ledgerScaled(42f),
+        costW = ledgerScaled(78f),
+        typeW = ledgerScaled(36f),
+        deleteW = ledgerScaled(40f),
+        gutter = ledgerScaled(6f),
+        gutterTight = ledgerScaled(4f),
+        trail = ledgerScaled(4f)
+    )
+}
+
+private data class LedgerColumnMetrics(
+    val timeW: Dp,
+    val costW: Dp,
+    val typeW: Dp,
+    val deleteW: Dp,
+    val gutter: Dp,
+    val gutterTight: Dp,
+    val trail: Dp
+)
+
 /** Column labels for the sealed-entry table on the Log screen. */
 @Composable
 fun EntryLedgerHeader(modifier: Modifier = Modifier) {
-    val timeW = ledgerScaled(48f)
-    val costW = ledgerScaled(92f)
-    val typeW = ledgerScaled(46f)
-    val deleteW = ledgerScaled(32f)
-    val gutter = ledgerScaled(8f)
-    val gutterTight = ledgerScaled(6f)
-    val trail = ledgerScaled(6f)
+    val m = ledgerColumnMetrics()
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -296,12 +626,12 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             text = "TIME",
             style = ledgerHeaderStyle(),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(timeW),
+            modifier = Modifier.width(m.timeW),
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(gutter))
+        Spacer(Modifier.width(m.gutter))
         Text(
             text = "ITEM",
             style = ledgerHeaderStyle(),
@@ -311,36 +641,36 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             softWrap = false,
             overflow = TextOverflow.Ellipsis
         )
-        Spacer(Modifier.width(gutter))
+        Spacer(Modifier.width(m.gutter))
         Text(
             text = "COST",
             style = ledgerHeaderStyle(),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(costW),
+            modifier = Modifier.width(m.costW),
             textAlign = TextAlign.End,
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(trail))
+        Spacer(Modifier.width(m.trail))
         Text(
             text = "TYPE",
             style = ledgerHeaderStyle(letterSpacing = 0.4.sp),
             color = AppTheme.colors.textMuted,
-            modifier = Modifier.width(typeW),
+            modifier = Modifier.width(m.typeW),
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Clip
         )
-        Spacer(Modifier.width(gutterTight))
-        Spacer(Modifier.width(deleteW))
+        Spacer(Modifier.width(m.gutterTight))
+        Spacer(Modifier.width(m.deleteW))
     }
 }
 
 /**
  * Single expense line used on both Log and History.
- * Trailing cluster (cost · type · delete) stays tight; item takes flexible space.
+ * Item is the primary readable field (up to 2 lines); trailing cluster stays compact.
  */
 @Composable
 fun EntryLedgerRow(
@@ -352,89 +682,76 @@ fun EntryLedgerRow(
 ) {
     val typeColor = if (entry.type == EntryType.NEED) AppTheme.colors.need else AppTheme.colors.want
     val money = entry.costCents.toMoney(symbol)
-    val timeW = ledgerScaled(48f)
-    val costW = ledgerScaled(92f)
-    val typeW = ledgerScaled(46f)
-    val deleteW = ledgerScaled(32f)
-    val gutter = ledgerScaled(8f)
-    val gutterTight = ledgerScaled(6f)
-    val trail = ledgerScaled(6f)
+    val m = ledgerColumnMetrics()
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(
-                    if (showCard) Modifier.padding(horizontal = 14.dp, vertical = 13.dp)
-                    else Modifier.padding(vertical = 11.dp)
+                    if (showCard) Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                    else Modifier.padding(vertical = 10.dp)
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = entry.time,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    letterSpacing = 0.2.sp,
-                    fontFeatureSettings = "tnum"
-                ),
+                style = AppType.ledgerMeta,
                 color = AppTheme.colors.textMuted,
-                modifier = Modifier.width(timeW),
+                modifier = Modifier.width(m.timeW),
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Clip
             )
-            Spacer(Modifier.width(gutter))
+            Spacer(Modifier.width(m.gutter))
             Text(
                 text = entry.item,
-                style = MaterialTheme.typography.bodyMedium,
+                style = AppType.ledgerItem,
                 color = AppTheme.colors.textPrimary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier
+                    .weight(1f)
+                    .widthIn(min = 72.dp),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = true
             )
-            Spacer(Modifier.width(gutter))
+            Spacer(Modifier.width(m.gutter))
             Text(
                 text = money,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFeatureSettings = "tnum",
+                style = AppType.moneySm.copy(
                     fontSize = adaptiveMoneySize(money, 13.sp)
                 ),
                 color = AppTheme.colors.textPrimary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.width(costW),
+                modifier = Modifier.width(m.costW),
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.width(trail))
+            Spacer(Modifier.width(m.trail))
             Box(
                 modifier = Modifier
-                    .width(typeW)
+                    .width(m.typeW)
                     .heightIn(min = 28.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(ledgerScaled(30f))
+                        .size(ledgerScaled(28f))
                         .border(BorderStroke(1.2.dp, typeColor), RoundedCornerShape(7.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (entry.type == EntryType.NEED) "N" else "W",
                         color = typeColor,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.sp
-                        ),
+                        style = AppType.titleSm.copy(letterSpacing = 0.sp),
                         textAlign = TextAlign.Center
                     )
                 }
             }
-            Spacer(Modifier.width(gutterTight))
+            Spacer(Modifier.width(m.gutterTight))
             Box(
                 modifier = Modifier
-                    .size(deleteW)
+                    .size(m.deleteW)
                     .clickable(role = Role.Button, onClick = onDelete),
                 contentAlignment = Alignment.Center
             ) {
@@ -442,7 +759,7 @@ fun EntryLedgerRow(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
                     tint = AppTheme.colors.danger.copy(alpha = 0.55f),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -452,8 +769,10 @@ fun EntryLedgerRow(
         Surface(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            color = AppTheme.colors.inkElevated,
-            border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
+            color = AppTheme.colors.surfaceCard,
+            border = BorderStroke(1.dp, AppTheme.colors.gold.copy(alpha = 0.22f)),
+            shadowElevation = 1.dp,
+            tonalElevation = 0.dp
         ) {
             content()
         }
@@ -465,9 +784,123 @@ fun EntryLedgerRow(
 }
 
 @Composable
-private fun ledgerHeaderStyle(letterSpacing: TextUnit = 1.1.sp): TextStyle =
-    MaterialTheme.typography.labelSmall.copy(
-        fontSize = 10.sp,
-        letterSpacing = letterSpacing,
-        fontWeight = FontWeight.SemiBold
+private fun ledgerHeaderStyle(letterSpacing: TextUnit = 1.0.sp): TextStyle =
+    AppType.ledgerHeader.copy(letterSpacing = letterSpacing)
+
+/**
+ * Quiet ledger footnote for consecutive logging days.
+ * Not a habit-app badge card — hairline rule + two short lines under stats.
+ * Hidden when streak is 0 so the donut keeps the hero role.
+ */
+@Composable
+fun StreakLine(
+    currentStreak: Int,
+    bestStreak: Int,
+    modifier: Modifier = Modifier
+) {
+    if (currentStreak <= 0) return
+    val c = AppTheme.colors
+    val next = StreakMilestone.nextAfter(currentStreak)
+    // One secondary phrase only — never middot-chain day + progress + best.
+    val secondary = when {
+        next != null -> {
+            val left = next.days - currentStreak
+            val unit = if (left == 1) "day" else "days"
+            "$left $unit to ${next.label}"
+        }
+        bestStreak > currentStreak -> "Best $bestStreak"
+        else -> "Full cycle"
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        GiltRule(width = 28.dp)
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = if (currentStreak == 1) "Day 1 logged" else "Day $currentStreak logged",
+                style = AppType.titleSm,
+                color = c.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = secondary,
+                style = AppType.meta,
+                color = c.textMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/** Quiet milestone mark — uses shared PremiumDialog chrome. */
+@Composable
+fun MilestoneMarkDialog(
+    milestone: StreakMilestone?,
+    onDismiss: () -> Unit
+) {
+    if (milestone == null) return
+    val haptics = rememberAppHaptics()
+
+    androidx.compose.runtime.LaunchedEffect(milestone.days) {
+        haptics.tick()
+    }
+
+    PremiumDialog(
+        onDismissRequest = onDismiss,
+        title = milestone.label,
+        eyebrow = "STREAK MARK",
+        eyebrowColor = AppTheme.colors.gold,
+        body = "Day ${milestone.days} of consecutive logging.",
+        confirmLabel = "Continue",
+        onConfirm = onDismiss,
+        dismissLabel = "Close"
     )
+}
+
+/** Single high-signal insight strip for Summary (not a carousel). */
+@Composable
+fun InsightStrip(
+    insight: Insight?,
+    modifier: Modifier = Modifier
+) {
+    if (insight == null) return
+    val palette = AppTheme.colors
+    val accentColor = when (insight.accent) {
+        InsightAccent.POSITIVE -> palette.need
+        InsightAccent.NEUTRAL -> palette.gold
+        InsightAccent.ALERT -> palette.want
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(palette.surfaceCard, RoundedCornerShape(16.dp))
+            .border(BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(accentColor, RoundedCornerShape(4.dp))
+            )
+            Spacer(Modifier.width(8.dp))
+            Eyebrow(insight.title.uppercase(), color = accentColor, size = 10)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = insight.body,
+            style = AppType.bodyMd,
+            color = palette.textPrimary
+        )
+    }
+}
+

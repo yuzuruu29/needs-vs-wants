@@ -7,7 +7,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import java.util.Calendar
 
 data class SummaryStats(
     val needsTotalCents: Long = 0,
@@ -28,11 +27,12 @@ class SummaryUseCase(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getStats(period: Period): Flow<SummaryStats> {
         return entitlementRepository.entitlement.flatMapLatest { ent ->
-            val since = when (period) {
-                Period.DAY -> startOfToday()
-                Period.WEEK -> startOfToday() - 7L * 24 * 60 * 60 * 1000
-                Period.ALL -> ent.retentionCutoffAt(System.currentTimeMillis()) ?: 0L
-            }
+            val now = System.currentTimeMillis()
+            val since = PeriodWindow.sinceEpochMs(
+                period = period,
+                nowMs = now,
+                retentionCutoffAt = ent.retentionCutoffAt(now)
+            )
             dao.observeSince(since).map { entries ->
                 val needs = entries.filter { it.type == EntryType.NEED }
                 val wants = entries.filter { it.type == EntryType.WANT }
@@ -50,14 +50,5 @@ class SummaryUseCase(
                 )
             }
         }
-    }
-
-    private fun startOfToday(): Long {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
     }
 }

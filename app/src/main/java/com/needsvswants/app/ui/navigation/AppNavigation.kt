@@ -1,21 +1,26 @@
 package com.needsvswants.app.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.PieChart
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +52,9 @@ import com.needsvswants.app.ui.screens.paywall.PaywallScreen
 import com.needsvswants.app.ui.screens.settings.SettingsScreen
 import com.needsvswants.app.ui.screens.summary.SummaryScreen
 import com.needsvswants.app.ui.theme.AppTheme
+import com.needsvswants.app.ui.theme.AppType
+import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.rememberAppHaptics
 
 private const val ROUTE_PAYWALL = "paywall"
 
@@ -58,9 +66,9 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("summary", "Home", Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem("input", "Log", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
-    BottomNavItem("advisor", "Advisor", Icons.Filled.Lightbulb, Icons.Outlined.Lightbulb),
+    BottomNavItem("summary", "Home", Icons.Filled.PieChart, Icons.Outlined.PieChart),
+    BottomNavItem("input", "Log", Icons.Filled.EditNote, Icons.Outlined.EditNote),
+    BottomNavItem("advisor", "Advisor", Icons.AutoMirrored.Filled.MenuBook, Icons.AutoMirrored.Outlined.MenuBook),
     BottomNavItem("history", "History", Icons.Filled.History, Icons.Outlined.History),
     BottomNavItem("settings", "Settings", Icons.Filled.Settings, Icons.Outlined.Settings)
 )
@@ -68,6 +76,7 @@ val bottomNavItems = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
+    startDestination: String = "summary",
     launchVm: LaunchPaywallViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
@@ -76,9 +85,11 @@ fun AppNavigation(
     val currentRoute = currentDestination?.route
     val shouldOfferSoftPaywall by launchVm.shouldOfferSoftPaywall.collectAsStateWithLifecycle()
     var softPaywallLaunched by remember { mutableStateOf(false) }
+    val haptics = rememberAppHaptics()
 
-    // Soft-launch subscription prompt (Play/App Store style): free users see Pro/Max once per session.
-    LaunchedEffect(shouldOfferSoftPaywall) {
+    // Soft paywall only on normal cold start — not when deep-linking to Log from a reminder.
+    LaunchedEffect(shouldOfferSoftPaywall, startDestination) {
+        if (startDestination != "summary") return@LaunchedEffect
         if (shouldOfferSoftPaywall && !softPaywallLaunched) {
             softPaywallLaunched = true
             navController.navigate(ROUTE_PAYWALL) {
@@ -122,6 +133,7 @@ fun AppNavigation(
                                     item = item,
                                     selected = selected,
                                     onClick = {
+                                        haptics.tick()
                                         navController.navigate(item.route) {
                                             popUpTo(navController.graph.findStartDestination().id) {
                                                 saveState = true
@@ -141,8 +153,32 @@ fun AppNavigation(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "summary",
-            modifier = Modifier.padding(innerPadding)
+            startDestination = startDestination,
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                fadeIn(Motion.navEnter()) + slideInHorizontally(
+                    animationSpec = Motion.navEnter(),
+                    initialOffsetX = { it / 24 }
+                )
+            },
+            exitTransition = {
+                fadeOut(Motion.navExit()) + slideOutHorizontally(
+                    animationSpec = Motion.navExit(),
+                    targetOffsetX = { -it / 32 }
+                )
+            },
+            popEnterTransition = {
+                fadeIn(Motion.navEnter()) + slideInHorizontally(
+                    animationSpec = Motion.navEnter(),
+                    initialOffsetX = { -it / 24 }
+                )
+            },
+            popExitTransition = {
+                fadeOut(Motion.navExit()) + slideOutHorizontally(
+                    animationSpec = Motion.navExit(),
+                    targetOffsetX = { it / 32 }
+                )
+            }
         ) {
             composable("summary") {
                 SummaryScreen(onNavigateToInput = {
@@ -197,8 +233,13 @@ private fun NavPill(
     modifier: Modifier = Modifier
 ) {
     val palette = AppTheme.colors
-    val tint = if (selected) palette.crimson else palette.textSecondary
-    val bg = if (selected) palette.crimson.copy(alpha = 0.10f) else androidx.compose.ui.graphics.Color.Transparent
+    val tintProgress by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = Motion.selectionSpring(),
+        label = "navPill"
+    )
+    val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, palette.crimson, tintProgress)
+    val bg = palette.crimson.copy(alpha = 0.10f * tintProgress)
 
     Column(
         modifier = modifier
@@ -219,12 +260,8 @@ private fun NavPill(
         Spacer(Modifier.height(2.dp))
         Text(
             text = item.label,
-            // Fixed-ish label size so Extra-large text scale doesn't crush the bar.
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 9.sp,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                letterSpacing = 0.sp,
-                lineHeight = 11.sp
+            style = AppType.navLabel.copy(
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
             ),
             color = tint,
             maxLines = 1,

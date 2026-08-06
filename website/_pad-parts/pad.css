@@ -38,7 +38,7 @@
   border-radius:0 6px 8px 0;
   background:
     linear-gradient(90deg,rgba(200,16,46,.05) 0 2px,transparent 2px),
-    repeating-linear-gradient(180deg,#f7f5ef 0 28px,rgba(26,26,26,.04) 28px 29px);
+    repeating-linear-gradient(180deg,var(--paper-line) 0 28px,rgba(26,26,26,.04) 28px 29px);
   border:1px solid rgba(26,26,26,.12);
   box-shadow:2px 3px 0 rgba(0,0,0,.06);
   transition:transform .5s cubic-bezier(.22,1,.36,1), opacity .4s cubic-bezier(.22,1,.36,1);

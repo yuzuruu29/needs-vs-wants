@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.ui.AppAppearanceViewModel
@@ -15,18 +17,31 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+        val openTab = intent?.getStringExtra(EXTRA_OPEN_TAB)
         setContent {
             val appearanceVm: AppAppearanceViewModel = hiltViewModel()
             val themeId by appearanceVm.themeId.collectAsStateWithLifecycle()
             val fontScaleStep by appearanceVm.fontScaleStep.collectAsStateWithLifecycle()
+            val startRoute = remember(openTab) {
+                when (openTab) {
+                    TAB_LOG -> "input"
+                    else -> null
+                }
+            }
             NeedsVsWantsTheme(
                 themeId = themeId,
                 fontScaleStep = fontScaleStep,
                 systemDark = isSystemInDarkTheme()
             ) {
-                AppNavigation()
+                AppNavigation(startDestination = startRoute ?: "summary")
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_TAB = "open_tab"
+        const val TAB_LOG = "log"
     }
 }

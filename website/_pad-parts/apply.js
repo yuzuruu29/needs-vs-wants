@@ -69,14 +69,17 @@ renderTicker();`
 // Dates: todayLabel may already be set — keep assignment
 // Original: $('#todayLabel').textContent = ... — still works with hidden span
 
+const mirror = path.join(root, 'index.html');
 fs.writeFileSync(file, html);
+fs.writeFileSync(mirror, html);
 console.log('OK', file, 'bytes', html.length);
+console.log('OK', mirror, 'bytes', html.length);
 console.log('checks', {
   padBoard: html.includes('pad-board'),
   pflip: html.includes('pflip-stage') || html.includes('buildFlipLeaves'),
   initPad: html.includes('function initPad'),
   qrcode151: html.includes('qrcode@1.5.1'),
-  apk: html.includes('needs-vs-wants-1.4.0.apk'),
+  apk: html.includes('needs-vs-wants-1.5.0.apk'),
   ctaPanel: html.includes('rollRedPanel'),
   noOldBind: !html.includes('notepad-bind'),
   noPageFlipLib: !html.includes('page-flip@'),

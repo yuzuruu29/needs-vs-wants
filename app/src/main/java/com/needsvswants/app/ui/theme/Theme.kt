@@ -40,6 +40,8 @@ fun NeedsVsWantsTheme(
         }
     }
 
+    RememberMotionGate()
+
     CompositionLocalProvider(
         LocalAppPalette provides palette,
         LocalDensity provides scaledDensity

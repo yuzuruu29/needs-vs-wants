@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Needs vs Wants — Font options preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=Libre+Baskerville:wght@400;700&family=Playfair+Display+SC:wght@700&family=Playfair+Display:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --card: #ffffff;
+      --raised: #f3f1ea;
+      --ink: #1a1a1a;
+      --muted: #5a5a5a;
+      --faint: #8a8a8a;
+      --crimson: #c8102e;
+      --green: #0b6b3a;
+      --gold: #e8a92a;
+      --divider: #e8e5dc;
+      --display: "Playfair Display SC", serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: #ebe8df;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 80px;
+    }
+    h1 {
+      font-family: "Playfair Display SC", serif;
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      letter-spacing: 0.04em;
+      margin: 0 0 8px;
+    }
+    .intro {
+      color: var(--muted);
+      max-width: 58ch;
+      margin: 0 0 22px;
+      font-size: 15px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 22px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(235,232,223,0.92);
+      backdrop-filter: blur(8px);
+      padding: 10px 0;
+    }
+    .toolbar button {
+      border: 1px solid var(--divider);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: 600 12px/1 Inter, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+    .toolbar button[aria-pressed="true"] {
+      background: var(--crimson);
+      border-color: var(--crimson);
+      color: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .opt {
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px -28px rgba(26,26,26,0.35);
+    }
+    .opt.hidden { display: none; }
+    .opt-head {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--divider);
+      background: linear-gradient(180deg, #fff, var(--raised));
+    }
+    .opt-head .badge {
+      display: inline-block;
+      font: 700 10px/1 Inter, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--crimson);
+      margin-bottom: 6px;
+    }
+    .opt-head h2 {
+      margin: 0 0 4px;
+      font: 700 18px/1.2 Inter, sans-serif;
+    }
+    .opt-head p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .rec {
+      display: inline-block;
+      margin-top: 8px;
+      font: 600 10px/1 Inter, sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #1a1208;
+      background: linear-gradient(90deg, #f4c968, #e8a92a);
+      padding: 5px 9px;
+      border-radius: 999px;
+    }
+    .phone {
+      padding: 16px;
+    }
+    .screen {
+      background: var(--bg);
+      border: 1px solid var(--divider);
+      border-radius: 18px;
+      padding: 18px 16px 16px;
+      min-height: 420px;
+    }
+    .eyebrow {
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--crimson);
+      margin: 0 0 8px;
+    }
+    .title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: 0.03em;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+    .rule {
+      width: 40px;
+      height: 1.5px;
+      background: var(--gold);
+      margin: 0 0 12px;
+    }
+    .lede {
+      font-family: var(--body);
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(232,169,42,0.35);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .card .plan-eye {
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 0 0 6px;
+    }
+    .card.max .plan-eye { color: var(--crimson); }
+    .card .plan-title {
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+      margin: 0 0 8px;
+    }
+    .card .price {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 26px;
+      line-height: 1;
+      margin: 0 4px 0 0;
+      display: inline-block;
+    }
+    .card .suffix {
+      font-family: var(--body);
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--faint);
+    }
+    .card .sub {
+      font-family: var(--body);
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .chip {
+      flex: 1;
+      text-align: center;
+      border-radius: 12px;
+      border: 1.5px solid var(--green);
+      color: var(--green);
+      background: rgba(11,107,58,0.1);
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      padding: 12px 8px;
+    }
+    .chip.want {
+      border-color: var(--crimson);
+      color: var(--crimson);
+      background: rgba(200,16,46,0.1);
+    }
+    .ledger {
+      margin-top: 14px;
+      background: var(--card);
+      border: 1px solid rgba(232,169,42,0.22);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 42px 1fr 72px 28px;
+      gap: 8px;
+      align-items: center;
+      font-family: var(--body);
+      font-size: 13px;
+    }
+    .ledger .time { color: var(--faint); font-variant-numeric: tabular-nums; font-size: 11px; }
+    .ledger .item { font-weight: 600; font-size: 15px; }
+    .ledger .cost { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .ledger .n {
+      width: 28px; height: 28px; border-radius: 7px;
+      border: 1.2px solid var(--green); color: var(--green);
+      display: grid; place-items: center; font-weight: 600; font-size: 11px;
+    }
+    .cta {
+      margin-top: 14px;
+      background: var(--crimson);
+      color: #fff;
+      border: 0;
+      border-radius: 14px;
+      width: 100%;
+      padding: 14px;
+      font-family: var(--body);
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .spec {
+      padding: 0 18px 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .spec code {
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+      background: var(--raised);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    /* Option-specific CSS variables via data-option */
+    .opt[data-option="A"] {
+      --display: "Playfair Display SC", serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="B"] {
+      --display: Inter, system-ui, sans-serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="B"] .title {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: 30px;
+    }
+    .opt[data-option="B"] .price {
+      font-family: Inter, system-ui, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .opt[data-option="C"] {
+      --display: "Playfair Display", Georgia, serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="C"] .title {
+      letter-spacing: -0.01em;
+      font-weight: 700;
+    }
+    .opt[data-option="C"] .price {
+      letter-spacing: -0.01em;
+    }
+    .opt[data-option="D1"] {
+      --display: "Source Serif 4", Georgia, serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="D1"] .title { letter-spacing: -0.01em; font-weight: 700; }
+    .opt[data-option="D2"] {
+      --display: Fraunces, Georgia, serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="D2"] .title { letter-spacing: -0.02em; font-weight: 600; }
+    .opt[data-option="D3"] {
+      --display: "Libre Baskerville", Georgia, serif;
+      --body: Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="D3"] .title { letter-spacing: 0; font-weight: 700; font-size: 24px; }
+    .opt[data-option="D4"] {
+      --display: "DM Sans", system-ui, sans-serif;
+      --body: "Inter Tight", Inter, system-ui, sans-serif;
+    }
+    .opt[data-option="D4"] .title {
+      letter-spacing: -0.03em;
+      font-weight: 700;
+      font-size: 30px;
+    }
+    .opt[data-option="D4"] .price {
+      font-family: "DM Sans", system-ui, sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .compare-note {
+      margin-top: 28px;
+      padding: 16px 18px;
+      background: var(--card);
+      border: 1px solid var(--divider);
+      border-radius: 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .compare-note strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Font options</h1>
+    <p class="intro">
+      Same mock screens, different type pairings. Use the filters to isolate one option,
+      or leave <strong>All</strong> on to compare. Open this file in Chrome/Edge for best font loading.
+    </p>
+
+    <div class="toolbar" role="toolbar" aria-label="Filter options">
+      <button type="button" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-filter="A" aria-pressed="false">A · Playfair SC + Inter</button>
+      <button type="button" data-filter="B" aria-pressed="false">B · Inter only</button>
+      <button type="button" data-filter="C" aria-pressed="false">C · Playfair + Inter</button>
+      <button type="button" data-filter="D1" aria-pressed="false">D1 · Source Serif</button>
+      <button type="button" data-filter="D2" aria-pressed="false">D2 · Fraunces</button>
+      <button type="button" data-filter="D3" aria-pressed="false">D3 · Baskerville</button>
+      <button type="button" data-filter="D4" aria-pressed="false">D4 · DM Sans</button>
+    </div>
+
+    <div class="grid" id="grid">
+      <!-- A -->
+      <article class="opt" data-option="A">
+        <div class="opt-head">
+          <div class="badge">Option A</div>
+          <h2>Playfair Display SC + Inter</h2>
+          <p>Current brand. Enforce hierarchy only. Closest to site + existing APK.</p>
+          <span class="rec">Recommended</span>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>Playfair Display SC</code> · Body: <code>Inter</code></p>
+      </article>
+
+      <!-- B -->
+      <article class="opt" data-option="B">
+        <div class="opt-head">
+          <div class="badge">Option B</div>
+          <h2>Inter only</h2>
+          <p>One family everywhere. Clean product UI. Least boutique.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display + body: <code>Inter</code></p>
+      </article>
+
+      <!-- C -->
+      <article class="opt" data-option="C">
+        <div class="opt-head">
+          <div class="badge">Option C</div>
+          <h2>Playfair Display + Inter</h2>
+          <p>Serif titles without small-caps shout. Better multi-word headlines.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>Playfair Display</code> · Body: <code>Inter</code></p>
+      </article>
+
+      <!-- D1 -->
+      <article class="opt" data-option="D1">
+        <div class="opt-head">
+          <div class="badge">Option D1</div>
+          <h2>Source Serif 4 + Inter</h2>
+          <p>Newspaper / ledger editorial. Serious, less “luxury SC”.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>Source Serif 4</code> · Body: <code>Inter</code></p>
+      </article>
+
+      <!-- D2 -->
+      <article class="opt" data-option="D2">
+        <div class="opt-head">
+          <div class="badge">Option D2</div>
+          <h2>Fraunces + Inter</h2>
+          <p>Soft premium. Distinctive, but common in AI-designed UIs.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>Fraunces</code> · Body: <code>Inter</code></p>
+      </article>
+
+      <!-- D3 -->
+      <article class="opt" data-option="D3">
+        <div class="opt-head">
+          <div class="badge">Option D3</div>
+          <h2>Libre Baskerville + Inter</h2>
+          <p>Quiet classic finance. Conservative and readable.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>Libre Baskerville</code> · Body: <code>Inter</code></p>
+      </article>
+
+      <!-- D4 -->
+      <article class="opt" data-option="D4">
+        <div class="opt-head">
+          <div class="badge">Option D4</div>
+          <h2>DM Sans + Inter Tight</h2>
+          <p>Modern app stack. No serif. Sharp and contemporary.</p>
+        </div>
+        <div class="phone"><div class="screen" data-mock></div></div>
+        <p class="spec">Display: <code>DM Sans</code> · Body: <code>Inter Tight</code></p>
+      </article>
+    </div>
+
+    <div class="compare-note">
+      <strong>How to choose:</strong>
+      Look at the big title, the plan name “AI Advisor”, the price, and the ledger item “Cold brew oat milk”.
+      If the title feels too costume-y → B or D4.
+      If you want boutique but readable multi-word titles → C.
+      If you want closest to what you already ship → A.
+      Tell me the letter (A / B / C / D1–D4) and I’ll implement it app-wide.
+    </div>
+  </div>
+
+  <script>
+    function mockHTML() {
+      return `
+        <p class="eyebrow">Membership</p>
+        <h3 class="title">Choose your sheet.</h3>
+        <div class="rule"></div>
+        <p class="lede">Free is the 20-sheet trainer. Pro lifts the caps. Max adds the AI Advisor.</p>
+        <div class="card max">
+          <p class="plan-eye">Max</p>
+          <p class="plan-title">AI Advisor</p>
+          <div><span class="price">₱499</span><span class="suffix">/ mo · $9.99</span></div>
+          <p class="sub">Everything in Pro, plus cited coaching from economic study notebooks.</p>
+        </div>
+        <div class="card">
+          <p class="plan-eye">Pro</p>
+          <p class="plan-title">Unlimited</p>
+          <div><span class="price">₱249</span><span class="suffix">/ mo · $4.99</span></div>
+          <p class="sub">Unlimited sheets, full history, full period analytics.</p>
+        </div>
+        <div class="row">
+          <div class="chip">NEED</div>
+          <div class="chip want">WANT</div>
+        </div>
+        <div class="ledger">
+          <span class="time">14:32</span>
+          <span class="item">Cold brew oat milk</span>
+          <span class="cost">₱185.00</span>
+          <span class="n">W</span>
+        </div>
+        <button class="cta" type="button">Log a purchase</button>
+      `;
+    }
+
+    document.querySelectorAll("[data-mock]").forEach((el) => {
+      el.innerHTML = mockHTML();
+    });
+
+    const buttons = document.querySelectorAll(".toolbar button");
+    const cards = document.querySelectorAll(".opt");
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const f = btn.dataset.filter;
+        buttons.forEach((b) => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+        cards.forEach((c) => {
+          c.classList.toggle("hidden", f !== "all" && c.dataset.option !== f);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

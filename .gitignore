@@ -8,7 +8,7 @@ local.properties
 *.iml
 
 # Android SDK (committed locally, not needed in repo)
-android-sdk/
+.android-sdk/
 
 # Screenshots / design artifacts
 *.png
@@ -34,3 +34,24 @@ Thumbs.db
 .env.local
 .env.*.local
 
+.hilo/
+
+# Remotion promo project
+video/node_modules/
+video/out/
+video/.remotion/
+video/dist/
+video/*.log
+
+# Agent tooling / session dirs
+.reasonix/
+.zcode/
+.commandcode/
+.playwright-mcp/
+
+# Generated graph caches
+website/graphify-out/
+
+# Python caches
+docs/**/__pycache__/
+*.pyc

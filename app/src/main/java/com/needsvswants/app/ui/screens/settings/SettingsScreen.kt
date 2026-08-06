@@ -1,5 +1,10 @@
 package com.needsvswants.app.ui.screens.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,9 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.domain.FontScaleStep
@@ -36,9 +43,24 @@ fun SettingsScreen(
     val themeId by viewModel.themeId.collectAsStateWithLifecycle()
     val fontScaleStep by viewModel.fontScaleStep.collectAsStateWithLifecycle()
     val symbol by viewModel.currentSymbol.collectAsStateWithLifecycle()
+    val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
+    val dailyFreeLogs by viewModel.dailyFreeLogs.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     var showWipeConfirm by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    val context = LocalContext.current
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.setReminderEnabled(true, context)
+        } else {
+            // User denied — keep toggle off
+            viewModel.setReminderEnabled(false, context)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -52,7 +74,7 @@ fun SettingsScreen(
         Spacer(Modifier.height(6.dp))
         Text(
             "SETTINGS",
-            style = MaterialTheme.typography.displayLarge,
+            style = AppType.screenTitle,
             color = palette.textPrimary,
             maxLines = 2
         )
@@ -69,7 +91,7 @@ fun SettingsScreen(
                 if (authState.signedIn) {
                     Text(
                         authState.email ?: "Signed in",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = palette.textPrimary,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2
@@ -77,41 +99,36 @@ fun SettingsScreen(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Linked for Pro / Max purchases and entitlement sync.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AppType.bodySm,
                         color = palette.textMuted
                     )
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
+                    GhostTextAction(
+                        text = if (authState.busy) "Signing out…" else "Sign out",
                         onClick = { authViewModel.signOut() },
                         enabled = !authState.busy,
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, palette.inkDivider),
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Sign out", color = palette.textPrimary)
-                    }
+                    )
                 } else {
                     Text(
                         "No account on free plan",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = palette.textPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Google sign-in unlocks only when you start Pro or Max — free logging stays private on-device.",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Google sign-in only appears when you start Pro or Max. Free logging stays private on this device.",
+                        style = AppType.bodySm,
                         color = palette.textMuted
                     )
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
+                    GiltButton(
                         onClick = onOpenPaywall,
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.55f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("View Pro & Max plans", color = palette.textPrimary, fontWeight = FontWeight.SemiBold)
-                    }
+                        text = "View Pro & Max plans",
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 48.dp
+                    )
                 }
             }
         }
@@ -120,28 +137,24 @@ fun SettingsScreen(
 
         SectionLabel("CURRENCY")
         Spacer(Modifier.height(10.dp))
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.inkElevated,
-            border = BorderStroke(1.dp, palette.inkDivider)
-        ) {
+        SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
                 currencies.forEachIndexed { i, option ->
                     val selected = option.code == currentCode
                     PreferenceRow(
                         selected = selected,
-                        onClick = { viewModel.setCurrency(option.symbol, option.code) },
+                        onClick = { haptics.tick(); viewModel.setCurrency(option.symbol, option.code) },
                         leading = {
                             Text(
                                 option.symbol,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = AppType.titleMd,
                                 color = if (selected) palette.gilt else palette.textSecondary,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(Modifier.width(14.dp))
                             Text(
                                 option.label,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AppType.bodyMd,
                                 color = if (selected) palette.textPrimary else palette.textSecondary
                             )
                         }
@@ -161,21 +174,17 @@ fun SettingsScreen(
 
         SectionLabel("TEXT SIZE")
         Spacer(Modifier.height(10.dp))
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.inkElevated,
-            border = BorderStroke(1.dp, palette.inkDivider)
-        ) {
+        SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
                 fontScaleOptions.forEachIndexed { i, option ->
                     val selected = option.step == fontScaleStep
                     PreferenceRow(
                         selected = selected,
-                        onClick = { viewModel.setFontScaleStep(option.step) },
+                        onClick = { haptics.tick(); viewModel.setFontScaleStep(option.step) },
                         leading = {
                             Text(
                                 option.label,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AppType.bodyMd,
                                 color = if (selected) palette.textPrimary else palette.textSecondary,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -191,8 +200,8 @@ fun SettingsScreen(
                 }
                 HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 12.dp))
                 Text(
-                    "Sample: ${symbol}1,250.00 · Need",
-                    style = MaterialTheme.typography.bodyLarge,
+                    "Sample: ${symbol}1,250.00  Need",
+                    style = AppType.body,
                     color = palette.textPrimary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
                 )
@@ -203,11 +212,7 @@ fun SettingsScreen(
 
         SectionLabel("APPEARANCE")
         Spacer(Modifier.height(10.dp))
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.inkElevated,
-            border = BorderStroke(1.dp, palette.inkDivider)
-        ) {
+        SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
                 themeOptions.forEachIndexed { i, option ->
                     val selected = option.id == themeId
@@ -219,13 +224,13 @@ fun SettingsScreen(
                     }
                     PreferenceRow(
                         selected = selected,
-                        onClick = { viewModel.setThemeId(option.id) },
+                        onClick = { haptics.tick(); viewModel.setThemeId(option.id) },
                         leading = {
                             ThemeSwatches(swatch)
                             Spacer(Modifier.width(12.dp))
                             Text(
                                 option.label,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AppType.bodyMd,
                                 color = if (selected) palette.textPrimary else palette.textSecondary,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -257,15 +262,15 @@ fun SettingsScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Pro & Max plans",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = palette.textPrimary,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 2
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Sign in with Google only when you upgrade — unlimited log, full history, Max AI Advisor.",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Sign in with Google only when you upgrade. Unlimited log, full history, Max AI Advisor.",
+                        style = AppType.bodySm,
                         color = palette.textMuted
                     )
                 }
@@ -279,13 +284,101 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
+        SectionLabel("DAILY FREE LOGS")
+        Spacer(Modifier.height(10.dp))
+        val freeLogs = dailyFreeLogs
+        if (freeLogs != null) {
+            SettingsPanel {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    QuotaStatRow(
+                        label = "Free allowance",
+                        value = "${freeLogs.allowancePerDay} / day",
+                        valueColor = palette.gilt
+                    )
+                    HorizontalDivider(color = palette.inkDivider)
+                    QuotaStatRow(
+                        label = "Left today",
+                        value = "${freeLogs.remainingToday}",
+                        valueColor = if (freeLogs.remainingToday > 0) palette.marketGreen else palette.crimson
+                    )
+                    HorizontalDivider(color = palette.inkDivider)
+                    QuotaStatRow(
+                        label = "Ads watched",
+                        value = "${freeLogs.adsWatchedToday} of ${freeLogs.maxAdsPerDay}",
+                        valueColor = palette.textSecondary
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Free logs reset every local day. +${freeLogs.extraLogsPerReward} per rewarded ad. Pro & Max have no daily limit.",
+                        style = AppType.caption,
+                        color = palette.textMuted
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabel("NOTIFICATIONS")
+        Spacer(Modifier.height(10.dp))
+        SettingsPanel {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Evening reminder",
+                        style = AppType.bodyMd,
+                        color = palette.textPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "8:00 PM nudge if you have not sealed a purchase today.",
+                        style = AppType.bodySm,
+                        color = palette.textMuted
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(
+                    checked = reminderEnabled,
+                    onCheckedChange = { checked ->
+                        haptics.tick()
+                        if (!checked) {
+                            viewModel.setReminderEnabled(false, context)
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val granted = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (granted) {
+                                viewModel.setReminderEnabled(true, context)
+                            } else {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        } else {
+                            viewModel.setReminderEnabled(true, context)
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = palette.surfaceCard,
+                        checkedTrackColor = palette.crimson,
+                        uncheckedThumbColor = palette.textMuted,
+                        uncheckedTrackColor = palette.inkDivider
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
         SectionLabel("DATA")
         Spacer(Modifier.height(10.dp))
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.inkElevated,
-            border = BorderStroke(1.dp, palette.inkDivider)
-        ) {
+        SettingsPanel {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -297,14 +390,14 @@ fun SettingsScreen(
                 Column {
                     Text(
                         "Wipe diary",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = palette.danger,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Permanently delete all entries & reset settings",
-                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.2.sp),
+                        "Permanently delete all entries and reset settings",
+                        style = AppType.caption,
                         color = palette.textMuted
                     )
                 }
@@ -320,80 +413,70 @@ fun SettingsScreen(
 
         SectionLabel("ABOUT")
         Spacer(Modifier.height(10.dp))
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.inkElevated,
-            border = BorderStroke(1.dp, palette.inkDivider),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        SettingsPanel {
             Column(modifier = Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(palette.crimson, RoundedCornerShape(2.dp))
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        "Needs vs. Wants Expense Tracker",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Text("v1.4.0", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
+                    NeedWantSealMark()
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Needs vs Wants",
+                            style = AppType.titleSm,
+                            color = palette.textPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "35-day spending trainer",
+                            style = AppType.caption,
+                            color = palette.textMuted
+                        )
+                    }
+                    Text("v1.5.0", style = AppType.caption, color = palette.textMuted)
                 }
+                Spacer(Modifier.height(14.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(palette.divider)
+                )
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    "This app allows you to record all of your daily expenses, helping you become more aware of your spending habits and tendencies. By consistently tracking every expense, you can better distinguish between your needs and wants, make smarter financial decisions, and develop stronger self-discipline. The key is to be honest with yourself\u2014every expense counts. Start tracking today and take control of your finances.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.textSecondary
+                ReceiptFeatureLine(
+                    text = "Every purchase seals as Need or Want",
+                    accent = palette.marketGreen,
+                    emphasize = true
+                )
+                ReceiptFeatureLine(
+                    text = "20 entries per sheet, 35-day diary window",
+                    accent = palette.gold
+                )
+                ReceiptFeatureLine(
+                    text = "Optional daily budget on Log",
+                    accent = palette.crimson
+                )
+                ReceiptFeatureLine(
+                    text = "Offline first. No cloud for free use.",
+                    accent = palette.textMuted
                 )
             }
         }
     }
 
     if (showWipeConfirm) {
-        AlertDialog(
+        PremiumDialog(
             onDismissRequest = { showWipeConfirm = false },
-            containerColor = palette.inkElevated,
-            tonalElevation = 0.dp,
-            shape = RoundedCornerShape(20.dp),
-            title = {
-                Column {
-                    Eyebrow("DANGER", color = palette.danger)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Wipe all data?",
-                        color = palette.textPrimary,
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
+            eyebrow = "DANGER",
+            eyebrowColor = palette.danger,
+            title = "Wipe all data?",
+            body = "This will permanently delete all entries and reset settings.\nThere is no recovery.",
+            confirmLabel = "Wipe",
+            onConfirm = {
+                haptics.warn()
+                viewModel.wipeData()
+                showWipeConfirm = false
             },
-            text = {
-                Text(
-                    "This will permanently delete all entries and reset settings.\nThere is no recovery.",
-                    color = palette.textSecondary
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.wipeData()
-                        showWipeConfirm = false
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.danger,
-                        contentColor = Color.White
-                    )
-                ) { Text("Wipe", fontWeight = FontWeight.SemiBold) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWipeConfirm = false }) {
-                    Text("Cancel", color = palette.textMuted)
-                }
-            }
+            dismissLabel = "Cancel",
+            confirmDanger = true
         )
     }
 }
@@ -462,6 +545,29 @@ private fun ThemeSwatches(swatch: AppPalette) {
             modifier = Modifier
                 .size(14.dp)
                 .background(swatch.want, RoundedCornerShape(3.dp))
+        )
+    }
+}
+
+@Composable
+private fun QuotaStatRow(label: String, value: String, valueColor: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = AppType.bodyMd,
+            color = AppTheme.colors.textSecondary
+        )
+        Text(
+            value,
+            style = AppType.bodyMd,
+            color = valueColor,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }

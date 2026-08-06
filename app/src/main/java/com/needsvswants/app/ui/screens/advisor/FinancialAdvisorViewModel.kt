@@ -2,8 +2,8 @@ package com.needsvswants.app.ui.screens.advisor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.domain.AdvisorChatSession
 import com.needsvswants.app.domain.AdvisorInsight
 import com.needsvswants.app.domain.ChatMessage
@@ -27,7 +27,7 @@ data class AdvisorUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class FinancialAdvisorViewModel @Inject constructor(
-    private val entryDao: EntryDao,
+    private val entryRepository: EntryRepository,
     private val preferences: AppPreferences
 ) : ViewModel() {
 
@@ -35,7 +35,7 @@ class FinancialAdvisorViewModel @Inject constructor(
     private val _chatMessages = MutableStateFlow(chatSession.snapshot())
 
     val uiState: StateFlow<AdvisorUiState> = combine(
-        entryDao.observeAll(),
+        entryRepository.observeAll(),
         preferences.currencySymbol,
         preferences.dailyBudgetCents,
         preferences.entitlement,
@@ -68,7 +68,7 @@ class FinancialAdvisorViewModel @Inject constructor(
             if (!entitlement.hasMaxAccessAt(System.currentTimeMillis())) {
                 return@launch
             }
-            val entries = entryDao.observeAll().first()
+            val entries = entryRepository.observeAll().first()
             val currency = preferences.currencySymbol.first()
             val dailyBudget = preferences.dailyBudgetCents.first()
             val updated = chatSession.sendUserQuery(

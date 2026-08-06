@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,11 @@ import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+
 @Composable
 fun HistoryScreen(
     onNavigateToInput: () -> Unit = {},
@@ -33,15 +39,46 @@ fun HistoryScreen(
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
+    val haptics = rememberAppHaptics()
+    val context = LocalContext.current
 
-    val grouped = entries.groupBy { it.date }
+    val grouped = entries.groupBy { it.date }.toList()
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val displayFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
 
     Column(modifier = Modifier.fillMaxSize().background(themedInkWash()).padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 12.dp)) {
-        Eyebrow("HISTORY", color = AppTheme.colors.crimson)
-        Spacer(Modifier.height(6.dp))
-        Text("LEDGER", style = MaterialTheme.typography.displayLarge, color = AppTheme.colors.textPrimary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Eyebrow("HISTORY", color = AppTheme.colors.crimson)
+                Spacer(Modifier.height(6.dp))
+                Text("LEDGER", style = AppType.screenTitle, color = AppTheme.colors.textPrimary)
+            }
+            if (entries.isNotEmpty()) {
+                HeaderIconWell(
+                    onClick = {
+                        val csv = viewModel.exportCsvText()
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/csv"
+                            putExtra(Intent.EXTRA_TEXT, csv)
+                            putExtra(Intent.EXTRA_SUBJECT, "Needs vs Wants - Spending History CSV")
+                        }
+                        context.startActivity(Intent.createChooser(send, "Export CSV"))
+                    },
+                    contentDescription = "Export CSV"
+                ) {
+                    Icon(
+                        Icons.Default.Share,
+                        contentDescription = null,
+                        tint = AppTheme.colors.crimson,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(8.dp))
         GiltRule(width = 40.dp)
         Spacer(Modifier.height(8.dp))
@@ -53,8 +90,8 @@ fun HistoryScreen(
                 val newestDate = dateFormat.parse(newest)
                 if (oldestDate != null && newestDate != null) {
                     Text(
-                        "${displayFormat.format(oldestDate)} — ${displayFormat.format(newestDate)}",
-                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.4.sp),
+                        "${displayFormat.format(oldestDate)} - ${displayFormat.format(newestDate)}",
+                        style = AppType.caption,
                         color = AppTheme.colors.textMuted
                     )
                 }
@@ -66,16 +103,13 @@ fun HistoryScreen(
         if (entries.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(modifier = Modifier
-                        .size(96.dp)
-                        .border(1.dp, AppTheme.colors.crimson.copy(alpha = 0.35f), RoundedCornerShape(48.dp))
-                    )
+                    NeedWantSealMark()
                     Spacer(Modifier.height(18.dp))
                     Eyebrow("EMPTY DIARY", color = AppTheme.colors.textMuted)
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "The page waits for ink.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = AppTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
                     )
@@ -83,48 +117,69 @@ fun HistoryScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                grouped.forEach { (date, dayEntries) ->
-                    item {
+                items(grouped, key = { it.first }) { (date, dayEntries) ->
                         val displayDate = dateFormat.parse(date)?.let { displayFormat.format(it) } ?: date
                         val dayNeeds = dayEntries.filter { it.type == EntryType.NEED }.sumOf { it.costCents }
                         val dayWants = dayEntries.filter { it.type == EntryType.WANT }.sumOf { it.costCents }
 
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = AppTheme.colors.inkElevated,
-                            border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
-                        ) {
+                        val dayTotal = dayNeeds + dayWants
+                        val entryLabel = if (dayEntries.size == 1) "1 entry" else "${dayEntries.size} entries"
+                        PremiumSurface(modifier = Modifier.animateItem()) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                    verticalAlignment = Alignment.Top,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Eyebrow(displayDate, color = AppTheme.colors.crimson, size = 10)
+                                        Spacer(Modifier.height(6.dp))
+                                        Text(
+                                            dayTotal.toMoney(symbol),
+                                            style = AppType.moneyMd.copy(
+                                                fontSize = adaptiveMoneySize(
+                                                    dayTotal.toMoney(symbol),
+                                                    18.sp
+                                                )
+                                            ),
+                                            color = AppTheme.colors.textPrimary,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
                                     Text(
-                                        displayDate.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.6.sp),
-                                        color = AppTheme.colors.textPrimary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        "${dayEntries.size} entries",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                        color = AppTheme.colors.textMuted
+                                        entryLabel.uppercase(),
+                                        style = AppType.eyebrowSm,
+                                        color = AppTheme.colors.textMuted,
+                                        modifier = Modifier
+                                            .border(
+                                                BorderStroke(1.dp, AppTheme.colors.dividerStrong),
+                                                RoundedCornerShape(20.dp)
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 5.dp)
                                     )
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    DayTotal(AppTheme.colors.need, "Need", dayNeeds.toMoney(symbol))
-                                    DayTotal(AppTheme.colors.want, "Want", dayWants.toMoney(symbol))
+                                    DaySplitChip(
+                                        color = AppTheme.colors.need,
+                                        label = "Need",
+                                        value = dayNeeds.toMoney(symbol),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    DaySplitChip(
+                                        color = AppTheme.colors.want,
+                                        label = "Want",
+                                        value = dayWants.toMoney(symbol),
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                                 Spacer(Modifier.height(14.dp))
-                                HorizontalDivider(color = AppTheme.colors.inkDivider, thickness = 1.dp)
-                                Spacer(Modifier.height(8.dp))
+                                GiltRule(width = 28.dp)
+                                Spacer(Modifier.height(10.dp))
                                 dayEntries.forEach { entry ->
                                     EntryLedgerRow(
                                         entry = entry,
@@ -134,36 +189,25 @@ fun HistoryScreen(
                                 }
                             }
                         }
-                    }
                 }
             }
         }
 
         deleteTarget?.let { entry ->
-            AlertDialog(
+            PremiumDialog(
                 onDismissRequest = { deleteTarget = null },
-                containerColor = AppTheme.colors.inkElevated,
-                tonalElevation = 0.dp,
-                shape = RoundedCornerShape(20.dp),
-                title = {
-                    Column {
-                        Eyebrow("CONFIRM", color = AppTheme.colors.danger)
-                        Spacer(Modifier.height(6.dp))
-                        Text("Delete entry?", color = AppTheme.colors.textPrimary, style = MaterialTheme.typography.headlineSmall)
-                    }
+                eyebrow = "CONFIRM",
+                eyebrowColor = AppTheme.colors.danger,
+                title = "Delete entry?",
+                body = "${entry.item} · ${entry.costCents.toMoney(symbol)}",
+                confirmLabel = "Delete",
+                onConfirm = {
+                    haptics.warn()
+                    viewModel.deleteEntry(entry)
+                    deleteTarget = null
                 },
-                text = { Text("${entry.item} — ${entry.costCents.toMoney(symbol)}", color = AppTheme.colors.textSecondary) },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.deleteEntry(entry); deleteTarget = null },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.danger.copy(alpha = 0.18f), contentColor = AppTheme.colors.danger),
-                        border = BorderStroke(1.dp, AppTheme.colors.danger)
-                    ) { Text("Delete", fontWeight = FontWeight.SemiBold) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { deleteTarget = null }) { Text("Cancel", color = AppTheme.colors.textMuted) }
-                }
+                dismissLabel = "Cancel",
+                confirmDanger = true
             )
         }
 
@@ -171,38 +215,40 @@ fun HistoryScreen(
 
         GiltButton(
             onClick = onNavigateToInput,
-            text = "Log an expense",
+            text = "Log a purchase",
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-private fun DayTotal(color: Color, label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Canvas(Modifier.size(8.dp)) {
-            drawCircle(color)
+private fun DaySplitChip(
+    color: Color,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    val palette = AppTheme.colors
+    Column(
+        modifier = modifier
+            .background(palette.surfaceSunken, RoundedCornerShape(12.dp))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.28f)), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(Modifier.size(7.dp)) { drawCircle(color) }
+            Spacer(Modifier.width(6.dp))
+            Text(
+                label.uppercase(),
+                style = AppType.eyebrowSm,
+                color = color
+            )
         }
-        Spacer(Modifier.width(6.dp))
-        Text(
-            "$label ",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 13.sp,
-                letterSpacing = 0.1.sp
-            ),
-            color = AppTheme.colors.textSecondary,
-            maxLines = 1,
-            softWrap = false
-        )
+        Spacer(Modifier.height(4.dp))
         Text(
             value,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = adaptiveMoneySize(value, 13.sp),
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.15.sp,
-                fontFeatureSettings = "tnum"
-            ),
-            color = AppTheme.colors.textPrimary,
+            style = AppType.moneySm.copy(fontSize = adaptiveMoneySize(value, 14.sp)),
+            color = palette.textPrimary,
             maxLines = 1,
             softWrap = false
         )

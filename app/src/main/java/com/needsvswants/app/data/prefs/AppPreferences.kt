@@ -10,6 +10,8 @@ import com.needsvswants.app.data.entitlement.EntitlementSnapshot
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementType
+import com.needsvswants.app.domain.DailyLogQuota
+import com.needsvswants.app.domain.QuotaState
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +25,10 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val CURRENCY_CODE = stringPreferencesKey("currency_code")
         private val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
         private val DAILY_BUDGET_CENTS = longPreferencesKey("daily_budget_cents")
+        private val BEST_STREAK_EVER = intPreferencesKey("best_streak_ever")
+        private val LAST_MILESTONE_SHOWN = intPreferencesKey("last_milestone_shown")
+        private val REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
+        private val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         private val THEME_ID = stringPreferencesKey("theme_id")
         private val FONT_SCALE_STEP = stringPreferencesKey("font_scale_step")
         private val ENTITLEMENT_TIER = stringPreferencesKey("entitlement_tier")
@@ -51,11 +57,28 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
             AUTH_EMAIL,
             AUTH_EXPIRES_AT
         )
+        private val QUOTA_DAY = stringPreferencesKey("quota_day")
+        private val QUOTA_LOGS_CREATED = intPreferencesKey("quota_logs_created")
+        private val QUOTA_BONUS_LOGS = intPreferencesKey("quota_bonus_logs")
+        private val QUOTA_ADS_WATCHED = intPreferencesKey("quota_ads_watched")
     }
 
     val currencySymbol: Flow<String> = context.dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
     val currencyCode: Flow<String> = context.dataStore.data.map { it[CURRENCY_CODE] ?: "PHP" }
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { it[FIRST_LAUNCH] ?: true }
+
+    val bestStreakEver: Flow<Int> = context.dataStore.data.map { it[BEST_STREAK_EVER] ?: 0 }
+    val lastMilestoneShown: Flow<Int> = context.dataStore.data.map { it[LAST_MILESTONE_SHOWN] ?: 0 }
+    val reminderEnabled: Flow<Boolean> = context.dataStore.data.map { it[REMINDER_ENABLED] ?: false }
+    val reminderHour: Flow<Int> = context.dataStore.data.map { it[REMINDER_HOUR] ?: 20 }
+
+    suspend fun setReminderEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[REMINDER_ENABLED] = enabled }
+    }
+
+    suspend fun setReminderHour(hour: Int) {
+        context.dataStore.edit { it[REMINDER_HOUR] = hour }
+    }
 
     val themeId: Flow<ThemeId> = context.dataStore.data.map {
         ThemeId.fromStorage(it[THEME_ID])
@@ -162,6 +185,41 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
 
     suspend fun setFirstLaunchComplete() {
         context.dataStore.edit { it[FIRST_LAUNCH] = false }
+    }
+
+    suspend fun updateBestStreak(streak: Int) {
+        context.dataStore.edit { prefs ->
+            val currentBest = prefs[BEST_STREAK_EVER] ?: 0
+            if (streak > currentBest) {
+                prefs[BEST_STREAK_EVER] = streak
+            }
+        }
+    }
+
+    suspend fun setLastMilestoneShown(milestoneDays: Int) {
+        context.dataStore.edit { it[LAST_MILESTONE_SHOWN] = milestoneDays }
+    }
+
+    val quotaState: Flow<QuotaState> = context.dataStore.data.map { prefs ->
+        QuotaState(
+            day = prefs[QUOTA_DAY] ?: "",
+            logsCreated = prefs[QUOTA_LOGS_CREATED] ?: 0,
+            bonusLogs = prefs[QUOTA_BONUS_LOGS] ?: 0,
+            adsWatched = prefs[QUOTA_ADS_WATCHED] ?: 0
+        )
+    }
+
+    suspend fun setQuotaState(state: QuotaState) {
+        context.dataStore.edit {
+            it[QUOTA_DAY] = state.day
+            it[QUOTA_LOGS_CREATED] = state.logsCreated
+            it[QUOTA_BONUS_LOGS] = state.bonusLogs
+            it[QUOTA_ADS_WATCHED] = state.adsWatched
+        }
+    }
+
+    suspend fun resetQuotaForDay(today: String) {
+        setQuotaState(QuotaState(day = today, logsCreated = 0, bonusLogs = 0, adsWatched = 0))
     }
 
     suspend fun wipeAll() {

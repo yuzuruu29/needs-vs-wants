@@ -73,11 +73,11 @@ function renderSheetMarkup(sheetIdx, live){
   let body;
   if (full){
     body = live
-      ? `<button type="button" class="page-full-cta" data-action="next-page">Page full — turn to a fresh sheet →</button>`
-      : `<p class="page-full-cta" aria-hidden="true">Page full — turn to a fresh sheet →</p>`;
+      ? `<button type="button" class="page-full-cta" data-action="next-page">Page full. Turn to a fresh sheet →</button>`
+      : `<p class="page-full-cta" aria-hidden="true">Page full. Turn to a fresh sheet →</p>`;
   } else if (live){
     body = `<div class="demo-form" data-live-form>
-      ${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+      ${empty ? '<p class="sheet-ghost">Seal your first purchase on this page. Need or Want?</p>' : ''}
       <div class="field">
         <label for="fItem">Item</label>
         <input id="fItem" type="text" autocomplete="off" placeholder="What did you just buy?" maxlength="40" value="${esc(formDraft.item)}">
@@ -95,17 +95,17 @@ function renderSheetMarkup(sheetIdx, live){
         <button class="type-chip chip-want" type="button" data-type="WANT" aria-pressed="${formDraft.type==='WANT'?'true':'false'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>WANT</button>
       </div>
-      <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+      <p class="seal-hint">Fill all three. The row seals itself. No save button.</p>
     </div>`;
   } else {
     const snapItem = formDraft.item && sheetIdx === pageIndex ? esc(formDraft.item) : '';
     const snapCost = formDraft.cost && sheetIdx === pageIndex ? esc(formDraft.cost) : '';
-    body = `${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+    body = `${empty ? '<p class="sheet-ghost">Seal your first purchase on this page. Need or Want?</p>' : ''}
       <div class="demo-form-snap" inert>
         <div class="field"><label>Item</label><input type="text" readonly tabindex="-1" value="${snapItem}" placeholder="What did you just buy?"></div>
         <div class="field"><label>Cost</label><div class="cost-wrap"><span class="cur-sym">${CUR[cur].s}</span><input type="text" readonly tabindex="-1" value="${snapCost}" placeholder="0.00"></div></div>
         <div class="type-row"><span class="type-chip chip-need" aria-hidden="true">NEED</span><span class="type-chip chip-want" aria-hidden="true">WANT</span></div>
-        <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+        <p class="seal-hint">Fill all three. The row seals itself. No save button.</p>
       </div>`;
   }
   const hideDog = (pages.length >= PAGE_CAP && sheetIdx >= pages.length - 1 && full);
@@ -204,7 +204,7 @@ function updateChrome(){
     if (!el) return;
     el.disabled = nextDisabled;
     el.setAttribute('aria-disabled', nextDisabled ? 'true' : 'false');
-    el.title = nextDisabled ? 'Ledger full — 12 pages.' : 'Next page';
+    el.title = nextDisabled ? 'Ledger full: 12 pages.' : 'Next page';
   });
   if (pageDots){
     if (total > 8){
@@ -361,7 +361,7 @@ function trySeal(){
   announce('Sealed: ' + name + ', ' + fmt(cents) + ', ' + sealedType.toLowerCase());
   const fi = $('#fItem');
   if (fi) fi.focus();
-  if (next.length >= MAX_ROWS) announce('Page full — turn to a fresh sheet');
+  if (next.length >= MAX_ROWS) announce('Page full. Turn to a fresh sheet');
 }
 
 function ensureStage(){
@@ -505,7 +505,7 @@ function go(delta){
   if (delta > 0){
     if (pageIndex >= pages.length - 1){
       if (pages.length >= PAGE_CAP){
-        announce('Ledger full — 12 pages.');
+        announce('Ledger full: 12 pages.');
         updateChrome();
         return;
       }

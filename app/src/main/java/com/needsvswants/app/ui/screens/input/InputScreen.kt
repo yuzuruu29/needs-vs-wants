@@ -1,26 +1,51 @@
 package com.needsvswants.app.ui.screens.input
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
@@ -29,14 +54,28 @@ import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
-import com.needsvswants.app.ui.theme.*
+import com.needsvswants.app.ui.theme.AppTheme
+import com.needsvswants.app.ui.theme.AppType
+import com.needsvswants.app.ui.theme.Eyebrow
+import com.needsvswants.app.ui.theme.EntryLedgerHeader
+import com.needsvswants.app.ui.theme.EntryLedgerRow
+import com.needsvswants.app.ui.theme.GhostTextAction
+import com.needsvswants.app.ui.theme.GiltButton
+import com.needsvswants.app.ui.theme.GiltRule
+import com.needsvswants.app.ui.theme.LedgerField
+import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.PremiumDialog
+import com.needsvswants.app.ui.theme.PremiumSurface
+import com.needsvswants.app.ui.theme.SealStampOverlay
+import com.needsvswants.app.ui.theme.DailyBudgetMeter
+import com.needsvswants.app.ui.theme.rememberAppHaptics
+import com.needsvswants.app.ui.theme.themedInkWash
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
-/** Kept for backwards-compatible use by other screens. */
-@Composable
-fun GoldUnderline() = GiltRule(width = 28.dp)
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val entries by viewModel.sheetEntries.collectAsStateWithLifecycle()
@@ -45,6 +84,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val cost by viewModel.activeCost.collectAsStateWithLifecycle()
     val type by viewModel.activeType.collectAsStateWithLifecycle()
     val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
+    val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
@@ -53,12 +93,19 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
     var budgetAmount by remember { mutableStateOf("") }
     var budgetError by remember { mutableStateOf(false) }
+    // Off by default so the seal form + list get the screen; open only when user asks.
     var editingBudget by remember { mutableStateOf(false) }
+    var showNewSheetConfirm by remember { mutableStateOf(false) }
+    var showSealStamp by remember { mutableStateOf(false) }
+    val haptics = rememberAppHaptics()
+    val listState = rememberLazyListState()
+    val palette = AppTheme.colors
 
     LaunchedEffect(dailyBudgetCents) {
         val cents = dailyBudgetCents
         if (cents == null) {
-            editingBudget = true
+            editingBudget = false
+            if (budgetAmount.isBlank()) budgetAmount = ""
         } else {
             if (budgetAmount.isBlank()) {
                 budgetAmount = cents.toInputAmount()
@@ -67,174 +114,255 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(themedInkWash())) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Eyebrow("TODAY  ·  $today", color = AppTheme.colors.crimson)
-            Spacer(Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text("LOG", style = MaterialTheme.typography.displayLarge, color = AppTheme.colors.textPrimary)
-                Column(horizontalAlignment = Alignment.End) {
-                    Eyebrow("SHEET", color = AppTheme.colors.textMuted, size = 10)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "$filled / 20",
-                        color = if (filled >= 18) AppTheme.colors.danger else AppTheme.colors.textPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.titleMedium
+    LaunchedEffect(Unit) {
+        viewModel.sealEvents.collect { event ->
+            if (event is SealEvent.Sealed) {
+                haptics.seal()
+                // Newest entry is at the top of the list.
+                listState.animateScrollToItem(0)
+                if (event.sheetComplete) {
+                    haptics.success()
+                    showSealStamp = true
+                    delay(1_200)
+                    showSealStamp = false
+                }
+            }
+        }
+    }
+
+    if (!isFull) {
+        LaunchedEffect(item, cost, type) {
+            if (item.isNotBlank() && cost.isNotBlank() && cost.any { it.isDigit() } && type != null) {
+                viewModel.trySeal()
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(themedInkWash())
+            .imePadding()
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // ── Title ────────────────────────────────────────────────────
+            item(key = "log-title") {
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+                    Eyebrow("TODAY  ·  $today", color = palette.crimson)
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Text(
+                            "LOG",
+                            style = AppType.screenTitle,
+                            color = palette.textPrimary
+                        )
+                        Column(horizontalAlignment = Alignment.End) {
+                            Eyebrow("SHEET", color = palette.textMuted, size = 10)
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "$filled / 20",
+                                color = if (filled >= 18) palette.danger else palette.textPrimary,
+                                style = AppType.moneyMd
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    GiltRule(width = 40.dp)
+                }
+            }
+
+            // ── Daily budget (compact when off) ──────────────────────────
+            item(key = "log-budget") {
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    LogDailyBudgetSection(
+                        budgetStatus = budgetStatus,
+                        symbol = symbol,
+                        budgetAmount = budgetAmount,
+                        budgetError = budgetError,
+                        editingBudget = editingBudget,
+                        onBudgetAmountChange = {
+                            budgetAmount = viewModel.filterBudgetAmount(it)
+                            budgetError = false
+                        },
+                        onSave = {
+                            if (viewModel.saveDailyBudget(budgetAmount)) {
+                                budgetAmount = ""
+                                budgetError = false
+                                editingBudget = false
+                            } else {
+                                budgetError = true
+                            }
+                        },
+                        onClear = {
+                            viewModel.clearDailyBudget()
+                            budgetAmount = ""
+                            budgetError = false
+                            editingBudget = false
+                        },
+                        onStartEdit = {
+                            dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
+                            editingBudget = true
+                        },
+                        onCancelEdit = {
+                            budgetError = false
+                            editingBudget = false
+                            dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
+                        },
+                        onRequestSetBudget = { editingBudget = true }
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            GiltRule(width = 40.dp)
-            Spacer(Modifier.height(12.dp))
-            LogDailyBudgetSection(
-                budgetStatus = budgetStatus,
-                symbol = symbol,
-                budgetAmount = budgetAmount,
-                budgetError = budgetError,
-                editingBudget = editingBudget,
-                onBudgetAmountChange = {
-                    budgetAmount = viewModel.filterBudgetAmount(it)
-                    budgetError = false
-                },
-                onSave = {
-                    if (viewModel.saveDailyBudget(budgetAmount)) {
-                        budgetAmount = ""
-                        budgetError = false
-                        editingBudget = false
-                    } else {
-                        budgetError = true
-                    }
-                },
-                onClear = {
-                    viewModel.clearDailyBudget()
-                    budgetAmount = ""
-                    budgetError = false
-                    editingBudget = true
-                },
-                onStartEdit = {
-                    dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
-                    editingBudget = true
-                },
-                onCancelEdit = {
-                    budgetError = false
-                    editingBudget = false
-                    dailyBudgetCents?.let { budgetAmount = it.toInputAmount() }
-                }
-            )
-        }
 
-        if (!isFull) {
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            // ── Seal form (sticky) ───────────────────────────────────────
+            stickyHeader(key = "log-seal-form") {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = AppTheme.colors.inkElevated,
-                    border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
+                    color = palette.background.copy(alpha = 0.97f),
+                    shadowElevation = 2.dp,
+                    tonalElevation = 0.dp
                 ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        OutlinedTextField(
-                            value = item,
-                            onValueChange = { viewModel.activeItem.value = viewModel.filterItem(it) },
-                            label = { Text("ITEM", style = MaterialTheme.typography.labelSmall) },
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = AppTheme.colors.textPrimary,
-                                unfocusedTextColor = AppTheme.colors.textPrimary,
-                                focusedBorderColor = AppTheme.colors.crimson,
-                                unfocusedBorderColor = AppTheme.colors.dividerStrong,
-                                cursorColor = AppTheme.colors.crimson,
-                                focusedLabelColor = AppTheme.colors.crimson,
-                                unfocusedLabelColor = AppTheme.colors.textMuted,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            textStyle = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OutlinedTextField(
-                                value = cost,
-                                onValueChange = { viewModel.activeCost.value = viewModel.filterCost(it) },
-                                label = { Text("COST", style = MaterialTheme.typography.labelSmall) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = AppTheme.colors.textPrimary,
-                                    unfocusedTextColor = AppTheme.colors.textPrimary,
-                                    focusedBorderColor = AppTheme.colors.crimson,
-                                    unfocusedBorderColor = AppTheme.colors.dividerStrong,
-                                    cursorColor = AppTheme.colors.crimson,
-                                    focusedLabelColor = AppTheme.colors.crimson,
-                                    unfocusedLabelColor = AppTheme.colors.textMuted,
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent
-                                ),
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                textStyle = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            TypeChip("NEED", type == EntryType.NEED, AppTheme.colors.need) {
-                                viewModel.activeType.value = EntryType.NEED; viewModel.trySeal()
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            TypeChip("WANT", type == EntryType.WANT, AppTheme.colors.want) {
-                                viewModel.activeType.value = EntryType.WANT; viewModel.trySeal()
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+                        AnimatedContent(
+                            targetState = isFull,
+                            transitionSpec = {
+                                fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
+                            },
+                            label = "logFormOrComplete"
+                        ) { sheetFull ->
+                            if (!sheetFull) {
+                                PremiumSurface(raised = false) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        LedgerField(
+                                            value = item,
+                                            onValueChange = {
+                                                viewModel.activeItem.value = viewModel.filterItem(it)
+                                            },
+                                            label = "Item",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(Modifier.height(12.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            LedgerField(
+                                                value = cost,
+                                                onValueChange = {
+                                                    viewModel.activeCost.value = viewModel.filterCost(it)
+                                                },
+                                                label = "Cost",
+                                                keyboardOptions = KeyboardOptions(
+                                                    keyboardType = KeyboardType.Decimal
+                                                ),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            TypeChip("NEED", type == EntryType.NEED, palette.need) {
+                                                viewModel.activeType.value = EntryType.NEED
+                                                viewModel.trySeal()
+                                            }
+                                            Spacer(Modifier.width(8.dp))
+                                            TypeChip("WANT", type == EntryType.WANT, palette.want) {
+                                                viewModel.activeType.value = EntryType.WANT
+                                                viewModel.trySeal()
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                PremiumSurface(goldEdge = true) {
+                                    Column(
+                                        modifier = Modifier.padding(20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Eyebrow("SHEET COMPLETE", color = palette.marketGreen)
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            "20 / 20 entries sealed",
+                                            style = AppType.titleMd,
+                                            color = palette.textPrimary
+                                        )
+                                        Spacer(Modifier.height(12.dp))
+                                        GiltButton(
+                                            onClick = { showNewSheetConfirm = true },
+                                            text = "Start new sheet",
+                                            height = 48.dp
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-            LaunchedEffect(item, cost, type) {
-                if (item.isNotBlank() && cost.isNotBlank() && cost.any { it.isDigit() } && type != null) {
-                    viewModel.trySeal()
-                }
-            }
-        } else {
-            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = AppTheme.colors.surfaceCard,
-                    border = BorderStroke(1.dp, AppTheme.colors.marketGreen)
-                ) {
-                    Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Eyebrow("SHEET COMPLETE", color = AppTheme.colors.marketGreen)
-                        Spacer(Modifier.height(8.dp))
-                        Text("20 / 20 entries sealed", style = MaterialTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-                        Spacer(Modifier.height(14.dp))
-                        GiltButton(onClick = {}, text = "Start new sheet", height = 48.dp)
+
+            // ── Sealed list header ───────────────────────────────────────
+            if (entries.isNotEmpty()) {
+                item(key = "log-list-header") {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Eyebrow("SEALED TODAY", color = palette.gilt, size = 10)
+                            Text(
+                                "$filled sealed",
+                                style = AppType.caption,
+                                color = palette.textMuted
+                            )
+                        }
+                        EntryLedgerHeader(
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp)
+                        )
+                        HorizontalDivider(
+                            color = palette.divider,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
+                        Spacer(Modifier.height(6.dp))
                     }
                 }
-            }
-        }
 
-        Spacer(Modifier.height(18.dp))
-
-        if (entries.isNotEmpty()) {
-            EntryLedgerHeader(
-                modifier = Modifier.padding(horizontal = 34.dp, vertical = 6.dp)
-            )
-            HorizontalDivider(color = AppTheme.colors.inkDivider, thickness = 1.dp, modifier = Modifier.padding(horizontal = 20.dp))
-        }
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(entries.reversed()) { _, entry ->
-                EntryLedgerRow(
-                    entry = entry,
-                    symbol = symbol,
-                    onDelete = { deleteTarget = entry },
-                    showCard = true
-                )
+                items(
+                    items = entries.reversed(),
+                    key = { it.id }
+                ) { entry ->
+                    EntryLedgerRow(
+                        entry = entry,
+                        symbol = symbol,
+                        onDelete = { deleteTarget = entry },
+                        showCard = true,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp, vertical = 4.dp)
+                            .animateItem()
+                    )
+                }
+            } else {
+                item(key = "log-empty") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Eyebrow("EMPTY SHEET", color = palette.textMuted)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Type an item, cost, then NEED or WANT.\nThe row seals itself.",
+                            style = AppType.bodyMd,
+                            color = palette.textSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
             }
         }
 
@@ -242,108 +370,162 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             val on = budgetStatus as? BudgetStatus.On
             if (on != null) {
                 val overBy = DailyBudgetMath.overBy(on.spentCents, on.budgetCents, pendingCost)
-                AlertDialog(
+                PremiumDialog(
                     onDismissRequest = { viewModel.dismissOverspendConfirm() },
-                    containerColor = AppTheme.colors.inkElevated,
-                    tonalElevation = 0.dp,
-                    shape = RoundedCornerShape(20.dp),
-                    title = {
-                        Column {
-                            Eyebrow("DAILY BUDGET", color = AppTheme.colors.danger)
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                "Over budget?",
-                                color = AppTheme.colors.textPrimary,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                        }
-                    },
-                    text = {
+                    eyebrow = "DAILY BUDGET",
+                    eyebrowColor = palette.danger,
+                    title = "Over budget?",
+                    confirmLabel = "Log anyway",
+                    onConfirm = { viewModel.confirmOverspendSeal() },
+                    dismissLabel = "Cancel",
+                    confirmDanger = true,
+                    bodyContent = {
                         Column {
                             Text(
                                 "\"$item\" · ${pendingCost.toMoney(symbol)}",
-                                color = AppTheme.colors.textPrimary,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                color = palette.textPrimary,
+                                style = AppType.titleMd
                             )
                             Spacer(Modifier.height(10.dp))
                             Text(
                                 "This puts you over by ${overBy.toMoney(symbol)}. Your daily budget is ${on.budgetCents.toMoney(symbol)}. Log anyway?",
-                                color = AppTheme.colors.textSecondary
+                                color = palette.textSecondary,
+                                style = AppType.body
                             )
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.confirmOverspendSeal() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppTheme.colors.crimson.copy(alpha = 0.18f),
-                                contentColor = AppTheme.colors.crimson
-                            ),
-                            border = BorderStroke(1.dp, AppTheme.colors.crimson)
-                        ) { Text("Log anyway", fontWeight = FontWeight.SemiBold) }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { viewModel.dismissOverspendConfirm() }) {
-                            Text("Cancel", color = AppTheme.colors.textMuted)
                         }
                     }
                 )
             }
         }
 
-        deleteTarget?.let { entry ->
-            AlertDialog(
-                onDismissRequest = { deleteTarget = null },
-                containerColor = AppTheme.colors.inkElevated,
-                tonalElevation = 0.dp,
-                shape = RoundedCornerShape(20.dp),
-                title = {
+        quotaBlocked?.let { blocked ->
+            PremiumDialog(
+                onDismissRequest = { viewModel.dismissQuotaBlocked() },
+                eyebrow = "DAILY QUOTA",
+                eyebrowColor = palette.gilt,
+                title = "You've used your free logs for today.",
+                bodyContent = {
                     Column {
-                        Eyebrow("CONFIRM", color = AppTheme.colors.danger)
-                        Spacer(Modifier.height(6.dp))
-                        Text("Delete entry?", color = AppTheme.colors.textPrimary, style = MaterialTheme.typography.headlineSmall)
+                        Text(
+                            "Watch a short ad to unlock +8 more logs today?",
+                            color = palette.textSecondary,
+                            style = AppType.body
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Phase 1: "Watch Ad" button hidden (no AdMob SDK yet).
+                            // Phase 3: re-enable this GiltButton and wire viewModel.onWatchAd().
+                            TextButton(
+                                onClick = { viewModel.dismissQuotaBlocked() },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Come back tomorrow", color = palette.textMuted)
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Or go Pro — unlimited logs, no ads",
+                            style = AppType.bodySm,
+                            color = palette.textMuted
+                        )
                     }
                 },
-                text = { Text("${entry.item} — ${entry.costCents.toMoney(symbol)}", color = AppTheme.colors.textSecondary) },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.deleteEntry(entry); deleteTarget = null },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppTheme.colors.danger.copy(alpha = 0.18f), contentColor = AppTheme.colors.danger),
-                        border = BorderStroke(1.dp, AppTheme.colors.danger)
-                    ) { Text("Delete", fontWeight = FontWeight.SemiBold) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { deleteTarget = null }) { Text("Cancel", color = AppTheme.colors.textMuted) }
-                }
+                confirmLabel = "Come back tomorrow",
+                onConfirm = { viewModel.dismissQuotaBlocked() },
+                dismissLabel = "Come back tomorrow"
             )
         }
+
+        deleteTarget?.let { entry ->
+            PremiumDialog(
+                onDismissRequest = { deleteTarget = null },
+                eyebrow = "CONFIRM",
+                eyebrowColor = palette.danger,
+                title = "Delete entry?",
+                body = "${entry.item} · ${entry.costCents.toMoney(symbol)}",
+                confirmLabel = "Delete",
+                onConfirm = {
+                    haptics.warn()
+                    viewModel.deleteEntry(entry)
+                    deleteTarget = null
+                },
+                dismissLabel = "Cancel",
+                confirmDanger = true
+            )
+        }
+
+        if (showNewSheetConfirm) {
+            PremiumDialog(
+                onDismissRequest = { showNewSheetConfirm = false },
+                eyebrow = "NEW SHEET",
+                title = "Start a new sheet?",
+                body = "This clears all 20 entries on today's log sheet so you can start fresh.",
+                confirmLabel = "Start new sheet",
+                onConfirm = {
+                    viewModel.startNewSheet()
+                    haptics.success()
+                    showNewSheetConfirm = false
+                },
+                dismissLabel = "Cancel"
+            )
+        }
+
+        SealStampOverlay(
+            visible = showSealStamp,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
 @Composable
 private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: () -> Unit) {
-    val bgColor by animateColorAsState(if (selected) color.copy(alpha = 0.18f) else Color.Transparent, label = "chipBg")
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
+        animationSpec = Motion.state(),
+        label = "chipBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) color else AppTheme.colors.dividerStrong,
+        animationSpec = Motion.state(),
+        label = "chipBorder"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.03f else 1f,
+        animationSpec = if (selected) Motion.selectionSpring() else Motion.seal(),
+        label = "chipScale"
+    )
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         color = bgColor,
-        border = BorderStroke(1.dp, if (selected) color else AppTheme.colors.inkDividerStrong)
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
     ) {
-        Text(
-            label,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-            color = if (selected) color else AppTheme.colors.textSecondary,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
-        )
+        Box(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                label,
+                color = if (selected) color else AppTheme.colors.textSecondary,
+                style = AppType.button.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                )
+            )
+        }
     }
 }
 
 /**
- * Daily budget lives on Log: meter when on; amount field to set/update; Turn off to clear.
- * When a limit is active, the form collapses until the user taps Change.
+ * Daily budget on Log: compact when off; meter when on; full form only while editing.
  */
 @Composable
 private fun LogDailyBudgetSection(
@@ -356,104 +538,104 @@ private fun LogDailyBudgetSection(
     onSave: () -> Unit,
     onClear: () -> Unit,
     onStartEdit: () -> Unit,
-    onCancelEdit: () -> Unit
+    onCancelEdit: () -> Unit,
+    onRequestSetBudget: () -> Unit
 ) {
     val budgetOn = budgetStatus is BudgetStatus.On
+    val palette = AppTheme.colors
 
-    if (budgetOn) {
-        DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
-        if (!editingBudget) {
+    when {
+        // Compact invite — do not eat half the screen when budget is off.
+        !budgetOn && !editingBudget -> {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = palette.surfaceCard,
+                border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Eyebrow("DAILY BUDGET", color = palette.gilt, size = 10)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Optional. Off until you set a limit.",
+                            style = AppType.bodySm,
+                            color = palette.textSecondary
+                        )
+                    }
+                    GhostTextAction(text = "Set", onClick = onRequestSetBudget)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        budgetOn && !editingBudget -> {
+            DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onStartEdit) {
-                    Text("Change", color = AppTheme.colors.textSecondary, fontWeight = FontWeight.Medium)
-                }
-                TextButton(onClick = onClear) {
-                    Text("Turn off", color = AppTheme.colors.danger, fontWeight = FontWeight.Medium)
-                }
+                GhostTextAction(text = "Change", onClick = onStartEdit)
+                GhostTextAction(text = "Turn off", onClick = onClear, danger = true)
             }
-        } else {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
         }
-    }
 
-    if (editingBudget || !budgetOn) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = AppTheme.colors.inkElevated,
-            border = BorderStroke(1.dp, AppTheme.colors.inkDivider)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (!budgetOn) {
-                    Eyebrow("DAILY BUDGET", color = AppTheme.colors.gilt)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Optional. Off until you set an amount.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = AppTheme.colors.textSecondary
-                    )
-                    Spacer(Modifier.height(12.dp))
-                } else {
+        else -> {
+            // Editing form (set or update).
+            if (budgetOn) {
+                DailyBudgetMeter(status = budgetStatus as BudgetStatus.On, symbol = symbol)
+                Spacer(Modifier.height(8.dp))
+            }
+            PremiumSurface(raised = false) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Eyebrow("UPDATE LIMIT", color = AppTheme.colors.gilt)
-                        TextButton(onClick = onCancelEdit) {
-                            Text("Cancel", color = AppTheme.colors.textMuted, fontWeight = FontWeight.Medium)
-                        }
+                        Eyebrow(
+                            if (budgetOn) "UPDATE LIMIT" else "DAILY BUDGET",
+                            color = palette.gilt
+                        )
+                        GhostTextAction(text = "Cancel", onClick = onCancelEdit)
                     }
-                    Spacer(Modifier.height(8.dp))
-                }
-                OutlinedTextField(
-                    value = budgetAmount,
-                    onValueChange = onBudgetAmountChange,
-                    label = { Text("AMOUNT", style = MaterialTheme.typography.labelSmall) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = budgetError,
-                    supportingText = if (budgetError) {
-                        { Text("Enter a valid amount", color = AppTheme.colors.danger) }
-                    } else null,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = AppTheme.colors.textPrimary,
-                        unfocusedTextColor = AppTheme.colors.textPrimary,
-                        focusedBorderColor = AppTheme.colors.crimson,
-                        unfocusedBorderColor = AppTheme.colors.dividerStrong,
-                        cursorColor = AppTheme.colors.crimson,
-                        focusedLabelColor = AppTheme.colors.crimson,
-                        unfocusedLabelColor = AppTheme.colors.textMuted,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    if (!budgetOn) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Optional. Off until you set an amount.",
+                            style = AppType.bodySm,
+                            color = palette.textSecondary
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    LedgerField(
+                        value = budgetAmount,
+                        onValueChange = onBudgetAmountChange,
+                        label = "Amount",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = budgetError,
+                        supportingText = if (budgetError) "Enter a valid amount" else null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(10.dp))
                     GiltButton(
                         onClick = onSave,
                         text = if (budgetOn) "Update budget" else "Save budget",
                         height = 46.dp,
                         enabled = budgetAmount.isNotBlank(),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    if (budgetOn) {
-                        TextButton(onClick = onClear) {
-                            Text("Turn off", color = AppTheme.colors.danger, fontWeight = FontWeight.Medium)
-                        }
-                    }
                 }
             }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

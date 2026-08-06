@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NeedsVsWants" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.NeedsVsWants" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FAFAF7</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/app_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.NeedsVsWants.Main</item>
+    </style>
+
+    <style name="Theme.NeedsVsWants.Main" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FAFAF7</item>
         <item name="android:statusBarColor">#FAFAF7</item>
         <item name="android:navigationBarColor">#FAFAF7</item>

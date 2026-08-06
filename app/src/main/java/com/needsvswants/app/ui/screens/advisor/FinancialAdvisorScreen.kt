@@ -1,6 +1,9 @@
 package com.needsvswants.app.ui.screens.advisor
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,8 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,9 +27,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.needsvswants.app.domain.ChatMessage
 import com.needsvswants.app.domain.ChatSender
 import com.needsvswants.app.ui.theme.AppTheme
+import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
 import com.needsvswants.app.ui.theme.GiltButton
 import com.needsvswants.app.ui.theme.GiltRule
+import com.needsvswants.app.ui.theme.HeaderIconWell
+import com.needsvswants.app.ui.theme.LedgerField
+import com.needsvswants.app.ui.theme.MaxSealBadge
+import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.NeedWantSealMark
+import com.needsvswants.app.ui.theme.PremiumSurface
+import com.needsvswants.app.ui.theme.ReceiptFeatureLine
+import com.needsvswants.app.ui.theme.TierTag
+import com.needsvswants.app.ui.theme.themedInkWash
 
 @Composable
 fun FinancialAdvisorScreen(
@@ -43,24 +54,46 @@ fun FinancialAdvisorScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.background)
+            .background(themedInkWash())
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
             .verticalScroll(scrollState)
     ) {
-        Eyebrow("MAX  ·  AI ADVISOR", color = palette.gilt)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Financial Advisor",
-            style = MaterialTheme.typography.displayLarge,
-            color = palette.textPrimary
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Eyebrow(
+                    if (uiState.hasMaxAccess) "MAX  ·  AI ADVISOR" else "MAX  ·  LOCKED",
+                    color = if (uiState.hasMaxAccess) palette.gilt else palette.crimson
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Financial Advisor",
+                    style = AppType.screenTitle,
+                    color = palette.textPrimary
+                )
+            }
+            if (uiState.hasMaxAccess) {
+                Column(horizontalAlignment = Alignment.End) {
+                    MaxSealBadge(label = "MAX")
+                    Spacer(Modifier.height(8.dp))
+                    TierTag(text = "Unlocked", color = palette.marketGreen)
+                }
+            }
+        }
         Spacer(Modifier.height(8.dp))
         GiltRule(width = 40.dp)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Grounded economic guidance for Need vs Want decisions.",
-            style = MaterialTheme.typography.bodyLarge,
+            text = if (uiState.hasMaxAccess) {
+                "Cited coaching from your economic study notebooks."
+            } else {
+                "Conversational coaching with footnotes. Max tier only."
+            },
+            style = AppType.body,
             color = palette.textSecondary
         )
 
@@ -72,27 +105,18 @@ fun FinancialAdvisorScreen(
         }
 
         // ── Unlocked Max content ──────────────────────────────────────────
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.surfaceCard,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.45f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "SOURCE OF TRUTH",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.marketGreen
-                )
-                Spacer(Modifier.height(4.dp))
+                Eyebrow("SOURCE OF TRUTH", color = palette.marketGreen, size = 10)
+                Spacer(Modifier.height(6.dp))
                 Text(
                     text = uiState.sourceOfTruthTitle,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AppType.titleMd,
                     color = palette.textPrimary
                 )
                 Text(
                     text = "Recommendations cite your economic study notebooks.",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AppType.bodySm,
                     color = palette.textSecondary,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -102,51 +126,47 @@ fun FinancialAdvisorScreen(
         Spacer(Modifier.height(16.dp))
 
         uiState.insight?.let { insight ->
+            val edge = if (insight.isWarning) palette.crimson.copy(alpha = 0.45f)
+            else palette.marketGreen.copy(alpha = 0.45f)
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = palette.surfaceCard,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (insight.isWarning) palette.crimson.copy(alpha = 0.5f)
-                    else palette.marketGreen.copy(alpha = 0.5f)
-                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, edge),
+                shadowElevation = 2.dp,
+                tonalElevation = 0.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = if (insight.isWarning) "ADVISOR ALERT" else "RECOMMENDATION",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (insight.isWarning) palette.crimson else palette.marketGreen
+                    Eyebrow(
+                        if (insight.isWarning) "ADVISOR ALERT" else "RECOMMENDATION",
+                        color = if (insight.isWarning) palette.crimson else palette.marketGreen,
+                        size = 10
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         text = insight.headline,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = AppType.sectionTitle,
                         color = palette.textPrimary
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = insight.advice,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = AppType.bodyMd,
                         color = palette.textPrimary
                     )
                     Spacer(Modifier.height(12.dp))
-                    HorizontalDivider(color = palette.gold.copy(alpha = 0.3f))
+                    GiltRule(width = 28.dp)
                     Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "CITATION",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.gold
-                    )
+                    Eyebrow("CITATION", color = palette.gilt, size = 10)
                     Text(
                         text = insight.citation.title,
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                        style = AppType.bodySmEmph,
                         color = palette.textPrimary,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                     Text(
                         text = insight.citation.section,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = AppType.bodySm,
                         color = palette.textSecondary
                     )
                 }
@@ -154,28 +174,27 @@ fun FinancialAdvisorScreen(
             Spacer(Modifier.height(16.dp))
         }
 
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.surfaceCard,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.divider),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "ASK YOUR ADVISOR",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.gold
-                )
+                Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 10)
                 Spacer(Modifier.height(12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    uiState.chatMessages.forEach { msg -> ChatBubble(message = msg) }
+                    uiState.chatMessages.forEach { msg ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(Motion.state()),
+                            label = "chatBubble"
+                        ) {
+                            ChatBubble(message = msg)
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     QuickChip("Want today?") { viewModel.sendUserQuery("Can I buy a Want item today?") }
@@ -183,44 +202,38 @@ fun FinancialAdvisorScreen(
                     QuickChip("Need ratio") { viewModel.sendUserQuery("How is my Need to Want ratio?") }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Bottom,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
+                    LedgerField(
                         value = inputText,
                         onValueChange = { inputText = it },
-                        placeholder = {
-                            Text(
-                                "Ask your Advisor…",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
+                        label = "Ask",
+                        singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(end = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium
+                            .padding(end = 10.dp)
                     )
-                    IconButton(
+                    HeaderIconWell(
                         onClick = {
                             if (inputText.isNotBlank()) {
                                 viewModel.sendUserQuery(inputText)
                                 inputText = ""
                             }
                         },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(palette.marketGreen)
+                        contentDescription = "Send",
+                        enabled = inputText.isNotBlank(),
+                        filled = true,
+                        fillColor = palette.marketGreen
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = Color.White
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -229,22 +242,13 @@ fun FinancialAdvisorScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = palette.surfaceCard,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.divider),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        PremiumSurface(goldEdge = false, raised = false) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "ECONOMIC STUDY NOTEBOOKS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.gold
-                )
-                Spacer(Modifier.height(8.dp))
-                StudyTopicRow("Notebook #1", "Budgetary equilibrium & Need/Want ratio")
-                StudyTopicRow("Notebook #2", "Real-time transaction behavioral control")
-                StudyTopicRow("Notebook #3", "Impulse recovery & compensatory sinking")
+                Eyebrow("ECONOMIC STUDY NOTEBOOKS", color = palette.gilt, size = 10)
+                Spacer(Modifier.height(10.dp))
+                StudyTopicRow("Notebook 1", "Budgetary equilibrium and Need/Want ratio")
+                StudyTopicRow("Notebook 2", "Real-time transaction behavioral control")
+                StudyTopicRow("Notebook 3", "Impulse recovery and compensatory sinking")
             }
         }
     }
@@ -253,121 +257,79 @@ fun FinancialAdvisorScreen(
 @Composable
 private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
     val palette = AppTheme.colors
-    Surface(
+    PremiumSurface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = palette.surfaceCard,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.45f)),
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
+        goldEdge = true,
+        raised = true
     ) {
+        // Crimson flag strip
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(5.dp)
+                .background(palette.crimson)
+        )
         Column(
-            modifier = Modifier.padding(horizontal = 22.dp, vertical = 28.dp),
+            modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(palette.crimson.copy(alpha = 0.10f), RoundedCornerShape(32.dp)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    Icons.Default.WorkspacePremium,
-                    contentDescription = null,
-                    tint = palette.crimson,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            Surface(
-                color = palette.crimson.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = palette.crimson,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "MAX TIER  ·  LOCKED",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = palette.crimson
-                    )
-                }
+                NeedWantSealMark()
+                MaxSealBadge(label = "MAX")
             }
             Spacer(Modifier.height(14.dp))
+            TierTag(text = "Max tier · Locked", color = palette.crimson)
+            Spacer(Modifier.height(14.dp))
             Text(
-                text = "Unlock your AI Financial Advisor",
-                style = MaterialTheme.typography.headlineSmall,
+                text = "AI Financial Advisor",
+                style = AppType.dialogTitle,
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
+            GiltRule(width = 32.dp)
+            Spacer(Modifier.height(10.dp))
             Text(
-                text = "Max Tier enables conversational budget analysis grounded in economic study notebooks — only for subscribers.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Max adds conversational coaching grounded in economic study notebooks with footnotes. Free keeps Log, Summary, and History.",
+                style = AppType.bodyMd,
                 color = palette.textSecondary,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
             GiltButton(
                 onClick = onOpenPaywall,
                 text = "View Pro & Max plans",
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
-                text = "Free users keep Log, Summary, and History. Advisor is Max-only.",
-                style = MaterialTheme.typography.bodySmall,
+                text = "₱499 / mo · $9.99 · includes everything in Pro",
+                style = AppType.bodySm,
                 color = palette.textMuted,
                 textAlign = TextAlign.Center
             )
         }
     }
 
-    Spacer(Modifier.height(18.dp))
+    Spacer(Modifier.height(16.dp))
 
-    // Soft teaser list (not interactive)
-    Surface(
+    PremiumSurface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = palette.inkElevated,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.inkDivider),
-        modifier = Modifier.fillMaxWidth()
+        goldEdge = false,
+        raised = false
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "INCLUDED WITH MAX",
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.textMuted
-            )
+            Eyebrow("INCLUDED WITH MAX", color = palette.gilt, size = 10)
             Spacer(Modifier.height(10.dp))
-            LockedFeatureRow("Real-time Need vs Want coaching")
-            LockedFeatureRow("Overspend recovery prompts")
-            LockedFeatureRow("Cited notebook recommendations")
+            ReceiptFeatureLine("Real-time Need vs Want coaching", palette.crimson)
+            ReceiptFeatureLine("Overspend recovery prompts", palette.crimson)
+            ReceiptFeatureLine("Cited notebook recommendations", palette.crimson, emphasize = true)
         }
-    }
-}
-
-@Composable
-private fun LockedFeatureRow(text: String) {
-    val palette = AppTheme.colors
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 6.dp)
-    ) {
-        Icon(
-            Icons.Default.Lock,
-            contentDescription = null,
-            tint = palette.gold.copy(alpha = 0.7f),
-            modifier = Modifier.size(14.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
     }
 }
 
@@ -380,33 +342,37 @@ private fun ChatBubble(message: ChatMessage) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Surface(
-            color = if (isUser) palette.marketGreen.copy(alpha = 0.15f) else palette.surfaceRaised,
+            color = if (isUser) palette.marketGreen.copy(alpha = 0.12f) else palette.surfaceCard,
             shape = RoundedCornerShape(
                 topStart = 14.dp,
                 topEnd = 14.dp,
-                bottomStart = if (isUser) 14.dp else 2.dp,
-                bottomEnd = if (isUser) 2.dp else 14.dp
+                bottomStart = if (isUser) 14.dp else 4.dp,
+                bottomEnd = if (isUser) 4.dp else 14.dp
+            ),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (isUser) palette.marketGreen.copy(alpha = 0.28f) else palette.gold.copy(alpha = 0.28f)
             ),
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Text(
                     text = if (isUser) "YOU" else "ADVISOR",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    style = AppType.eyebrowSm,
                     color = if (isUser) palette.marketGreen else palette.gold
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = message.text,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = AppType.bodySm,
                     color = palette.textPrimary
                 )
                 message.citation?.let { cit ->
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = "Source: ${cit.title}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        color = palette.textSecondary
+                        style = AppType.caption,
+                        color = palette.textMuted
                     )
                 }
             }
@@ -419,16 +385,17 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
     val palette = AppTheme.colors
     Surface(
         color = palette.surfaceRaised,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
         modifier = Modifier
+            .heightIn(min = 40.dp)
             .clickable(onClick = onClick)
-            .border(1.dp, palette.gold.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium.copy(fontSize = 10.sp),
+            style = AppType.meta,
             color = palette.textPrimary,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         )
     }
 }
@@ -437,21 +404,26 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
 private fun StudyTopicRow(title: String, description: String) {
     val palette = AppTheme.colors
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
+            .padding(vertical = 7.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .padding(top = 5.dp)
+                .size(7.dp)
+                .clip(CircleShape)
                 .background(palette.marketGreen)
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(10.dp))
         Column {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = palette.textPrimary)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = palette.textSecondary)
+            Text(
+                title,
+                style = AppType.titleSm,
+                color = palette.textPrimary
+            )
+            Text(description, style = AppType.bodySm, color = palette.textSecondary)
         }
     }
 }

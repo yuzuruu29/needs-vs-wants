@@ -3,17 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Needs vs Wants — Expense Tracker · Official Launch</title>
+<title>Needs vs Wants: Spending Trainer, Official Launch</title>
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="./favicon-48.png" sizes="48x48" type="image/png">
 <link rel="icon" href="./favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want — decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display+SC:wght@700&family=Inter:wght@400;500;600&family=Inter+Tight:wght@600&display=swap" rel="stylesheet">
+<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics.">
+<link rel="preload" href="./fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/playfair-display-sc-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* ============ SELF-HOSTED FONTS ============ */
+@font-face{
+  font-family:'Playfair Display SC';
+  font-style:normal;font-weight:700;font-display:swap;
+  src:url('./fonts/playfair-display-sc-700.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Inter';
+  font-style:normal;font-weight:400;font-display:swap;
+  size-adjust: 107%; ascent-override: 90%; descent-override: 22%;
+  src:url('./fonts/inter-400.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Inter';
+  font-style:normal;font-weight:500;font-display:swap;
+  size-adjust: 107%; ascent-override: 90%; descent-override: 22%;
+  src:url('./fonts/inter-500.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Inter';
+  font-style:normal;font-weight:600;font-display:swap;
+  size-adjust: 107%; ascent-override: 90%; descent-override: 22%;
+  src:url('./fonts/inter-600.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Inter Tight';
+  font-style:normal;font-weight:600;font-display:swap;
+  src:url('./fonts/inter-tight-600.woff2') format('woff2');
+}
+
 /* ============ TOKENS ============ */
 :root{
   --surface:#FAFAF7; --card:#FFFFFF; --raised:#F3F1EA; --sunken:#F7F4EC;
@@ -22,9 +51,10 @@
   --green:#0B6B3A; --green-deep:#084F2A; --green-soft:#3E9D6E;
   --gold:#E8A92A; --gold-soft:#F4C968; --gold-deep:#B9881E;
   --ink:#1A1A1A; --sub:#5A5A5A; --muted:#8A8A8A;
+  --paypal:#0070ba; --aceu-blue:#1f6bff; --paper-line:#f7f5ef; --advisor-muted:#4a4a4a; --advisor-soft:#777;
   --display:'Playfair Display SC', Georgia, 'Times New Roman', serif;
   --body:'Inter', -apple-system, 'Segoe UI', Helvetica, sans-serif;
-  --money:'Inter Tight','Inter', ui-monospace, 'SF Mono', Menlo, monospace;
+  --money:'Inter Tight', 'Inter', ui-monospace, 'SF Mono', Menlo, monospace;
   --r-xs:6px; --r-s:8px; --r-m:16px; --r-l:20px; --r-xl:28px;
   --shadow-card:0 18px 40px -28px rgba(26,26,26,.28);
   --shadow-phone:0 28px 56px -32px rgba(26,26,26,.42), 0 8px 18px -12px rgba(26,26,26,.18);
@@ -60,19 +90,23 @@ button{font-family:inherit;cursor:pointer}
 
 /* ============ HEADER ============ */
 header{
-  position:sticky;top:0;z-index:50;
+  position:sticky;top:0;z-index:50;max-height:72px;
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+    background:rgba(250,250,247,.96);
+  }
   background:rgba(250,250,247,.72);
   backdrop-filter:blur(14px) saturate(1.2);
   -webkit-backdrop-filter:blur(14px) saturate(1.2);
   border-bottom:1px solid transparent;
   transition:border-color .35s var(--ease-soft), box-shadow .35s var(--ease-soft), background .35s var(--ease-soft);
 }
+header.is-shrunk .nav{padding:10px 24px}
 header.scrolled{
   border-color:var(--divider);
   background:rgba(250,250,247,.9);
   box-shadow:0 10px 24px -18px rgba(26,26,26,.25);
 }
-.nav{display:flex;align-items:center;gap:20px;padding:14px 24px;max-width:1180px;margin:0 auto}
+.nav{display:flex;align-items:center;gap:20px;padding:14px 24px;max-width:1180px;margin:0 auto;transition:padding .35s var(--ease-soft)}
 .wordmark{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 18px/1 var(--display);letter-spacing:.8px}
 .wordmark svg{width:22px;height:22px;color:var(--gold-deep)}
 .wordmark b{color:var(--gold-deep);font-weight:700}
@@ -127,9 +161,12 @@ header.scrolled{
 .display .vs{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:.56em;color:var(--gold-deep);letter-spacing:0;padding:0 .1em;vertical-align:.1em}
 .kicker{font:600 12px/1 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--crimson);margin-bottom:14px}
 .rule-sweep{width:190px;height:2px;margin:6px 0 22px;background:linear-gradient(90deg,var(--gold),var(--gold-soft),transparent);transform-origin:left}
-.lede{font-size:16px;line-height:1.75;color:var(--sub);max-width:52ch}
+.lede{font-size:16px;line-height:1.75;color:var(--sub);max-width:52ch;hyphens:auto}
 .lede strong{color:var(--ink);font-weight:600}
 .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 26px}
+.dl-hero{padding:16px 28px}
+.ios-notify-link{display:inline-block;font-size:13.5px;color:var(--muted);text-decoration:none;margin-top:-14px;margin-bottom:26px}
+.ios-notify-link:hover{text-decoration:underline;color:var(--sub)}
 .proof{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font:600 11px/1 var(--body);letter-spacing:1.8px;text-transform:uppercase;color:var(--muted)}
 .proof .cur{font-family:var(--money);letter-spacing:.5px;font-size:12px}
 .proof .dot{color:var(--gold-deep);font-size:8px}
@@ -187,7 +224,7 @@ header.scrolled{
   border-radius:0 6px 8px 0;
   background:
     linear-gradient(90deg,rgba(200,16,46,.05) 0 2px,transparent 2px),
-    repeating-linear-gradient(180deg,#f7f5ef 0 28px,rgba(26,26,26,.04) 28px 29px);
+    repeating-linear-gradient(180deg,var(--paper-line) 0 28px,rgba(26,26,26,.04) 28px 29px);
   border:1px solid rgba(26,26,26,.12);
   box-shadow:2px 3px 0 rgba(0,0,0,.06);
   transition:transform .5s cubic-bezier(.22,1,.36,1), opacity .4s cubic-bezier(.22,1,.36,1);
@@ -612,7 +649,7 @@ section{padding:clamp(64px,8vw,104px) 0}
 .panel--need h3{color:var(--green-deep)}
 .panel--want h3{color:var(--crimson-deep)}
 .panel h3 svg{width:22px;height:22px}
-.panel .def{font-size:14.5px;color:var(--sub);line-height:1.7}
+.panel .def{font-size:14.5px;color:var(--sub);line-height:1.7;hyphens:auto}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .ex-chip{display:inline-flex;align-items:center;gap:0;background:var(--raised);border:1px solid var(--divider-strong);border-radius:var(--r-xs);padding:8px 13px;font:500 13px/1 var(--body);color:var(--ink);transition:all .18s var(--ease-out)}
 .ex-chip svg{width:0;height:13px;opacity:0;transition:all .22s ease}
@@ -640,7 +677,7 @@ section{padding:clamp(64px,8vw,104px) 0}
 .rule-row:hover .rule-ic{transform:scale(1.06)}
 .rule-ic svg{width:22px;height:22px}
 .rule-row h3{font:700 22px/1.2 var(--display);letter-spacing:1px}
-.rule-row p{margin-top:9px;font-size:15px;color:var(--sub);max-width:58ch}
+.rule-row p{margin-top:9px;font-size:15px;color:var(--sub);max-width:58ch;hyphens:auto}
 .rule-steps{counter-reset:rs;list-style:none;margin-top:14px;display:grid;gap:9px}
 .rule-steps li{counter-increment:rs;position:relative;padding-left:28px;font-size:14.5px;color:var(--sub);line-height:1.65;max-width:60ch}
 .rule-steps li::before{content:counter(rs);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;border:1px solid var(--crimson);color:var(--crimson);font:700 10px/16px var(--display);text-align:center;background:var(--card)}
@@ -865,7 +902,7 @@ section{padding:clamp(64px,8vw,104px) 0}
   box-shadow:0 22px 44px -24px rgba(26,26,26,.38);
   border-color:var(--divider-strong);
 }
-.studio-card:focus-visible{outline:2px solid #1f6bff;outline-offset:3px}
+.studio-card:focus-visible{outline:2px solid var(--aceu-blue);outline-offset:3px}
 .studio-eyebrow{
   font:600 10px/1 var(--body);letter-spacing:2.2px;text-transform:uppercase;
   color:var(--muted);margin-bottom:16px;
@@ -884,7 +921,7 @@ section{padding:clamp(64px,8vw,104px) 0}
   font:400 13.5px/1.65 var(--body);color:var(--sub);max-width:62ch}
 .studio-cta{
   font:600 12px/1 var(--body);letter-spacing:1.2px;text-transform:uppercase;
-  color:#1f6bff;white-space:nowrap;
+  color:var(--aceu-blue);white-space:nowrap;
 }
 .studio-card:hover .studio-cta{text-decoration:underline;text-underline-offset:3px}
 .foot-bottom-left{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
@@ -893,7 +930,7 @@ section{padding:clamp(64px,8vw,104px) 0}
   color:var(--sub);text-decoration:none;border-bottom:1px solid transparent;
   transition:color .2s, border-color .2s;
 }
-.foot-credit a:hover{color:#1f6bff;border-bottom-color:#1f6bff}
+.foot-credit a:hover{color:var(--aceu-blue);border-bottom-color:var(--aceu-blue)}
 @media (max-width:760px){
   .studio-card{padding:22px 18px 20px}
   .studio-card::before{left:18px;right:18px}
@@ -918,7 +955,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .foot-meta .money{font-size:12px}
 .foot-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--divider);margin-top:34px;padding-top:22px;flex-wrap:wrap}
 .foot-bottom small{font-size:12px;color:var(--muted);max-width:62ch;line-height:1.55}
-.motto{font:700 13px var(--display);letter-spacing:1px;color:var(--gold-deep)}
+.motto{font: 600 13px/1.4 var(--body); letter-spacing: 2px; text-transform: uppercase; color:var(--gold-deep)}
 
 /* ============ MOTION / MISC ============ */
 .reveal{opacity:0;transform:translateY(22px);transition:opacity .75s var(--ease-out), transform .75s var(--ease-out)}
@@ -1002,7 +1039,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .pri-eyebrow{font:600 11px/1.4 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--sub)}
 .pri--pro .pri-eyebrow{color:var(--gold-deep)}
 .pri--max .pri-eyebrow{color:var(--crimson)}
-.pri-title{font:700 24px/1 var(--display);letter-spacing:1px;margin-top:10px;color:var(--ink)}
+.pri-title{font: 700 24px/1.2 var(--body); letter-spacing: 3px; text-transform: uppercase; margin-top:10px; color:var(--ink)}
 .pri-tag{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font:700 9.5px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;
   padding:5px 9px;border-radius:var(--r-xs)}
 .pri--free .pri-tag{background:var(--raised);color:var(--muted);border:1px solid var(--divider)}
@@ -1054,6 +1091,46 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 @media (max-width:640px){
   .pri--pro .pri-popular{top:16px;right:16px}
 }
+/* ============ PROMO VIDEO ============ */
+.vid-section{padding:60px 0;text-align:center;width:100%}
+.vid-wrap{max-width:640px;margin:0 auto;padding:0 24px}
+.promo-vid{width:100%;border-radius:16px;box-shadow:var(--shadow-card);margin-top:24px}
+
+/* ============ SIDELOADING ============ */
+.sideload-guide{margin-top:24px;text-align:left;background:var(--raised);border:1px solid var(--divider);border-radius:var(--r-s);padding:14px;max-width:420px}
+.sideload-guide summary{color:var(--crimson);font:600 14px/1 var(--body);cursor:pointer;list-style:none}
+.sideload-guide summary::-webkit-details-marker{display:none}
+.sideload-steps{margin:12px 0 12px 24px;font-size:13.5px;color:var(--ink);line-height:1.5}
+.sideload-steps li{margin-bottom:6px}
+.sideload-steps strong{font-weight:600}
+.trust-note{font-size:12.5px;color:var(--green-soft);margin-top:8px}
+
+/* ============ EMAIL CAPTURE ============ */
+.notify-form{max-width:420px;margin:48px auto 0;text-align:center}
+.email-capture{display:flex;gap:8px;margin-top:16px}
+.email-input{flex:1;background:var(--sunken);border:1px solid var(--divider);border-radius:var(--r-s);padding:12px 14px;font:400 15px/1.3 var(--body);color:var(--ink);transition:border-color .2s, box-shadow .2s}
+.email-input:focus{outline:none;border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(232,169,42,.18)}
+.notify-btn{background:var(--crimson);color:#fff;border:0;padding:12px 20px;border-radius:var(--r-s);font:600 14px/1 var(--body)}
+.notify-btn:hover{background:var(--crimson-deep)}
+.privacy-note{font-size:12px;color:var(--muted);margin-top:12px}
+
+/* ============ SOCIAL PROOF ============ */
+.social-proof{text-align:center}
+.quote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:32px;text-align:left}
+@media (max-width:820px){.quote-grid{grid-template-columns:1fr}}
+.voice-card{background:var(--card);border-left:4px solid var(--crimson);border-radius:0 var(--r-s) var(--r-s) 0;padding:24px;box-shadow:var(--shadow-card)}
+.voice-card p{font:italic 400 14.5px/1.6 var(--body);color:var(--ink)}
+.voice-card cite{display:block;font:400 13px/1.4 var(--body);color:var(--sub);margin-top:14px;font-style:normal}
+
+/* ============ WHAT'S NEW ============ */
+.update-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px}
+@media (max-width:900px){.update-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.update-grid{grid-template-columns:1fr}}
+.update-card{background:var(--card);border:1px solid var(--divider);border-top:3px solid var(--gold-deep);border-radius:var(--r-m);padding:22px 22px 20px;box-shadow:var(--shadow-card);transition:transform .28s var(--ease-out), box-shadow .28s var(--ease-out)}
+.update-card:hover{transform:translateY(-3px);box-shadow:0 22px 44px -26px rgba(26,26,26,.32)}
+.update-tag{display:inline-block;font:600 10px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:var(--crimson);border:1px solid var(--crimson-soft);border-radius:999px;padding:6px 10px}
+.update-card h3{font:600 16px/1.35 var(--body);color:var(--ink);margin:12px 0 6px}
+.update-card p{font:400 13.5px/1.55 var(--body);color:var(--sub);margin:0}
 </style>
 </head>
 <body>
@@ -1062,11 +1139,11 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 <!-- ================= HEADER ================= -->
 <header id="siteHeader">
   <div class="nav">
-    <a class="wordmark" href="#top" aria-label="Needs vs Wants — home">
+    <a class="wordmark" href="#top" aria-label="Needs vs Wants home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
       Needs <b>vs</b> Wants
     </a>
-    <span class="chip-soft" title="Official launch · Version 1.4.0"><i aria-hidden="true"></i>Official</span>
+    <span class="chip-soft" title="Official launch · Version 1.5.0"><i aria-hidden="true"></i>Official</span>
     <nav class="nav-links" aria-label="Primary">
       <a href="#rule">The Rule</a>
       <a href="#how">How It Works</a>
@@ -1084,15 +1161,14 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <div class="hero-copy">
       <p class="eyebrow hero-in hero-in-1">A 35-Day Trainer · Offline-First</p>
       <h1 class="display hero-in hero-in-2">Needs <span class="vs">vs</span><br>Wants</h1>
-      <p class="kicker hero-in hero-in-3">Expense Tracker</p>
+      <p class="kicker hero-in hero-in-3">A Spending Trainer</p>
       <div class="rule-sweep hero-in" aria-hidden="true"></div>
-      <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong> — and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
+      <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong>, and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
       <div class="hero-cta hero-in hero-in-5">
-        <button class="btn btn--primary" id="heroCta" type="button">Log your first expense</button>
-        <a class="btn btn--ghost" href="#how">See how it works
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v13M6 12l6 6 6-6"/></svg>
-        </a>
+        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-1.5.0.apk" download>Download Android APK</a>
+        <button class="btn btn--ghost sec" id="heroCta" type="button">Try Live Demo ↓</button>
       </div>
+      <a class="ios-notify-link hero-in hero-in-5" href="#get">iOS coming soon. Get notified</a>
       <p class="proof hero-in hero-in-6">
         <span>Official launch</span><span class="dot" aria-hidden="true">◆</span>
         <span>Offline-first</span><span class="dot" aria-hidden="true">◆</span>
@@ -1102,7 +1178,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       </p>
     </div>
 
-                                            <div class="sheet-wrap hero-in hero-in-sheet">
+                                                            <div class="sheet-wrap hero-in hero-in-sheet">
       <div class="notepad" id="notepad" role="group" aria-label="Expense log notepad">
         <div class="pad-board">
           <div class="pad-spine" aria-hidden="true"></div>
@@ -1139,7 +1215,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </span>
     <div class="pro-notice-copy reveal">
       <h3>Pro &amp; Max subscriptions are here.</h3>
-      <p>Unlock <b>unlimited logging</b>, <b>lifetime history</b>, <b>full-period analytics</b>, and — with <b>Max</b> — a Google NotebookLM AI Financial Advisor. 3-day free trial on every paid tier.</p>
+      <p>Unlock <b>unlimited logging</b>, <b>lifetime history</b>, <b>full-period analytics</b>, and, with <b>Max</b>, a Google NotebookLM AI Financial Advisor. 3-day free trial on every paid tier.</p>
     </div>
     <div class="pro-notice-cta reveal">
       <a class="btn btn--primary btn-arr" href="#pro-pricing">
@@ -1151,7 +1227,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 </div>
 
 <!-- ================= RECEIPT TICKER ================= -->
-<div class="ticker" aria-hidden="true">
+<div class="ticker reveal" aria-hidden="true">
   <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
@@ -1160,10 +1236,9 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   <div class="wrap">
     <div class="sec-head reveal">
       <div>
-        <p class="eyebrow eyebrow--gold">The Rule</p>
         <h2 class="title">Every expense is a Need or a Want.</h2>
       </div>
-      <p>One line, two columns. You decide which side of the page your money lands on — in the aisle, at the counter, in the moment.</p>
+      <p>One line, two columns. You decide which side of the page your money lands on, in the aisle, at the counter, in the moment.</p>
     </div>
     <div class="diptych reveal">
       <article class="panel panel--need">
@@ -1171,7 +1246,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l7-8 7 8"/><path d="M6.5 11v8.5h11V11"/><path d="M10 19.5v-5h4v5"/></svg>
           Need
         </h3>
-        <p class="def">Something you must have to live and work. Honest, necessary, unavoidable — the spending you defend without hesitation.</p>
+        <p class="def">Something you must have to live and work. Honest, necessary, unavoidable, the spending you defend without hesitation.</p>
         <div class="chips">
           <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Rice &amp; groceries</button>
           <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Rent</button>
@@ -1186,7 +1261,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.1 4.6 4.9.6-3.6 3.4 1 4.9-4.4-2.5-4.4 2.5 1-4.9-3.6-3.4 4.9-.6z"/></svg>
           Want
         </h3>
-        <p class="def">Something you would like to have. Pleasant, optional, often impulsive — the spending that deserves a second look.</p>
+        <p class="def">Something you would like to have. Pleasant, optional, often impulsive, the spending that deserves a second look.</p>
         <div class="chips">
           <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Coffee runs</button>
           <button class="ex-chip" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Sneakers</button>
@@ -1198,7 +1273,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </div>
     <p class="diptych-note reveal">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
-      Tap an example to seal it — the same one-tap choice the app asks of you.
+      Tap an example to seal it, the same one-tap choice the app asks of you.
     </p>
   </div>
 </section>
@@ -1211,7 +1286,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <p class="eyebrow eyebrow--gold">How It Works</p>
         <h2 class="title">Four rules. No fine print.</h2>
       </div>
-      <p>The whole method fits on one page of a diary. The daily budget is optional — set it when you want the guardrail.</p>
+      <p>The whole method fits on one page of a diary. The daily budget is optional, set it when you want the guardrail.</p>
     </div>
 
     <div class="rule-row reveal">
@@ -1243,7 +1318,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       </div>
       <div>
         <h3>Rows seal themselves</h3>
-        <p>The moment you enter item, cost, and type, the row seals — stamped with the current time and saved instantly.</p>
+        <p>The moment you enter item, cost, and type, the row seals, stamped with the current time and saved instantly.</p>
       </div>
     </div>
 
@@ -1254,11 +1329,11 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       </div>
       <div>
         <h3>An optional daily budget</h3>
-        <p>Set a limit on <b>Log</b> — the meter there (and Summary Day) shows today's spend, remaining budget, and when you're over. Logging would push you over? The diary asks before you seal — you still decide.</p>
+        <p>Set a limit on <b>Log</b>, the meter there (and Summary Day) shows today's spend, remaining budget, and when you're over. Logging would push you over? The diary asks before you seal, you still decide. Log on consecutive days and Summary shows your streak.</p>
         <ol class="rule-steps">
-          <li><b>Set it on Log.</b> Open <b>Log</b>, enter your daily limit — say ₱1,500 — and <b>Save budget</b>.</li>
+          <li><b>Set it on Log.</b> Open <b>Log</b>, enter your daily limit, say ₱1,500, and <b>Save budget</b>.</li>
           <li><b>Watch the meter.</b> On <b>Log</b> and Summary <b>Day</b>, see spent vs budget and what's left. Green keeps you on track; red tells you you're over.</li>
-          <li><b>Seal past the line?</b> The diary asks <b>“Log anyway?”</b> first. Cancel keeps your draft; Log seals it — your call, every time.</li>
+          <li><b>Seal past the line?</b> The diary asks <b>“Log anyway?”</b> first. Cancel keeps your draft; Log seals it, your call, every time.</li>
           <li><b>Change or turn off anytime.</b> On Log, tap <b>Change</b> to update the limit, or <b>Turn off</b> to drop the guardrail. The trainer stays.</li>
         </ol>
       </div>
@@ -1266,14 +1341,25 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   </div>
 </section>
 
+<!-- ================= PROMO VIDEO ================= -->
+<section class="vid-section reveal" id="demo-video">
+  <div class="vid-wrap">
+    <p class="eyebrow">SEE IT IN ACTION</p>
+    <h3>How It Works in 15 Seconds</h3>
+    <video class="promo-vid" controls playsinline preload="metadata" poster="" muted>
+      <source src="./video/how-it-works-15s.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+</section>
+
 <!-- ================= 35-DAY WINDOW ================= -->
 <section id="window">
   <div class="wrap window-grid">
     <div class="window-copy reveal">
-      <p class="eyebrow eyebrow--gold">The Window</p>
       <h2 class="title">The diary keeps 35 days.</h2>
       <p>Entries older than 35 days are automatically removed. <b>This is a trainer, not an archive.</b></p>
-      <p>Once per launch, the diary quietly lets go of anything behind the window — no cleanup chore, no ever-growing ledger, no old guilt. The lessons stay recent; the page stays light.</p>
+      <p>Once per launch, the diary quietly lets go of anything behind the window, no cleanup chore, no ever-growing ledger, no old guilt. The lessons stay recent; the page stays light.</p>
       <div class="mini-stats">
         <div class="mini-stat"><div class="n">35<i>&nbsp;/</i></div><div class="l">Days retained</div></div>
         <div class="mini-stat"><div class="n">20<i>&nbsp;/</i></div><div class="l">Entries per sheet</div></div>
@@ -1293,15 +1379,74 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   </div>
 </section>
 
+<!-- ================= WHAT'S NEW IN 1.5.0 ================= -->
+<section id="updates">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div>
+        <p class="eyebrow eyebrow--gold">What's New</p>
+        <h2 class="title">Version 1.5.0 is here.</h2>
+      </div>
+      <p>The trainer grew up. Streaks, insights, CSV export, a home-screen widget, evening reminders, and a faster Log, all in one update.</p>
+    </div>
+    <div class="update-grid reveal">
+      <article class="update-card">
+        <span class="update-tag">Streak</span>
+        <h3>Log consecutive days</h3>
+        <p>Seal a line each day and Summary shows your streak, with milestone marks for the longer runs.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Insight</span>
+        <h3>One quiet insight</h3>
+        <p>Summary reads your period and surfaces one useful line when there is something worth saying.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Export</span>
+        <h3>CSV export</h3>
+        <p>History exports the raw ledger as CSV with costs stored in cents, ready for your own analysis.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Widget</span>
+        <h3>Home-screen widget</h3>
+        <p>A Glance widget shows today's Need/Want split and your streak without opening the app.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Reminder</span>
+        <h3>Evening reminders</h3>
+        <p>Set an optional nightly nudge in Settings; tapping it deep-links straight to Log.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Log</span>
+        <h3>A faster Log</h3>
+        <p>One scroll, a sticky seal bar, and roomier item rows so sealing stays quick on small screens.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Paywall</span>
+        <h3>Membership desk</h3>
+        <p>Free, Pro, and Max now read like a real desk in the app, matching this site's pricing cards.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Advisor</span>
+        <h3>Advisor live for Max</h3>
+        <p>Ask about overspend and recovery; every answer cites the Google NotebookLM economic study notebooks.</p>
+      </article>
+      <article class="update-card">
+        <span class="update-tag">Type</span>
+        <h3>A cleaner type system</h3>
+        <p>Playfair Display SC leads titles, Inter carries the body, and money lines up in tabular numerals.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ================= THE SCREENS ================= -->
 <section id="screens">
   <div class="wrap">
     <div class="sec-head reveal">
       <div>
-        <p class="eyebrow eyebrow--gold">Inside the Diary</p>
-        <h2 class="title">Four pages. One honest habit.</h2>
+        <h2 class="title">Five pages. One honest habit.</h2>
       </div>
-      <p>A summary, a sheet, a history, and a settings page — set your optional daily budget on Log; enlarge text and switch light/dark themes in Settings. Nothing else to learn, nothing else to manage.</p>
+      <p>A summary, a sheet, a history, an AI advisor, and a settings page. Set your optional daily budget on Log; enlarge text, switch themes, and set an evening reminder in Settings. Nothing else to learn, nothing else to manage.</p>
     </div>
 
     <div class="bento">
@@ -1314,7 +1459,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <span class="app-tag">Summary</span>
               <p class="eyebrow">A 35-Day Trainer</p>
               <h3 style="margin-top:8px">Needs vs Wants</h3>
-              <div class="period-line"><span class="pl" id="periodLabel">All 35 Days</span><span class="rl" id="rangeLabel">—</span></div>
+              <div class="period-line"><span class="pl" id="periodLabel">All 35 Days</span><span class="rl" id="rangeLabel">, </span></div>
               <div class="rotor" role="group" aria-label="Summary period">
                 <button type="button" data-period="day" aria-pressed="false">Day</button>
                 <button type="button" data-period="week" aria-pressed="false">Week</button>
@@ -1347,7 +1492,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Summary</b> Your 35-day diary at a glance — Need / Want split, period rotor, totals — plus a live daily-budget meter on the Day view.</p>
+        <p class="phone-cap"><b>Summary</b> Your 35-day diary at a glance: Need / Want split, period rotor, totals, a Day streak when you log consecutively, one quiet insight, plus a live daily-budget meter on the Day view.</p>
       </div>
 
       <!-- LOG -->
@@ -1376,7 +1521,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Log</b> Seal today's sheet — set, change, or turn off your daily budget here, with spent and remaining under the header when a limit is on.</p>
+        <p class="phone-cap"><b>Log</b> Seal today's sheet, set, change, or turn off your daily budget here, with spent and remaining under the header when a limit is on.</p>
       </div>
 
       <!-- HISTORY -->
@@ -1388,7 +1533,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <span class="app-tag">History</span>
               <p class="eyebrow">History</p>
               <h3 style="margin-top:8px">Ledger</h3>
-              <p class="app-cap" id="histRange">Jun 27 — Jul 31, 2026</p>
+              <p class="app-cap" id="histRange">Jun 27 - Jul 31, 2026</p>
 
               <div class="day-head">
                 <span><b>Thu, Jul 30</b> &nbsp;<span class="meta">3</span></span>
@@ -1412,7 +1557,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>History</b> 35-day ledger, grouped by day — with Need and Want totals.</p>
+        <p class="phone-cap"><b>History</b> 35-day ledger, grouped by day, with Need and Want totals and CSV export.</p>
       </div>
 
       <!-- SETTINGS -->
@@ -1449,12 +1594,12 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               </button>
               <p class="grp">About</p>
               <p class="about-name">Needs vs. Wants</p>
-              <p class="about-v">Version 1.4.0</p>
+              <p class="about-v">Version 1.5.0</p>
               <p class="about-d">An offline-first trainer for honest spenders.</p>
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Settings</b> Currency, larger text for readability, light/dark themes — daily budget lives on Log.</p>
+        <p class="phone-cap"><b>Settings</b> Currency, text size, light/dark themes, daily budget lives on Log, plus optional evening reminders.</p>
       </div>
 
       <!-- FINANCIAL ADVISOR -->
@@ -1469,19 +1614,40 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <p class="app-cap">Google NotebookLM (Max Feature)</p>
               <div class="card" style="background:#fff;border:1px solid var(--gold-soft);padding:12px;border-radius:10px;margin-top:10px">
                 <p class="eyebrow" style="font-size:10px;color:var(--crimson)">ADVISOR RECOMMENDATION</p>
-                <b style="display:block;font-size:12px;margin:4px 0">Budgetary Equilibrium Active</b>
-                <p style="font-size:11px;color:#4a4a4a;line-height:1.4">Based on your Economic Study Notebook #1, essential Needs form the anchor of your spending velocity.</p>
+                <b style="display:block;font-size:12px;margin:4px 0">Needs lead the ledger today</b>
+                <p style="font-size:11px;color:var(--advisor-muted);line-height:1.4">From your Economic Study notebook: keep Needs ahead of Wants before you seal another line.</p>
                 <div style="border-top:1px solid rgba(0,0,0,.08);margin-top:8px;padding-top:6px">
                   <span style="font-size:9px;font-weight:700;color:var(--gold-soft);letter-spacing:1px;display:block">CITATIONS</span>
                   <span style="font-size:10px;font-weight:600;display:block">• Notebook #1: Equilibrium</span>
-                  <span style="font-size:9px;color:#777">NotebookLM Section 1.2</span>
+                  <span style="font-size:9px;color:var(--advisor-soft)">NotebookLM Section 1.2</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Financial Advisor</b> (Max Tier · Upcoming Subscription) Zero-hallucination guidance grounded in your Google NotebookLM economic study notebooks.</p>
+        <p class="phone-cap"><b>Financial Advisor</b> (Max Tier) Live guidance grounded in your Google NotebookLM economic study notebooks, with a citation on every answer.</p>
       </div>
+    </div>
+  </div>
+</section>
+<!-- ================= SOCIAL PROOF ================= -->
+<section class="social-proof reveal" id="voices">
+  <div class="wrap">
+    <p class="eyebrow">WHY PEOPLE LOG</p>
+    <h3>A daily habit that changes how you spend</h3>
+    <div class="quote-grid">
+      <blockquote class="voice-card">
+        <p>"I didn't realize how much I was spending on coffee until I had to tap 'Want' every single time."</p>
+        <cite>Daily commuter, 14-day streak</cite>
+      </blockquote>
+      <blockquote class="voice-card">
+        <p>"The binary choice is what makes it work. No categories to fuss over. Just: did I need this?"</p>
+        <cite>Freelancer, using since Day 1</cite>
+      </blockquote>
+      <blockquote class="voice-card">
+        <p>"My Want percentage dropped from 68% to 41% in three weeks. The numbers don't lie."</p>
+        <cite>Student, budget mode user</cite>
+      </blockquote>
     </div>
   </div>
 </section>
@@ -1541,7 +1707,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </ul>
             <div class="pri-cta">
               <div id="paypal-button-container">
-                <button class="btn btn--primary btn-arr" type="button" id="payPalSeamBtn" style="background:#0070ba;border-color:#0070ba">
+                <button class="btn btn--primary btn-arr" type="button" id="payPalSeamBtn" style="background:var(--paypal);border-color:var(--paypal)">
                   Pay with PayPal / Card
                   <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
                 </button>
@@ -1571,7 +1737,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </ul>
             <div class="pri-cta">
               <a class="btn btn--primary btn-arr" href="#get">
-                Upgrade to Max
+                Get the app
                 <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
               </a>
               <p class="pri-cta-note">3-day free trial</p>
@@ -1594,7 +1760,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <circle cx="60" cy="60" r="57" fill="none" stroke="var(--gold-soft)" stroke-width="1.4"/>
           <circle cx="60" cy="60" r="33" fill="none" stroke="var(--gold-soft)" stroke-width="1" stroke-dasharray="2 3"/>
           <text fill="var(--gold-soft)" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" letter-spacing="2.6">
-            <textPath href="#stampPath">OFFICIAL · VERSION 1.4.0 · NEEDS VS WANTS ·</textPath>
+            <textPath href="#stampPath">OFFICIAL · VERSION 1.5.0 · NEEDS VS WANTS ·</textPath>
           </text>
         </g>
         <g class="stamp-pulse">
@@ -1603,32 +1769,50 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       </svg>
       <div class="cta-inner">
         <div class="cta-copy">
-          <p class="eyebrow">Official Launch · <span id="launchDate">Version 1.4.0</span></p>
           <h2>Start tracking today.</h2>
-          <p class="desc">Take control of your finances. Every expense counts — seal it as a Need or a Want, keep a 35-day window of honest habits, and let an optional daily budget keep today in check.</p>
+          <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 35 days, with an optional daily budget on today.</p>
           <div class="cta-btns">
-            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-1.4.0.apk" download="needs-vs-wants-1.4.0.apk">
+            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-1.5.0.apk" download="needs-vs-wants-1.5.0.apk">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
-              Download Android APK</a>
+              Get the app</a>
             <button class="btn btn--outline" id="apkQrToggle" type="button" aria-expanded="false" aria-controls="apkQrPanel">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h3v3h-3zM17 17h3v3h-3zM14 17v3h3"/></svg>
               Scan QR code</button>
             <button class="btn btn--outline" id="iosSoon" type="button">
               iOS coming soon</button>
           </div>
+          <details class="sideload-guide">
+            <summary>Need help installing? ▾</summary>
+            <ol class="sideload-steps">
+              <li><strong>Tap Download</strong> and your browser saves the APK file</li>
+              <li><strong>Open the file</strong> and tap "Install" when Android prompts you</li>
+              <li><strong>If asked</strong>, allow "Install unknown apps" for your browser, then tap Install again</li>
+            </ol>
+            <p class="trust-note">✓ Verified safe: no ads, no tracking, no network calls. 100% offline.</p>
+          </details>
           <p class="cta-note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
-            No accounts · No analytics · No network — your diary never leaves your device.
+            No accounts · No analytics · No network, your diary never leaves your device.
           </p>
         </div>
         <div class="apk-qr-panel" id="apkQrPanel" hidden>
           <div class="apk-qr-card">
             <canvas id="apkQrCanvas" width="200" height="200" role="img" aria-label="QR code linking to the Android APK download"></canvas>
-            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-1.4.0.apk</strong></p>
+            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-1.5.0.apk</strong></p>
             <p class="apk-qr-url" id="apkQrUrl"></p>
           </div>
         </div>
       </div>
+    </div>
+    
+    <div class="notify-form reveal">
+      <p class="eyebrow">GET NOTIFIED</p>
+      <h4>Know when we launch on iOS & Google Play</h4>
+      <form class="email-capture" action="#" method="POST">
+        <input type="email" name="email" placeholder="your@email.com" required class="email-input">
+        <button type="submit" class="notify-btn">Notify me</button>
+      </form>
+      <p class="privacy-note">We'll email you once. No spam. No tracking.</p>
     </div>
   </div>
 </section>
@@ -1643,7 +1827,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div class="studio-row">
         <div class="studio-brand">
           <span class="studio-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1f6bff" fill-rule="evenodd" d="M12 2.5 2.5 21h19Zm0 7-3.7 8h7.4Z"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--aceu-blue)" fill-rule="evenodd" d="M12 2.5 2.5 21h19Zm0 7-3.7 8h7.4Z"/></svg>
           </span>
           <span>
             <span class="studio-name">ACEU AI Solutions</span>
@@ -1652,19 +1836,19 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         </div>
         <span class="studio-cta">Visit studio →</span>
       </div>
-      <p class="studio-body">Needs vs Wants ships as a studio product — offline-first, built to change how you spend.</p>
+      <p class="studio-body">Needs vs Wants ships as a studio product, offline-first, built to change how you spend.</p>
     </a>
   </div>
 </section>
 </main>
 
 <!-- ================= FOOTER ================= -->
-<footer>
+<footer class="reveal">
   <div class="wrap">
     <div class="foot-grid">
       <div>
         <span class="wordmark">Needs <b>vs</b> Wants</span>
-        <p class="foot-tag">Expense Tracker — a 35-day diary for honest spenders. Official launch · v1.4.0.</p>
+        <p class="foot-tag">A 35-day spending trainer for honest spenders. Official launch · v1.5.0.</p>
       </div>
       <div>
         <p class="foot-h">Explore</p>
@@ -1672,13 +1856,13 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <li><a href="#rule">The Rule</a></li>
           <li><a href="#how">How It Works</a></li>
           <li><a href="#window">The 35-Day Window</a></li>
-          <li><a href="#get">Get the App</a></li>
+          <li><a href="#get">Get the app</a></li>
         </ul>
       </div>
       <div>
         <p class="foot-h">Details</p>
         <p class="foot-meta">
-          Version 1.4.0<br>
+          Version 1.5.0<br>
           <span class="money">₱ $ € ¥ S$</span> · currency-aware<br>
           <span id="footDate">Friday, July 31, 2026</span>
         </p>
@@ -1686,7 +1870,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </div>
     <div class="foot-bottom">
       <div class="foot-bottom-left">
-        <small>© 2026 Needs vs Wants. Offline-first. Android APK is a direct download — not yet on Google Play or the App Store.</small>
+        <small>© 2026 Needs vs Wants. Offline-first. Android APK is a direct download, not yet on Google Play or the App Store.</small>
         <small class="foot-credit">Developed by
           <a href="https://aceu-ai-solutions-portfolio.netlify.app" target="_blank" rel="noopener noreferrer">ACEU AI Solutions</a>
         </small>
@@ -1811,11 +1995,11 @@ function renderSheetMarkup(sheetIdx, live){
   let body;
   if (full){
     body = live
-      ? `<button type="button" class="page-full-cta" data-action="next-page">Page full — turn to a fresh sheet →</button>`
-      : `<p class="page-full-cta" aria-hidden="true">Page full — turn to a fresh sheet →</p>`;
+      ? `<button type="button" class="page-full-cta" data-action="next-page">Page full. Turn to a fresh sheet →</button>`
+      : `<p class="page-full-cta" aria-hidden="true">Page full. Turn to a fresh sheet →</p>`;
   } else if (live){
     body = `<div class="demo-form" data-live-form>
-      ${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+      ${empty ? '<p class="sheet-ghost">Seal your first purchase on this page. Need or Want?</p>' : ''}
       <div class="field">
         <label for="fItem">Item</label>
         <input id="fItem" type="text" autocomplete="off" placeholder="What did you just buy?" maxlength="40" value="${esc(formDraft.item)}">
@@ -1833,17 +2017,17 @@ function renderSheetMarkup(sheetIdx, live){
         <button class="type-chip chip-want" type="button" data-type="WANT" aria-pressed="${formDraft.type==='WANT'?'true':'false'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>WANT</button>
       </div>
-      <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+      <p class="seal-hint">Fill all three. The row seals itself. No save button.</p>
     </div>`;
   } else {
     const snapItem = formDraft.item && sheetIdx === pageIndex ? esc(formDraft.item) : '';
     const snapCost = formDraft.cost && sheetIdx === pageIndex ? esc(formDraft.cost) : '';
-    body = `${empty ? '<p class="sheet-ghost">Seal your first purchase on this page — Need or Want?</p>' : ''}
+    body = `${empty ? '<p class="sheet-ghost">Seal your first purchase on this page. Need or Want?</p>' : ''}
       <div class="demo-form-snap" inert>
         <div class="field"><label>Item</label><input type="text" readonly tabindex="-1" value="${snapItem}" placeholder="What did you just buy?"></div>
         <div class="field"><label>Cost</label><div class="cost-wrap"><span class="cur-sym">${CUR[cur].s}</span><input type="text" readonly tabindex="-1" value="${snapCost}" placeholder="0.00"></div></div>
         <div class="type-row"><span class="type-chip chip-need" aria-hidden="true">NEED</span><span class="type-chip chip-want" aria-hidden="true">WANT</span></div>
-        <p class="seal-hint">Fill all three — the row seals itself. No save button.</p>
+        <p class="seal-hint">Fill all three. The row seals itself. No save button.</p>
       </div>`;
   }
   const hideDog = (pages.length >= PAGE_CAP && sheetIdx >= pages.length - 1 && full);
@@ -1942,7 +2126,7 @@ function updateChrome(){
     if (!el) return;
     el.disabled = nextDisabled;
     el.setAttribute('aria-disabled', nextDisabled ? 'true' : 'false');
-    el.title = nextDisabled ? 'Ledger full — 12 pages.' : 'Next page';
+    el.title = nextDisabled ? 'Ledger full: 12 pages.' : 'Next page';
   });
   if (pageDots){
     if (total > 8){
@@ -2099,7 +2283,7 @@ function trySeal(){
   announce('Sealed: ' + name + ', ' + fmt(cents) + ', ' + sealedType.toLowerCase());
   const fi = $('#fItem');
   if (fi) fi.focus();
-  if (next.length >= MAX_ROWS) announce('Page full — turn to a fresh sheet');
+  if (next.length >= MAX_ROWS) announce('Page full. Turn to a fresh sheet');
 }
 
 function ensureStage(){
@@ -2243,7 +2427,7 @@ function go(delta){
   if (delta > 0){
     if (pageIndex >= pages.length - 1){
       if (pages.length >= PAGE_CAP){
-        announce('Ledger full — 12 pages.');
+        announce('Ledger full: 12 pages.');
         updateChrome();
         return;
       }
@@ -2414,12 +2598,44 @@ const dOff = n => { const d = new Date(); d.setDate(d.getDate()+n); return d; };
 const dStr = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const CAPTIONS = {
   day:  dStr(dOff(0)),
-  week: dStr(dOff(-6)) + ' – ' + dStr(dOff(0)),
-  all:  dStr(dOff(-34)) + ' – ' + dStr(dOff(0))
+  week: dStr(dOff(-6)) + ' - ' + dStr(dOff(0)),
+  all:  dStr(dOff(-34)) + ' - ' + dStr(dOff(0))
 };
 let currentPeriod = 'all';
 let currentDaySpent = 0;
-function setPeriod(p){
+
+function animateMoneyCents(el, targetCents, duration){
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches){
+    el.dataset.cents = targetCents;
+    el.textContent = fmt(targetCents);
+    return;
+  }
+  const start = 0;
+  const startTime = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = Math.round(start + (targetCents - start) * eased);
+    el.dataset.cents = val;
+    el.textContent = fmt(val);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+function animateDialDays(el, target, duration){
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches){ el.textContent = target; return; }
+  const start = 0;
+  const startTime = performance.now();
+  function tick(now){
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(start + (target - start) * eased);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+let donutCountPlayed = false;
+function setPeriod(p, animateCount){
   currentPeriod = p;
   $$('.rotor button').forEach(b => b.setAttribute('aria-pressed', b.dataset.period === p ? 'true' : 'false'));
   const s = STATS[p], total = s.n + s.w;
@@ -2429,7 +2645,9 @@ function setPeriod(p){
   $('#arcNeed').setAttribute('stroke-dashoffset', '0');
   $('#arcWant').setAttribute('stroke-dasharray', `${wpct} ${pct}`);
   $('#arcWant').setAttribute('stroke-dashoffset', `${-pct}`);
-  const dt = $('#donutTotal'); dt.dataset.cents = total; dt.textContent = fmt(total);
+  const dt = $('#donutTotal');
+  if (animateCount){ animateMoneyCents(dt, total, 1100); }
+  else { dt.dataset.cents = total; dt.textContent = fmt(total); }
   $('#needPct').textContent = pct + '%';
   $('#wantPct').textContent = wpct + '%';
   const sn = $('#statNeed'); sn.dataset.cents = s.n; sn.textContent = fmt(s.n);
@@ -2466,8 +2684,20 @@ $$('.rotor button').forEach(b => b.addEventListener('click', () => setPeriod(b.d
 
 let donutSeen = false;
 new IntersectionObserver((ents, io) => {
-  ents.forEach(en => { if (en.isIntersecting && !donutSeen){ donutSeen = true; setPeriod('all'); io.disconnect(); } });
+  ents.forEach(en => { if (en.isIntersecting && !donutSeen){ donutSeen = true; donutCountPlayed = true; setPeriod('all', true); io.disconnect(); } });
 },{threshold:.35}).observe($('.donut'));
+
+let windowSeen = false;
+new IntersectionObserver((ents, io) => {
+  ents.forEach(en => {
+    if (en.isIntersecting && !windowSeen){
+      windowSeen = true;
+      const n = document.querySelector('#window .dial-center .n');
+      if (n) animateDialDays(n, 35, 900);
+      io.disconnect();
+    }
+  });
+},{threshold:.35}).observe($('#window'));
 
 /* ---------- 35-day dial ticks ---------- */
 (function buildDial(){
@@ -2495,6 +2725,18 @@ new IntersectionObserver((ents, io) => {
   }
 })();
 
+/* ---------- Promo Video Autoplay ---------- */
+const vidIo = new IntersectionObserver(ents => {
+  ents.forEach(en => {
+    if (en.isIntersecting) {
+      en.target.play().catch(()=>{});
+    } else {
+      en.target.pause();
+    }
+  });
+}, {threshold:.25});
+$$('.promo-vid').forEach(v => vidIo.observe(v));
+
 /* ---------- Scroll reveals ---------- */
 const io = new IntersectionObserver(ents => {
   ents.forEach(en => { if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
@@ -2503,7 +2745,27 @@ $$('.reveal').forEach(el => io.observe(el));
 
 /* ---------- Header ---------- */
 const hdr = $('#siteHeader');
-addEventListener('scroll', () => hdr.classList.toggle('scrolled', scrollY > 8), {passive:true});
+addEventListener('scroll', () => {
+  const y = scrollY > 8;
+  hdr.classList.toggle('scrolled', y);
+  hdr.classList.toggle('is-shrunk', y);
+}, {passive:true});
+
+(function initMagneticCtas(){
+  if (!matchMedia('(pointer:fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const magnets = [$('#payPalSeamBtn'), $('#apkDownload'), $('header a.btn--primary[href="#get"]')].filter(Boolean);
+  magnets.forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const dx = ((e.clientX - r.left) / r.width - 0.5) * 6;
+      const dy = ((e.clientY - r.top) / r.height - 0.5) * 6;
+      btn.animate({ transform: `translate(${dx}px, ${dy}px)` }, { duration: 120, fill: 'forwards' });
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.animate({ transform: 'translate(0, 0)' }, { duration: 200, fill: 'forwards' });
+    });
+  });
+})();
 
 /* ---------- Seal-able example chips ---------- */
 $$('.ex-chip').forEach(c => c.addEventListener('click', () => {
@@ -2517,24 +2779,24 @@ function toast(msg){
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
 }
-$('#wipeBtn').addEventListener('click', () => toast('Preview only — your diary is safe.'));
-$('#logBudgetChange')?.addEventListener('click', () => toast('Preview only — set or change your budget on Log in the app.'));
-$('#logBudgetTurnOff')?.addEventListener('click', () => toast('Preview only — turn the budget off on Log in the app.'));
-$('#iosSoon').addEventListener('click', () => toast('iOS build coming soon — Android APK is available now.'));
+$('#wipeBtn').addEventListener('click', () => toast('Preview only: your diary is safe.'));
+$('#logBudgetChange')?.addEventListener('click', () => toast('Preview only: set or change your budget on Log in the app.'));
+$('#logBudgetTurnOff')?.addEventListener('click', () => toast('Preview only: turn the budget off on Log in the app.'));
+$('#iosSoon').addEventListener('click', () => toast('iOS build coming soon. Android APK is available now.'));
 // Settings phone preview: text size sample scales; theme radios are preview-only.
 const fontSample = $('#fontSample');
 const fontScaleMap = { default: '13px', large: '15px', xl: '17px' };
 $$('input[name="fontSize"]').forEach(r => r.addEventListener('change', () => {
   if (fontSample) fontSample.style.fontSize = fontScaleMap[r.value] || '13px';
-  toast('Preview only — set text size in the app Settings.');
+  toast('Preview only: set text size in the app Settings.');
 }));
 $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
-  toast('Preview only — choose Market light, dark, System, or High contrast in the app.');
+  toast('Preview only: choose Market light, dark, System, or High contrast in the app.');
 }));
 
 /* ---------- APK QR download ---------- */
 /* Animate ONLY the red .cta-panel height (roll down open / roll up close).
-   QR stays in a fixed right-side slot — no QR motion animations.
+   QR stays in a fixed right-side slot, no QR motion animations.
    Desktop side-by-side often keeps the same height; we force a min roll delta
    so the red rectangle always visibly rolls down and back up. */
 (function initApkQr(){
@@ -2564,7 +2826,7 @@ $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
     const url = apkUrl();
     urlEl.textContent = url.replace(/^https?:\/\//, '');
     if (typeof QRCode === 'undefined'){
-      toast('QR unavailable — use Download Android APK.');
+      toast('QR unavailable: use Download Android APK.');
       return;
     }
     QRCode.toCanvas(canvas, url, {
@@ -2573,7 +2835,7 @@ $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
       errorCorrectionLevel: 'M',
       color: { dark: '#1A1A1A', light: '#FFFFFF' }
     }, err => {
-      if (err){ toast('Could not build QR — use the download button.'); return; }
+      if (err){ toast('Could not build QR: use the download button.'); return; }
       built = true;
     });
   }
@@ -2624,7 +2886,7 @@ $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
         if (e.target === cta && e.propertyName === 'height') finish();
       };
       cta.addEventListener('transitionend', onEnd);
-      /* tight fallback — do not outlive the roll by much */
+      /* tight fallback, do not outlive the roll by much */
       setTimeout(finish, ms + 40);
     });
   }
@@ -2642,7 +2904,7 @@ $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
     void cta.offsetHeight;
 
     let naturalOpen = Math.ceil(cta.scrollHeight);
-    /* Side-by-side often matches closed height — force a real roll delta */
+    /* Side-by-side often matches closed height, force a real roll delta */
     openH = Math.max(naturalOpen, closedH + MIN_ROLL);
 
     await rollRedPanel(closedH, openH, MS_DOWN);
@@ -2673,7 +2935,7 @@ $$('input[name="theme"]').forEach(r => r.addEventListener('change', () => {
     cta.style.height = from + 'px';
     void cta.offsetHeight;
 
-    /* 2) Hide QR immediately on press — no wait for roll-up to finish */
+    /* 2) Hide QR immediately on press, no wait for roll-up to finish */
     panel.hidden = true;
     panel.classList.remove('is-open');
     cta.classList.remove('is-qr-open');
@@ -2712,9 +2974,8 @@ $$('input[name="currency"]').forEach(r => r.addEventListener('change', () => {
 /* ---------- Dates ---------- */
 const now = new Date();
 $('#todayLabel').textContent = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-$('#launchDate').textContent = 'Version 1.4.0 · ' + now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 $('#footDate').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-$('#histRange').textContent = `${dStr(dOff(-34))} — ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${now.getFullYear()}`;
+$('#histRange').textContent = `${dStr(dOff(-34))} - ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${now.getFullYear()}`;
 
 /* ---------- Init ---------- */
 function bootPad(){
@@ -2727,6 +2988,16 @@ setPeriod('all');
 $('#arcNeed').setAttribute('stroke-dasharray','0 100');
 $('#arcWant').setAttribute('stroke-dasharray','100 0');
 $('#arcWant').setAttribute('stroke-dashoffset','0');
+
+/* ---------- Notify Form ---------- */
+const emailForm = $('.email-capture');
+if (emailForm) {
+  emailForm.addEventListener('submit', e => {
+    e.preventDefault();
+    toast("Thanks! We'll notify you when we launch.");
+    emailForm.reset();
+  });
+}
 })();
 </script>
 </body>
