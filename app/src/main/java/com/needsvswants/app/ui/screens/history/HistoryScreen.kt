@@ -12,9 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -101,9 +102,10 @@ fun HistoryScreen(
         Spacer(Modifier.height(20.dp))
 
         if (entries.isEmpty()) {
+            val sealBreath = rememberIdleBreathAlpha()
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    NeedWantSealMark()
+                    NeedWantSealMark(modifier = Modifier.alpha(sealBreath))
                     Spacer(Modifier.height(18.dp))
                     Eyebrow("EMPTY DIARY", color = AppTheme.colors.textMuted)
                     Spacer(Modifier.height(6.dp))
@@ -124,7 +126,13 @@ fun HistoryScreen(
 
                         val dayTotal = dayNeeds + dayWants
                         val entryLabel = if (dayEntries.size == 1) "1 entry" else "${dayEntries.size} entries"
-                        PremiumSurface(modifier = Modifier.animateItem()) {
+                        PremiumSurface(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = Motion.entrance(),
+                                placementSpec = Motion.state<IntOffset>(),
+                                fadeOutSpec = Motion.feedback()
+                            )
+                        ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
