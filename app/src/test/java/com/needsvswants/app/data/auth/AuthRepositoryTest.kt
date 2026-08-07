@@ -3,6 +3,7 @@ package com.needsvswants.app.data.auth
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.data.remote.SupabaseAuth
 import com.needsvswants.app.data.remote.SupabaseConfig
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,7 +30,7 @@ class AuthRepositoryTest {
         val remote = RecordingRemote()
         val entitlements = EntitlementRepository(FakeEntitlementLocal(), remote)
         val google = UnusedGoogle
-        val repo = AuthRepository(auth, store, google, entitlements, configEnabled())
+        val repo = AuthRepository(auth, store, google, entitlements, FakePayPalReturnStore(), configEnabled())
 
         val result = repo.completeGoogleSignIn(
             Result.success(GoogleIdTokenResult("idtok", "nonce"))
@@ -46,7 +48,7 @@ class AuthRepositoryTest {
         val store = FakeSessionStore(existing)
         val auth = FakeSupabaseAuth(session = AuthSession("new", null, null, null, null))
         val entitlements = EntitlementRepository(FakeEntitlementLocal(), RecordingRemote())
-        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, configEnabled())
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, FakePayPalReturnStore(), configEnabled())
 
         val result = repo.completeGoogleSignIn(Result.failure(RuntimeException("cancelled")))
         assertTrue(result.isFailure)
@@ -61,10 +63,24 @@ class AuthRepositoryTest {
             signOutResult = Result.failure(RuntimeException("network"))
         )
         val entitlements = EntitlementRepository(FakeEntitlementLocal(), RecordingRemote())
-        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, configEnabled())
+        val payPalReturn = FakePayPalReturnStore(pending = true)
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, payPalReturn, configEnabled())
 
         repo.signOut()
         assertNull(store.session.first())
+        assertFalse(payPalReturn.paypalReturnPending.first())
+    }
+
+    @Test
+    fun signOut_clearsPendingPayPalReturn() = runTest {
+        val store = FakeSessionStore(AuthSession("at", "rt", "u1", "a@b.com", null))
+        val auth = FakeSupabaseAuth(session = null)
+        val entitlements = EntitlementRepository(FakeEntitlementLocal(), RecordingRemote())
+        val payPalReturn = FakePayPalReturnStore(pending = true)
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, payPalReturn, configEnabled())
+
+        repo.signOut()
+        assertFalse(payPalReturn.paypalReturnPending.first())
     }
 
     @Test
@@ -74,7 +90,7 @@ class AuthRepositoryTest {
         val refreshed = AuthSession("new-at", "rt2", "u1", "a@b.com", expiresAtEpochMillis = 9_999_999L)
         val auth = FakeSupabaseAuth(session = refreshed)
         val entitlements = EntitlementRepository(FakeEntitlementLocal(), RecordingRemote())
-        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, configEnabled())
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, FakePayPalReturnStore(), configEnabled())
 
         val token = repo.ensureFreshAccessToken(nowEpochMillis = 5_000L)
         assertEquals("new-at", token)
@@ -96,6 +112,19 @@ private object UnusedGoogle : GoogleIdTokenProvider {
     override val isAvailable: Boolean = true
     override suspend fun requestIdToken(activityContext: android.content.Context): Result<GoogleIdTokenResult> =
         Result.failure(UnsupportedOperationException("use completeGoogleSignIn in unit tests"))
+}
+
+private class FakePayPalReturnStore(
+    pending: Boolean = false
+) : PayPalReturnStore {
+    private val state = MutableStateFlow(pending)
+    override val paypalReturnPending: Flow<Boolean> = state
+    override suspend fun setPaypalReturnPending(pending: Boolean) {
+        state.value = pending
+    }
+    override suspend fun clearPaypalReturnPending() {
+        state.value = false
+    }
 }
 
 private class FakeSessionStore(

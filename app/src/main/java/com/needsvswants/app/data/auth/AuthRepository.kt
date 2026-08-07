@@ -2,6 +2,7 @@ package com.needsvswants.app.data.auth
 
 import android.content.Context
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.data.remote.SupabaseAuth
 import com.needsvswants.app.data.remote.SupabaseConfig
@@ -20,6 +21,7 @@ class AuthRepository @Inject constructor(
     private val store: AuthSessionStore,
     private val google: GoogleIdTokenProvider,
     private val entitlements: EntitlementRepository,
+    private val payPalReturn: PayPalReturnStore,
     private val config: SupabaseConfig
 ) {
     val session: Flow<AuthSession?> = store.session
@@ -65,7 +67,9 @@ class AuthRepository @Inject constructor(
 
     /**
      * Signs out remotely (best-effort) and always clears the local session.
-     * Does not wipe diary data.
+     * Also drops any pending PayPal checkout return — a signed-out (or
+     * different) account must never inherit the retry churn of the previous
+     * user's late/never-landed webhook. Does not wipe diary data.
      */
     suspend fun signOut() {
         val token = store.session.first()?.accessToken
@@ -73,5 +77,6 @@ class AuthRepository @Inject constructor(
             auth.signOut(token)
         }
         store.clear()
+        payPalReturn.clearPaypalReturnPending()
     }
 }

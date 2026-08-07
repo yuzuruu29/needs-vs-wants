@@ -10,6 +10,7 @@ import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.data.remote.SupabaseAuth
 import com.needsvswants.app.data.remote.SupabaseConfig
@@ -661,6 +662,7 @@ class PaywallViewModelTest {
         store = store,
         google = NoopGoogle,
         entitlements = EntitlementRepository(FakeLocal(), FakeRemote()),
+        payPalReturn = FakePayPalReturnStore(),
         config = SupabaseConfig.Disabled
     )
 
@@ -756,6 +758,17 @@ class PaywallViewModelTest {
         }
         override suspend fun clear() {
             state.value = null
+        }
+    }
+
+    private class FakePayPalReturnStore : PayPalReturnStore {
+        private val state = MutableStateFlow(false)
+        override val paypalReturnPending: Flow<Boolean> = state
+        override suspend fun setPaypalReturnPending(pending: Boolean) {
+            state.value = pending
+        }
+        override suspend fun clearPaypalReturnPending() {
+            state.value = false
         }
     }
 

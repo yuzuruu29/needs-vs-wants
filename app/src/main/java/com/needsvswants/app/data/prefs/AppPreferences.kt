@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.needsvswants.app.data.auth.AuthSessionStore
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementSnapshot
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementType
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class AppPreferences(private val context: Context) : EntitlementLocalStore, AuthSessionStore {
+class AppPreferences(private val context: Context) : EntitlementLocalStore, AuthSessionStore, PayPalReturnStore {
     companion object {
         private val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
         private val CURRENCY_CODE = stringPreferencesKey("currency_code")
@@ -201,15 +202,15 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     // --- PayPal checkout return (durable across process death) --------------
 
     /** True while a PayPal checkout return is pending but not yet confirmed. */
-    val paypalReturnPending: Flow<Boolean> = context.dataStore.data.map {
+    override val paypalReturnPending: Flow<Boolean> = context.dataStore.data.map {
         it[PAYPAL_RETURN_PENDING] ?: false
     }
 
-    suspend fun setPaypalReturnPending(pending: Boolean) {
+    override suspend fun setPaypalReturnPending(pending: Boolean) {
         context.dataStore.edit { it[PAYPAL_RETURN_PENDING] = pending }
     }
 
-    suspend fun clearPaypalReturnPending() {
+    override suspend fun clearPaypalReturnPending() {
         context.dataStore.edit { it.remove(PAYPAL_RETURN_PENDING) }
     }
 

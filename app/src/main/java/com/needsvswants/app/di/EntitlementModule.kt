@@ -8,6 +8,7 @@ import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.PayPalBillingController
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.entitlement.SupabaseEntitlementRemote
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.remote.HttpSupabaseAuth
@@ -52,6 +53,10 @@ abstract class EntitlementModule {
         @Provides
         @Singleton
         fun provideAuthSessionStore(prefs: AppPreferences): AuthSessionStore = prefs
+
+        @Provides
+        @Singleton
+        fun providePayPalReturnStore(prefs: AppPreferences): PayPalReturnStore = prefs
 
         @Provides
         @Singleton
