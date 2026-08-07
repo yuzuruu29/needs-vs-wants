@@ -53,7 +53,6 @@ class PaywallViewModel @Inject constructor(
         .map { it?.email }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val trialProductId: String = config.proTrialProductId.ifBlank { "pro_trial_3day" }
     val monthlyProductId: String = config.proMonthlyProductId.ifBlank { "pro_monthly" }
     val maxProductId: String = config.maxMonthlyProductId.ifBlank { "max_monthly" }
 
@@ -172,7 +171,7 @@ class PaywallViewModel @Inject constructor(
      * second tap can reach [BillingController.purchase] while this runs. A
      * short settle delay plus a forced token refresh mitigate the post-sign-in
      * token race; pending is re-read after the delay (aborts if the user
-     * cancelled) and cleared by [runBilling] only once checkout starts.
+     * cancelled) and cleared only once checkout starts.
      */
     private suspend fun runPendingSubscription() {
         if (_busy.value) return
@@ -182,8 +181,8 @@ class PaywallViewModel @Inject constructor(
             // Force a fresh access token; the billing controller re-reads it.
             authRepository.ensureFreshAccessToken()
             when (_pendingPurchase.value) {
-                PendingPurchase.ProSubscribe -> runBilling { billing.purchase(monthlyProductId) }
-                PendingPurchase.MaxSubscribe -> runBilling { billing.purchase(maxProductId) }
+                PendingPurchase.ProSubscribe -> executeBilling { billing.purchase(monthlyProductId) }
+                PendingPurchase.MaxSubscribe -> executeBilling { billing.purchase(maxProductId) }
                 PendingPurchase.None -> Unit
             }
         } finally {
@@ -195,15 +194,24 @@ class PaywallViewModel @Inject constructor(
         if (_busy.value) return
         _busy.value = true
         try {
-            val result = block()
-            if (result is BillingResult.OpenCheckout) {
-                awaitingPaypalReturn = true
-                // Checkout started: the deferred intent has been consumed.
-                _pendingPurchase.value = PendingPurchase.None
-            }
-            _lastResult.value = result
+            executeBilling(block)
         } finally {
             _busy.value = false
         }
+    }
+
+    /**
+     * Executes a billing block while the caller already holds the busy guard.
+     * Once checkout actually starts the deferred intent is consumed; every
+     * other result leaves [PendingPurchase] set so the attempt can be retried.
+     */
+    private suspend fun executeBilling(block: suspend () -> BillingResult) {
+        val result = block()
+        if (result is BillingResult.OpenCheckout) {
+            awaitingPaypalReturn = true
+            // Checkout started: the deferred intent has been consumed.
+            _pendingPurchase.value = PendingPurchase.None
+        }
+        _lastResult.value = result
     }
 }

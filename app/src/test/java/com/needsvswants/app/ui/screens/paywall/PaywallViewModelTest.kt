@@ -16,15 +16,19 @@ import com.needsvswants.app.data.remote.SupabaseConfig
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -56,7 +60,7 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun startTrial_recordsUnavailable_whenBillingStub_andSignedIn() = runTest(dispatcher) {
+    fun subscribePro_recordsUnavailable_whenBillingStub_andSignedIn() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Unavailable)
         val vm = PaywallViewModel(
             billing = billing,
@@ -74,7 +78,7 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun startTrial_setsPendingPurchase_whenSignedOut_noBillingYet() = runTest(dispatcher) {
+    fun subscribePro_setsPendingPurchase_whenSignedOut_noBillingYet() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val vm = PaywallViewModel(
             billing = billing,
@@ -86,14 +90,14 @@ class PaywallViewModelTest {
         vm.subscribePro()
         advanceUntilIdle()
 
-        assertEquals(0, billing.trialCalls)
+        assertEquals(0, billing.purchaseIds.size)
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
         assertTrue(vm.needsSignInForPurchase.first())
         assertNull(vm.lastResult.first())
     }
 
     @Test
-    fun upgrade_setsPendingMax_whenSignedOut() = runTest(dispatcher) {
+    fun subscribeMax_setsPendingMax_whenSignedOut() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val vm = PaywallViewModel(
             billing = billing,
@@ -111,21 +115,29 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun onSignedInForPurchase_runsPendingTrial() = runTest(dispatcher) {
-        val billing = FakeBilling(BillingResult.Unavailable)
-        val vm = PaywallViewModel(
-            billing = billing,
-            repository = EntitlementRepository(FakeLocal(), FakeRemote()),
-            authRepository = signedInAuth(),
-            config = SupabaseConfig.Disabled
+    fun subscribePro_signedIn_purchasesMonthlyProductId_notTrial() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val config = SupabaseConfig(
+            url = "",
+            anonKey = "",
+            proTrialProductId = "trial_x",
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x"
         )
-        // Simulate: user had chosen trial while signed out, then signed in.
-        // pending is set only via startTrial when signed out — inject by calling
-        // cancel then use reflection-free path: startTrial while signed in runs billing.
-        // For signed-in path:
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            config
+        )
+
         vm.subscribePro()
         advanceUntilIdle()
-        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+
+        // The subscribe path must use the MONTHLY product id, never the trial id.
+        assertEquals(listOf("monthly_x"), billing.purchaseIds)
+        assertFalse(billing.purchaseIds.contains("trial_x"))
+        assertEquals(BillingResult.Success, vm.lastResult.first())
         assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
     }
 
@@ -148,7 +160,7 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun upgrade_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
+    fun subscribeMax_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val config = SupabaseConfig(
             url = "",
@@ -172,7 +184,7 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun upgrade_proUser_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
+    fun subscribeMax_proUser_invokesPurchase_withMaxProductId() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Success)
         val config = SupabaseConfig(
             url = "",
@@ -250,38 +262,243 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled
         )
-        assertTrue(vm.trialProductId.isNotBlank())
-        assertTrue(vm.monthlyProductId.isNotBlank())
+        assertEquals("pro_monthly", vm.monthlyProductId)
+        assertEquals("max_monthly", vm.maxProductId)
+    }
+
+    @Test
+    fun onSignedInForPurchase_runsPendingProSubscribe_withMonthlyProductId() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Unavailable)
+        val store = FakeSessionStore(null)
+        val config = SupabaseConfig(
+            url = "",
+            anonKey = "",
+            proTrialProductId = "trial_x",
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x"
+        )
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            config
+        )
+        // User taps Start Pro while signed out: deferred, no billing yet.
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(0, billing.purchaseIds.size)
+
+        // Google sign-in completes, then the app resumes the deferred purchase.
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("monthly_x"), billing.purchaseIds)
+        // Non-checkout result: pending survives so a failed attempt can be retried.
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(BillingResult.Unavailable, vm.lastResult.first())
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_runsPendingMaxSubscribe_withMaxProductId() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Unavailable)
+        val store = FakeSessionStore(null)
+        val config = SupabaseConfig(
+            url = "",
+            anonKey = "",
+            proTrialProductId = "trial_x",
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x"
+        )
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            config
+        )
+        vm.subscribeMax()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("max_x"), billing.purchaseIds)
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
+        assertEquals(BillingResult.Unavailable, vm.lastResult.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_pendingSurvives_failedResult() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Failed("paypal declined"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        // Failed: pending must stay set so retryCheckout can re-attempt.
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(BillingResult.Failed("paypal declined"), vm.lastResult.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_pendingCleared_openCheckout() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.OpenCheckout("https://paypal.test/approve"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        // Checkout started: the deferred intent has been consumed.
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertEquals(BillingResult.OpenCheckout("https://paypal.test/approve"), vm.lastResult.first())
+    }
+
+    @Test
+    fun retryCheckout_retries_whenLastResultFailed() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Failed("paypal declined"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        vm.retryCheckout()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly", "pro_monthly"), billing.purchaseIds)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+    }
+
+    @Test
+    fun retryCheckout_noOp_whenLastResultSuccess() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+
+        vm.retryCheckout()
+        advanceUntilIdle()
+
+        // A reported-success last result must not re-run the purchase.
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+    }
+
+    @Test
+    fun retryCheckout_noOp_whenNothingPending() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Failed("nope"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled
+        )
+
+        vm.retryCheckout()
+        advanceUntilIdle()
+
+        assertEquals(0, billing.purchaseIds.size)
+    }
+
+    @Test
+    fun retryCheckout_noOp_whenSignedOut() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Failed("nope"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        vm.retryCheckout()
+        advanceUntilIdle()
+
+        assertEquals(0, billing.purchaseIds.size)
+    }
+
+    @Test
+    fun failedReason_roundTrips() {
+        val withReason: BillingResult = BillingResult.Failed("paypal declined: 10486")
+        assertTrue(withReason is BillingResult.Failed)
+        assertEquals("paypal declined: 10486", (withReason as BillingResult.Failed).reason)
+        // Default argument is null; equality is preserved between the two forms.
+        assertEquals(BillingResult.Failed(null), BillingResult.Failed())
     }
 
     private fun signedInAuth(): AuthRepository {
         val session = AuthSession("at", "rt", "u1", "user@example.com", null)
-        return AuthRepository(
-            auth = NoopSupabaseAuth,
-            store = FakeSessionStore(session),
-            google = NoopGoogle,
-            entitlements = EntitlementRepository(FakeLocal(), FakeRemote()),
-            config = SupabaseConfig.Disabled
-        )
+        return authForStore(FakeSessionStore(session))
     }
 
-    private fun signedOutAuth(): AuthRepository = AuthRepository(
+    private fun signedOutAuth(): AuthRepository = authForStore(FakeSessionStore(null))
+
+    private fun authForStore(store: FakeSessionStore): AuthRepository = AuthRepository(
         auth = NoopSupabaseAuth,
-        store = FakeSessionStore(null),
+        store = store,
         google = NoopGoogle,
         entitlements = EntitlementRepository(FakeLocal(), FakeRemote()),
         config = SupabaseConfig.Disabled
     )
 
     private class FakeBilling(private val result: BillingResult) : BillingController {
-        var trialCalls = 0
         var restoreCalls = 0
         val purchaseIds = mutableListOf<String>()
         override val isPlayAvailable: Boolean = false
-        override suspend fun startTrial(productId: String): BillingResult {
-            trialCalls++
-            return result
-        }
+        override suspend fun startTrial(productId: String): BillingResult = result
         override suspend fun purchase(productId: String): BillingResult {
             purchaseIds.add(productId)
             return result
@@ -323,14 +540,19 @@ class PaywallViewModelTest {
     }
 
     /**
-     * Wraps a [CoroutineDispatcher] so that the coroutine context also carries a
+     * Wraps a [TestDispatcher] so that the coroutine context also carries a
      * [CoroutineExceptionHandler]. Used to install a handler on the main dispatcher
      * in tests that intentionally throw from a background coroutine.
+     *
+     * Implements [Delay] by delegating to the wrapped dispatcher so `delay(...)`
+     * calls inside the ViewModel (e.g. the token-settle pause) are scheduled on
+     * the test scheduler and advance with virtual time instead of real time.
      */
+    @OptIn(InternalCoroutinesApi::class)
     private class HandlerTestDispatcher(
-        private val delegate: CoroutineDispatcher,
+        private val delegate: TestDispatcher,
         private val handler: CoroutineExceptionHandler
-    ) : MainCoroutineDispatcher() {
+    ) : MainCoroutineDispatcher(), Delay {
         override fun dispatch(context: CoroutineContext, block: Runnable) {
             delegate.dispatch(context, block)
         }
@@ -339,6 +561,13 @@ class PaywallViewModelTest {
             delegate.isDispatchNeeded(context)
 
         override val immediate: MainCoroutineDispatcher get() = this
+
+        override fun scheduleResumeAfterDelay(timeMillis: Long, continuation: CancellableContinuation<Unit>) {
+            delegate.scheduleResumeAfterDelay(timeMillis, continuation)
+        }
+
+        override fun invokeOnTimeout(timeMillis: Long, block: Runnable, context: CoroutineContext): DisposableHandle =
+            delegate.invokeOnTimeout(timeMillis, block, context)
 
         override fun <E : CoroutineContext.Element> get(key: CoroutineContext.Key<E>): E? {
             if (key == CoroutineExceptionHandler.Key) {
