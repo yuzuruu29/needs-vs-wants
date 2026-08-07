@@ -461,11 +461,11 @@ fun TrialTimelineCard(
             .border(BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)), RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
-        Eyebrow("3-DAY FREE TRIAL", color = c.gilt, size = 10)
+        Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 10)
         Spacer(Modifier.height(8.dp))
-        TimelineRow("Today", "Full $planWord features unlock on this device.")
-        TimelineRow("Day 3", "Trial ends. Play bills the monthly rate unless you cancel.")
-        TimelineRow("Anytime", "Cancel in Google Play subscriptions.")
+        TimelineRow("Today", "After PayPal approval, $planWord unlocks on this device.")
+        TimelineRow("Day 3", "Trial ends. PayPal charges the monthly rate unless you cancel.")
+        TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
     }
 }
 
