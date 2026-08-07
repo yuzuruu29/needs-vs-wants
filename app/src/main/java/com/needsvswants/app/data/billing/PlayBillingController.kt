@@ -77,7 +77,7 @@ class PlayBillingController @Inject constructor(
     private fun launchPurchase(productId: String): BillingResult {
         // Live path: queryProductDetails + BillingFlowParams + launchBillingFlow(activity)
         // Product id is validated here so UI product placeholders never NPE.
-        if (productId.isBlank()) return BillingResult.Failed
+        if (productId.isBlank()) return BillingResult.Failed()
         return BillingResult.Unavailable
     }
 

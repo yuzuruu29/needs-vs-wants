@@ -7,6 +7,9 @@ import com.needsvswants.app.data.remote.SupabaseConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Matches [HttpJsonClient]'s non-2xx error shape: `HTTP <code>: <body>`. */
+private val HTTP_FAILURE = Regex("""^HTTP (\d+): (.*)$""", RegexOption.DOT_MATCHES_ALL)
+
 /**
  * Live PayPal subscription checkout for website / sideload distribution.
  *
@@ -52,7 +55,7 @@ class PayPalBillingController @Inject constructor(
     override suspend fun restorePurchases(): BillingResult {
         if (!config.enabled) return BillingResult.Unavailable
         val token = auth.ensureFreshAccessToken()
-            ?: return BillingResult.Failed
+            ?: return BillingResult.Failed("Sign in required.")
         entitlements.refreshFromRemote(token)
         // UI reads tier from entitlement flows after refresh.
         return BillingResult.Success
@@ -67,11 +70,11 @@ class PayPalBillingController @Inject constructor(
             else -> planPro.ifBlank { planIdHint }
         }
         if (planId.isBlank() || !planId.startsWith("P-")) {
-            return BillingResult.Unavailable
+            return BillingResult.Failed("PayPal plans not configured on this build.")
         }
 
         val accessToken = auth.ensureFreshAccessToken()
-            ?: return BillingResult.Failed
+            ?: return BillingResult.Failed("Sign in required.")
 
         val url = "${config.url.trimEnd('/')}/functions/v1/paypal_create_subscription"
         val body = """{"tier":"${tier.escapeJson()}","plan_id":"${planId.escapeJson()}"}"""
@@ -86,10 +89,25 @@ class PayPalBillingController @Inject constructor(
             body = body
         )
 
-        val json = result.getOrElse { return BillingResult.Failed }
+        val json = result.getOrElse { return BillingResult.Failed(httpFailureReason(it)) }
         val approval = PayPalCheckoutJson.parseApprovalUrl(json)
-            ?: return BillingResult.Failed
+            ?: return BillingResult.Failed("PayPal checkout returned an unexpected response. Please try again.")
         return BillingResult.OpenCheckout(approval)
+    }
+
+    /**
+     * Turns an [HttpJsonClient] failure into a human-readable reason. Non-2xx
+     * responses arrive as `HTTP <code>: <body>`; the body's `error`/`message`
+     * JSON field (via [PayPalCheckoutJson.parseErrorMessage]) becomes the reason,
+     * falling back to the raw HTTP status when the body carries no message.
+     */
+    private fun httpFailureReason(t: Throwable): String {
+        val match = t.message?.let { HTTP_FAILURE.matchEntire(it) }
+            ?: return "PayPal checkout failed. Please try again."
+        val body = match.groupValues[2]
+        val apiError = PayPalCheckoutJson.parseErrorMessage(body)
+        if (!apiError.isNullOrBlank()) return apiError
+        return "PayPal checkout failed (HTTP ${match.groupValues[1]}). Please try again."
     }
 
     private fun String.escapeJson(): String =

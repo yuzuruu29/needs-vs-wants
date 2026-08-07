@@ -7,7 +7,8 @@ package com.needsvswants.app.data.billing
 sealed interface BillingResult {
     data object Success : BillingResult
     data object Pending : BillingResult
-    data object Failed : BillingResult
+    /** Failed, optionally carrying a human-readable reason (e.g. a PayPal API error). */
+    data class Failed(val reason: String? = null) : BillingResult
     data object Unavailable : BillingResult
     /** Open PayPal (or other web) approval in a browser / Custom Tab. */
     data class OpenCheckout(val approvalUrl: String) : BillingResult

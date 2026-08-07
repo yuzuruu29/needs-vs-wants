@@ -114,7 +114,7 @@ fun PaywallScreen(
                 delay(3000)
                 viewModel.consumeResult()
             }
-            BillingResult.Failed, BillingResult.Unavailable, BillingResult.Pending -> {
+            is BillingResult.Failed, BillingResult.Unavailable, BillingResult.Pending -> {
                 delay(3000)
                 viewModel.consumeResult()
             }
@@ -315,8 +315,8 @@ fun PaywallScreen(
                     PaywallNoticeSurface(accent = palette.crimson) {
                         Text(
                             when (pending) {
-                                PendingPurchase.ProTrial -> "Sign in to start your Pro trial"
-                                PendingPurchase.MaxUpgrade -> "Sign in to upgrade to Max"
+                                PendingPurchase.ProSubscribe -> "Sign in to start your Pro trial"
+                                PendingPurchase.MaxSubscribe -> "Sign in to upgrade to Max"
                                 else -> "Sign in to continue"
                             },
                             style = PaywallType.planFeatureEmph,
@@ -381,7 +381,7 @@ fun PaywallScreen(
                         else "Account refreshed. If you just paid, wait a few seconds and tap Restore.",
                         color = palette.marketGreen
                     )
-                    BillingResult.Failed -> StatusText(
+                    is BillingResult.Failed -> StatusText(
                         "Payment didn't go through. Sign in and try again.",
                         color = palette.crimson
                     )
@@ -430,8 +430,8 @@ fun PaywallScreen(
                         onClick = {
                             when (selected) {
                                 MembershipPlan.Free -> closeFree()
-                                MembershipPlan.Pro -> if (!isPro) viewModel.startTrial()
-                                MembershipPlan.Max -> if (!hasMaxAccess) viewModel.upgrade()
+                                MembershipPlan.Pro -> if (!isPro) viewModel.subscribePro()
+                                MembershipPlan.Max -> if (!hasMaxAccess) viewModel.subscribeMax()
                             }
                         },
                         text = primaryLabel,

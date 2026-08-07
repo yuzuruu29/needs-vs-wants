@@ -65,12 +65,12 @@ class PaywallViewModelTest {
             config = SupabaseConfig.Disabled
         )
 
-        vm.startTrial()
+        vm.subscribePro()
         advanceUntilIdle()
 
         assertEquals(BillingResult.Unavailable, vm.lastResult.first())
         assertFalse(vm.busy.first())
-        assertEquals(1, billing.trialCalls)
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
     }
 
     @Test
@@ -83,11 +83,11 @@ class PaywallViewModelTest {
             config = SupabaseConfig.Disabled
         )
 
-        vm.startTrial()
+        vm.subscribePro()
         advanceUntilIdle()
 
         assertEquals(0, billing.trialCalls)
-        assertEquals(PendingPurchase.ProTrial, vm.pendingPurchase.first())
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
         assertTrue(vm.needsSignInForPurchase.first())
         assertNull(vm.lastResult.first())
     }
@@ -102,11 +102,11 @@ class PaywallViewModelTest {
             config = SupabaseConfig.Disabled
         )
 
-        vm.upgrade()
+        vm.subscribeMax()
         advanceUntilIdle()
 
         assertEquals(0, billing.purchaseIds.size)
-        assertEquals(PendingPurchase.MaxUpgrade, vm.pendingPurchase.first())
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
         assertTrue(vm.needsSignInForPurchase.first())
     }
 
@@ -123,9 +123,9 @@ class PaywallViewModelTest {
         // pending is set only via startTrial when signed out — inject by calling
         // cancel then use reflection-free path: startTrial while signed in runs billing.
         // For signed-in path:
-        vm.startTrial()
+        vm.subscribePro()
         advanceUntilIdle()
-        assertEquals(1, billing.trialCalls)
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
         assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
     }
 
@@ -138,7 +138,7 @@ class PaywallViewModelTest {
             authRepository = signedOutAuth(),
             config = SupabaseConfig.Disabled
         )
-        vm.startTrial()
+        vm.subscribePro()
         advanceUntilIdle()
         assertTrue(vm.needsSignInForPurchase.first())
         vm.cancelPendingSignIn()
@@ -164,7 +164,7 @@ class PaywallViewModelTest {
             config
         )
 
-        vm.upgrade()
+        vm.subscribeMax()
         advanceUntilIdle()
 
         assertEquals(listOf("max_x"), billing.purchaseIds)
@@ -188,7 +188,7 @@ class PaywallViewModelTest {
             config
         )
 
-        vm.upgrade()
+        vm.subscribeMax()
         advanceUntilIdle()
 
         assertEquals(listOf("max_x"), billing.purchaseIds)
@@ -205,7 +205,7 @@ class PaywallViewModelTest {
             SupabaseConfig.Disabled
         )
 
-        vm.upgrade()
+        vm.subscribeMax()
         advanceUntilIdle()
 
         assertFalse(vm.busy.first())

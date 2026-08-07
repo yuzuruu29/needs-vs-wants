@@ -8,6 +8,7 @@ import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.remote.SupabaseConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,12 +19,18 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Purchase the user chose; sign-in is only offered after one of these is selected. */
+/** Subscription the user chose; sign-in is only offered after one of these is selected. */
 enum class PendingPurchase {
     None,
-    ProTrial,
-    MaxUpgrade
+    ProSubscribe,
+    MaxSubscribe
 }
+
+/**
+ * Pause after Google sign-in before forcing a fresh access token, so the session
+ * write settles before the subscription request (plan's 150-300ms window).
+ */
+private const val TOKEN_SETTLE_MILLIS = 200L
 
 @HiltViewModel
 class PaywallViewModel @Inject constructor(
@@ -70,20 +77,22 @@ class PaywallViewModel @Inject constructor(
         .map { it != PendingPurchase.None }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    fun startTrial() {
+    /** Start a Pro subscription; defers to Google sign-in when signed out. */
+    fun subscribePro() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) {
-                _pendingPurchase.value = PendingPurchase.ProTrial
+                _pendingPurchase.value = PendingPurchase.ProSubscribe
                 return@launch
             }
-            runBilling { billing.startTrial(trialProductId) }
+            runBilling { billing.purchase(monthlyProductId) }
         }
     }
 
-    fun upgrade() {
+    /** Start a Max subscription; defers to Google sign-in when signed out. */
+    fun subscribeMax() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) {
-                _pendingPurchase.value = PendingPurchase.MaxUpgrade
+                _pendingPurchase.value = PendingPurchase.MaxSubscribe
                 return@launch
             }
             runBilling { billing.purchase(maxProductId) }
@@ -91,23 +100,27 @@ class PaywallViewModel @Inject constructor(
     }
 
     /**
-     * Call after a successful Google sign-in triggered by a pending purchase.
-     * Completes the trial/upgrade the user originally chose.
+     * Call after a successful Google sign-in triggered by a pending subscription.
+     * Completes the subscription the user originally chose. Pending stays set
+     * until checkout actually starts, so a failed attempt can be retried via
+     * [retryCheckout].
      */
     fun onSignedInForPurchase() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) return@launch
-            when (_pendingPurchase.value) {
-                PendingPurchase.ProTrial -> {
-                    _pendingPurchase.value = PendingPurchase.None
-                    runBilling { billing.startTrial(trialProductId) }
-                }
-                PendingPurchase.MaxUpgrade -> {
-                    _pendingPurchase.value = PendingPurchase.None
-                    runBilling { billing.purchase(maxProductId) }
-                }
-                PendingPurchase.None -> Unit
-            }
+            runPendingSubscription()
+        }
+    }
+
+    /**
+     * Re-runs the deferred subscription after a checkout that never started.
+     * No-op when nothing is pending or the user is signed out.
+     */
+    fun retryCheckout() {
+        viewModelScope.launch {
+            if (_pendingPurchase.value == PendingPurchase.None) return@launch
+            if (!authRepository.isSignedIn.first()) return@launch
+            runPendingSubscription()
         }
     }
 
@@ -142,6 +155,22 @@ class PaywallViewModel @Inject constructor(
         _lastResult.value = null
     }
 
+    /**
+     * Runs the pending subscription the user chose. A short settle delay plus a
+     * forced token refresh mitigate the post-sign-in token race; pending is
+     * cleared by [runBilling] only once checkout starts.
+     */
+    private suspend fun runPendingSubscription() {
+        delay(TOKEN_SETTLE_MILLIS)
+        // Force a fresh access token; the billing controller re-reads it.
+        authRepository.ensureFreshAccessToken()
+        when (_pendingPurchase.value) {
+            PendingPurchase.ProSubscribe -> runBilling { billing.purchase(monthlyProductId) }
+            PendingPurchase.MaxSubscribe -> runBilling { billing.purchase(maxProductId) }
+            PendingPurchase.None -> Unit
+        }
+    }
+
     private suspend fun runBilling(block: suspend () -> BillingResult) {
         if (_busy.value) return
         _busy.value = true
@@ -149,6 +178,8 @@ class PaywallViewModel @Inject constructor(
             val result = block()
             if (result is BillingResult.OpenCheckout) {
                 awaitingPaypalReturn = true
+                // Checkout started: the deferred intent has been consumed.
+                _pendingPurchase.value = PendingPurchase.None
             }
             _lastResult.value = result
         } finally {
