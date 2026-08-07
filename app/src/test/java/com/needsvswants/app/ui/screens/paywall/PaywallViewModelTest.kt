@@ -471,6 +471,101 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun consumeResult_clearsLastResult() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Failed("boom"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(BillingResult.Failed("boom"), vm.lastResult.first())
+
+        vm.consumeResult()
+        advanceUntilIdle()
+
+        assertNull(vm.lastResult.first())
+    }
+
+    @Test
+    fun subscribePro_afterFailedResult_rerunsBilling_whenSignedIn() = runTest(dispatcher) {
+        // Explicit user retry (CTA re-tap / "Try PayPal again") must re-run the
+        // pipeline even though lastResult is non-null — the auto-continue gate
+        // must not leak into explicit retry paths.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(BillingResult.Failed("timeout"), vm.lastResult.first())
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly", "pro_monthly"), billing.purchaseIds)
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun subscribeMax_afterPendingPro_whenSignedOut_reassertsMax() = runTest(dispatcher) {
+        // Plan switch while signed out with a deferred intent: pending must
+        // follow the NEW selection so sign-in completes the plan just picked.
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        vm.subscribeMax()
+        advanceUntilIdle()
+
+        assertEquals(0, billing.purchaseIds.size)
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
+        assertTrue(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
+    fun cancelPendingSignIn_clearsPending_afterFailedResult() = runTest(dispatcher) {
+        // Plan switch while signed in with a deferred intent that already
+        // failed: the intent must die; the user re-taps the CTA for the new plan.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(BillingResult.Failed("timeout"), vm.lastResult.first())
+
+        vm.cancelPendingSignIn()
+        advanceUntilIdle()
+
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertFalse(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
     fun failedReason_roundTrips() {
         val withReason: BillingResult = BillingResult.Failed("paypal declined: 10486")
         assertTrue(withReason is BillingResult.Failed)

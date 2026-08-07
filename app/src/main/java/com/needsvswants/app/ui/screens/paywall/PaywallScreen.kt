@@ -125,8 +125,14 @@ fun PaywallScreen(
     }
 
     // After Google succeeds for a pending purchase, finish trial/upgrade.
+    // `lastResult == null` gates re-entry: a Failed/Unavailable result with a
+    // still-pending intent (e.g. the Edge Function POST timed out after the
+    // server already created the subscription) must NOT re-fire the pipeline on
+    // recomposition / rotation, or the user would be offered a second approval
+    // URL. Retry is always explicit ("Try PayPal again" / CTA re-tap), never
+    // automatic; those paths call subscribePro/subscribeMax directly.
     LaunchedEffect(isSignedIn, pending) {
-        if (isSignedIn && pending != PendingPurchase.None) {
+        if (isSignedIn && pending != PendingPurchase.None && lastResult == null) {
             viewModel.onSignedInForPurchase()
         }
     }
@@ -149,6 +155,23 @@ fun PaywallScreen(
             selected = plan
             haptics.tick()
             viewModel.consumeResult()
+            if (pending != PendingPurchase.None) {
+                if (isSignedIn) {
+                    // A deferred purchase must never cross a plan change: the
+                    // user re-taps the CTA to start fresh for the new plan.
+                    viewModel.cancelPendingSignIn()
+                } else {
+                    // Signed out: re-assert the deferred intent for the NEW
+                    // selection so sign-in completes the plan the user just
+                    // picked (subscribeX just sets pending when signed out).
+                    // Free needs no sign-in — drop the intent entirely.
+                    when (plan) {
+                        MembershipPlan.Pro -> viewModel.subscribePro()
+                        MembershipPlan.Max -> viewModel.subscribeMax()
+                        MembershipPlan.Free -> viewModel.cancelPendingSignIn()
+                    }
+                }
+            }
         }
     }
 
