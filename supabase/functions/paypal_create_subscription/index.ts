@@ -57,7 +57,10 @@ async function getOAuthToken(
     body: "grant_type=client_credentials",
   });
   if (!res.ok) {
-    throw new Error(`PayPal OAuth failed: HTTP ${res.status}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `PayPal OAuth failed: HTTP ${res.status} ${body.slice(0, 200)}`,
+    );
   }
   const json = await res.json() as { access_token?: string };
   if (!json.access_token) throw new Error("PayPal OAuth missing access_token");
@@ -192,7 +195,10 @@ Deno.serve(async (req: Request) => {
       approval_url: approve,
     });
   } catch (err) {
+    const detail = err instanceof Error
+      ? err.message + (err.cause ? ` (cause: ${String(err.cause)})` : "")
+      : String(err);
     console.error("paypal_create_subscription error:", err);
-    return error("Internal error", 500);
+    return error(`Internal error: ${detail}`, 500);
   }
 });
