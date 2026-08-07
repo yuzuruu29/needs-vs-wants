@@ -78,6 +78,7 @@ fun PaywallScreen(
     val hasMaxAccess by viewModel.hasMaxAccess.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val lastResult by viewModel.lastResult.collectAsStateWithLifecycle()
+    val checkoutSync by viewModel.checkoutSyncState.collectAsStateWithLifecycle()
     val isSignedIn by viewModel.isSignedIn.collectAsStateWithLifecycle()
     val signedInEmail by viewModel.signedInEmail.collectAsStateWithLifecycle()
     val pending by viewModel.pendingPurchase.collectAsStateWithLifecycle()
@@ -410,12 +411,19 @@ fun PaywallScreen(
                         "Opening PayPal… complete checkout, then return here.",
                         color = palette.gilt
                     )
-                    BillingResult.Success -> StatusText(
-                        if (hasMaxAccess) "Welcome to Max."
-                        else if (isPro) "Welcome to Pro."
-                        else "Account refreshed. If you just paid, wait a few seconds and tap Restore.",
-                        color = palette.marketGreen
-                    )
+                    BillingResult.Success -> when {
+                        hasMaxAccess -> StatusText(
+                            "Welcome to Max.",
+                            color = palette.marketGreen
+                        )
+                        isPro -> StatusText(
+                            "Welcome to Pro.",
+                            color = palette.marketGreen
+                        )
+                        // Free here means a plain restore with no grant; the
+                        // checkout-return states below carry the messaging.
+                        else -> Unit
+                    }
                     is BillingResult.Failed -> {
                         StatusText(
                             r.reason ?: "Payment didn't go through. Try again.",
@@ -429,6 +437,23 @@ fun PaywallScreen(
                         )
                     }
                     null -> Unit
+                }
+
+                // Checkout-return sync lifecycle (durable flag path): "Still
+                // unlocking — retrying…" during backoff, then the
+                // payment-recorded message instead of silent free after the
+                // retry schedule exhausted. Independent of lastResult so the
+                // exhausted message persists across result consumption.
+                when (checkoutSync) {
+                    CheckoutSyncState.Syncing -> StatusText(
+                        "Still unlocking — retrying…",
+                        color = palette.gilt
+                    )
+                    CheckoutSyncState.Exhausted -> StatusText(
+                        "Payment recorded — tap Restore, or wait a moment.",
+                        color = palette.textMuted
+                    )
+                    CheckoutSyncState.Idle -> Unit
                 }
 
                 Spacer(Modifier.height(8.dp))

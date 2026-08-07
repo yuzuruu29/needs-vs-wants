@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
+import com.needsvswants.app.data.entitlement.CheckoutReturnSync
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.SupabaseConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -27,6 +29,20 @@ enum class PendingPurchase {
 }
 
 /**
+ * Lifecycle of the durable checkout-return sync, surfaced to the paywall status
+ * strip:
+ * - [Idle] — no return sync running or just completed;
+ * - [Syncing] — retry loop in flight after a PayPal return (not yet Pro);
+ * - [Exhausted] — retry schedule finished without a grant; the durable pending
+ *   flag stays set (self-heal on next cold start / Restore).
+ */
+enum class CheckoutSyncState {
+    Idle,
+    Syncing,
+    Exhausted
+}
+
+/**
  * Pause after Google sign-in before forcing a fresh access token, so the session
  * write settles before the subscription request (plan's 150-300ms window).
  */
@@ -37,7 +53,9 @@ class PaywallViewModel @Inject constructor(
     private val billing: BillingController,
     private val repository: EntitlementRepository,
     private val authRepository: AuthRepository,
-    private val config: SupabaseConfig
+    private val config: SupabaseConfig,
+    private val payPalReturn: PayPalReturnStore,
+    private val entitlementSync: CheckoutReturnSync
 ) : ViewModel() {
 
     val isPro: StateFlow<Boolean> = repository.isPro
@@ -66,6 +84,15 @@ class PaywallViewModel @Inject constructor(
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
 
     /**
+     * Checkout-return sync lifecycle ([CheckoutSyncState]). Drives the paywall
+     * status strip: "Still unlocking — retrying…" while [CheckoutSyncState.Syncing]
+     * and "Payment recorded — tap Restore, or wait a moment." while
+     * [CheckoutSyncState.Exhausted].
+     */
+    private val _checkoutSyncState = MutableStateFlow(CheckoutSyncState.Idle)
+    val checkoutSyncState: StateFlow<CheckoutSyncState> = _checkoutSyncState.asStateFlow()
+
+    /**
      * The pending intent that has already been auto-continued by
      * [onSignedInForPurchase]. Guards exactly-once auto-continue: the same
      * pending intent must never run the subscription pipeline twice, even if
@@ -77,8 +104,14 @@ class PaywallViewModel @Inject constructor(
      */
     private var autoContinued: PendingPurchase? = null
 
-    /** Set when PayPal approval URL is opened; cleared after return refresh. */
-    private var awaitingPaypalReturn: Boolean = false
+    /**
+     * Once-per-return guard for the durable checkout-return sync: the retried
+     * sync runs at most once per pending-flag instance per ViewModel lifetime,
+     * so a paywall resume that follows the deep-link handler's routine (or a
+     * later background/foreground cycle) does not restart the 0/2/5/10s loop.
+     * Re-armed on every OpenCheckout so a NEW checkout retriggers the loop.
+     */
+    private var checkoutReturnSyncLaunched = false
 
     /**
      * True only after the user taps Start trial / Upgrade while signed out.
@@ -166,18 +199,41 @@ class PaywallViewModel @Inject constructor(
     }
 
     /**
-     * After returning from PayPal browser, re-pull entitlement.
-     * No-op unless a checkout was just started (avoids spam on every resume).
+     * After returning from PayPal browser (deep link or paywall resume), run
+     * the retried entitlement sync exactly once per pending return.
+     *
+     * No-op while the durable pending flag is unset (no checkout started, or
+     * the cancel deep link already cleared it). When set and this session has
+     * not yet started the retry loop for it, runs
+     * [CheckoutReturnSync.syncAfterCheckoutReturn]:
+     * - Pro confirmed → clear the durable flag and surface Success (the sync
+     *   has refreshed the local snapshot, so the paywall shows "Welcome to
+     *   Pro." / "Welcome to Max.");
+     * - still free after the retry schedule → leave the flag set (self-heals
+     *   on the next cold start, or via the explicit Restore escape hatch) and
+     *   surface [CheckoutSyncState.Exhausted].
+     *
+     * The once-per-return guard means the RESUMED effect can keep calling this
+     * on every resume without re-firing the retry routine.
      */
     fun onReturnFromCheckout() {
-        if (!awaitingPaypalReturn) return
-        awaitingPaypalReturn = false
         viewModelScope.launch {
-            _busy.value = true
-            try {
-                _lastResult.value = billing.restorePurchases()
-            } finally {
-                _busy.value = false
+            val pendingReturn = runCatching { payPalReturn.paypalReturnPending.first() }.getOrDefault(false)
+            if (!pendingReturn) return@launch
+            if (checkoutReturnSyncLaunched) return@launch
+            checkoutReturnSyncLaunched = true
+            _checkoutSyncState.value = CheckoutSyncState.Syncing
+            entitlementSync.syncAfterCheckoutReturn { proConfirmed ->
+                if (proConfirmed) {
+                    // onResult is a plain (non-suspend) callback: hop back onto
+                    // the VM scope for the durable-flag clear (idempotent — the
+                    // sync already cleared it on its own success path).
+                    viewModelScope.launch { runCatching { payPalReturn.clearPaypalReturnPending() } }
+                    _checkoutSyncState.value = CheckoutSyncState.Idle
+                    _lastResult.value = BillingResult.Success
+                } else {
+                    _checkoutSyncState.value = CheckoutSyncState.Exhausted
+                }
             }
         }
     }
@@ -235,7 +291,12 @@ class PaywallViewModel @Inject constructor(
     private suspend fun executeBilling(block: suspend () -> BillingResult) {
         val result = block()
         if (result is BillingResult.OpenCheckout) {
-            awaitingPaypalReturn = true
+            // Checkout started: persist the durable pending-return flag (survives
+            // process death while the browser is open) and re-arm the
+            // once-per-return sync guard so the next return retriggers the loop.
+            runCatching { payPalReturn.setPaypalReturnPending(true) }
+            checkoutReturnSyncLaunched = false
+            _checkoutSyncState.value = CheckoutSyncState.Idle
             // Checkout started: the deferred intent has been consumed.
             _pendingPurchase.value = PendingPurchase.None
             autoContinued = null

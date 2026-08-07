@@ -7,6 +7,7 @@ import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenResult
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
+import com.needsvswants.app.data.entitlement.CheckoutReturnSync
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
@@ -18,6 +19,7 @@ import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Delay
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +34,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -67,7 +70,9 @@ class PaywallViewModelTest {
             billing = billing,
             repository = EntitlementRepository(FakeLocal(), FakeRemote()),
             authRepository = signedInAuth(),
-            config = SupabaseConfig.Disabled
+            config = SupabaseConfig.Disabled,
+            payPalReturn = FakePayPalReturnStore(),
+            entitlementSync = FakeEntitlementSync()
         )
 
         vm.subscribePro()
@@ -85,7 +90,9 @@ class PaywallViewModelTest {
             billing = billing,
             repository = EntitlementRepository(FakeLocal(), FakeRemote()),
             authRepository = signedOutAuth(),
-            config = SupabaseConfig.Disabled
+            config = SupabaseConfig.Disabled,
+            payPalReturn = FakePayPalReturnStore(),
+            entitlementSync = FakeEntitlementSync()
         )
 
         vm.subscribePro()
@@ -104,7 +111,9 @@ class PaywallViewModelTest {
             billing = billing,
             repository = EntitlementRepository(FakeLocal(), FakeRemote()),
             authRepository = signedOutAuth(),
-            config = SupabaseConfig.Disabled
+            config = SupabaseConfig.Disabled,
+            payPalReturn = FakePayPalReturnStore(),
+            entitlementSync = FakeEntitlementSync()
         )
 
         vm.subscribeMax()
@@ -129,7 +138,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            config
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.subscribePro()
@@ -149,7 +160,9 @@ class PaywallViewModelTest {
             billing = billing,
             repository = EntitlementRepository(FakeLocal(), FakeRemote()),
             authRepository = signedOutAuth(),
-            config = SupabaseConfig.Disabled
+            config = SupabaseConfig.Disabled,
+            payPalReturn = FakePayPalReturnStore(),
+            entitlementSync = FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -174,7 +187,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            config
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.subscribeMax()
@@ -198,7 +213,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(proEntitlement), FakeRemote()),
             signedInAuth(),
-            config
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.subscribeMax()
@@ -215,7 +232,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.subscribeMax()
@@ -230,7 +249,9 @@ class PaywallViewModelTest {
             FakeBilling(BillingResult.Unavailable),
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedOutAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         advanceUntilIdle()
@@ -245,7 +266,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedOutAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.restore()
@@ -261,7 +284,9 @@ class PaywallViewModelTest {
             FakeBilling(BillingResult.Unavailable),
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedOutAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         assertEquals("pro_monthly", vm.monthlyProductId)
         assertEquals("max_monthly", vm.maxProductId)
@@ -282,7 +307,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            config
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         // User taps Start Pro while signed out: deferred, no billing yet.
         vm.subscribePro()
@@ -318,7 +345,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            config
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribeMax()
         advanceUntilIdle()
@@ -342,7 +371,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -367,7 +398,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -395,7 +428,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -427,7 +462,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         // First intent: continues once, fails, intent stays pending.
         vm.subscribePro()
@@ -467,7 +504,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -493,7 +532,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -518,7 +559,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.retryCheckout()
@@ -534,7 +577,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedOutAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -553,7 +598,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -575,7 +622,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
 
         vm.subscribePro()
@@ -599,7 +648,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedOutAuth(),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -623,7 +674,9 @@ class PaywallViewModelTest {
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -639,6 +692,296 @@ class PaywallViewModelTest {
 
         assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
         assertFalse(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
+    fun openCheckout_setsDurablePendingFlag() = runTest(dispatcher) {
+        val payPalReturn = FakePayPalReturnStore()
+        val sync = FakeEntitlementSync(outcome = true)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.OpenCheckout("https://paypal.test/approve")),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        // Task-1 P3-4 carry: the durable flag is persisted when checkout starts —
+        // before any return sync attempt — and only a confirmation/cancel clears it.
+        assertTrue(payPalReturn.paypalReturnPending.first())
+        assertEquals(BillingResult.OpenCheckout("https://paypal.test/approve"), vm.lastResult.first())
+        assertEquals(0, sync.syncCalls)
+    }
+
+    @Test
+    fun onReturnFromCheckout_flagSet_runsSync_clearsFlagOnPro() = runTest(dispatcher) {
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = true)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        advanceUntilIdle()
+
+        assertEquals(1, sync.syncCalls)
+        assertFalse(payPalReturn.paypalReturnPending.first())
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+    }
+
+    @Test
+    fun onReturnFromCheckout_exhausted_leavesFlag_andSurfacesExhausted() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = false, gate = gate)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        runCurrent()
+
+        // Backoff in flight: the retrying state is surfaced while the loop runs.
+        assertEquals(CheckoutSyncState.Syncing, vm.checkoutSyncState.first())
+        assertEquals(1, sync.syncCalls)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        // Exhausted: the flag stays set (self-heal on next cold start / Restore)
+        // and the paywall surfaces the payment-recorded message instead of silence.
+        assertTrue(payPalReturn.paypalReturnPending.first())
+        assertEquals(CheckoutSyncState.Exhausted, vm.checkoutSyncState.first())
+        assertNull(vm.lastResult.first())
+    }
+
+    @Test
+    fun onReturnFromCheckout_flagNotSet_noSync() = runTest(dispatcher) {
+        val payPalReturn = FakePayPalReturnStore()
+        val sync = FakeEntitlementSync(outcome = true)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        advanceUntilIdle()
+
+        assertEquals(0, sync.syncCalls)
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+    }
+
+    @Test
+    fun onReturnFromCheckout_afterCancelClearedFlag_noSync() = runTest(dispatcher) {
+        // The cancel deep link (Task 1) clears the durable flag; the paywall
+        // resume that follows must not start a sync for a cancelled checkout.
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        payPalReturn.clearPaypalReturnPending()
+        val sync = FakeEntitlementSync(outcome = true)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        advanceUntilIdle()
+
+        assertEquals(0, sync.syncCalls)
+        assertFalse(payPalReturn.paypalReturnPending.first())
+    }
+
+    @Test
+    fun onReturnFromCheckout_secondResume_doesNotRerunLoop() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = false, gate = gate)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        runCurrent()
+        // Background/foreground cycle: the RESUMED effect fires again, but the
+        // once-per-return guard must not restart the 0/2/5/10s loop.
+        vm.onReturnFromCheckout()
+        runCurrent()
+        assertEquals(1, sync.syncCalls)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, sync.syncCalls)
+    }
+
+    @Test
+    fun onReturnFromCheckout_newOpenCheckout_rearmsLoop() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = false, gate = gate)
+        val billing = FakeBilling(BillingResult.OpenCheckout("https://paypal.test/approve"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        runCurrent()
+        assertEquals(1, sync.syncCalls)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(CheckoutSyncState.Exhausted, vm.checkoutSyncState.first())
+
+        // A NEW checkout re-persists the flag, resets the exhausted state, and
+        // re-arms the once-per-return guard so the next return retriggers it.
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertTrue(payPalReturn.paypalReturnPending.first())
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+
+        vm.onReturnFromCheckout()
+        advanceUntilIdle()
+        assertEquals(2, sync.syncCalls)
+        assertEquals(CheckoutSyncState.Exhausted, vm.checkoutSyncState.first())
+    }
+
+    @Test
+    fun onReturnFromCheckout_syncNotBlockedByBusy() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val billing = GatedBilling(gate)
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = true)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.subscribePro()
+        runCurrent()
+        assertTrue(vm.busy.first())
+
+        // The checkout-return sync is independent of the billing pipeline: it
+        // runs even while a purchase is in flight (per design, not busy-gated).
+        vm.onReturnFromCheckout()
+        advanceUntilIdle()
+        assertEquals(1, sync.syncCalls)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(BillingResult.OpenCheckout("https://paypal.test/approve"), vm.lastResult.first())
+    }
+
+    @Test
+    fun retryCheckout_noOp_whileBusy() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        val billing = GatedBilling(gate)
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        runCurrent()
+        assertTrue(vm.busy.first())
+
+        vm.retryCheckout()
+        advanceUntilIdle()
+
+        // Busy guard: no second purchase while the first is in flight.
+        assertEquals(1, billing.purchaseIds.size)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, billing.purchaseIds.size)
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun subscribePro_signedIn_surfacesOpenCheckout() = runTest(dispatcher) {
+        // PayMongo (or any web checkout) returns OpenCheckout; the VM must pass
+        // it through from billing.purchase so the UI can open the checkout URL.
+        val billing = FakeBilling(BillingResult.OpenCheckout("https://checkout.paymongo.com/px/abc"))
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(
+            BillingResult.OpenCheckout("https://checkout.paymongo.com/px/abc"),
+            vm.lastResult.first()
+        )
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun restore_surfacesSuccess() = runTest(dispatcher) {
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
+        )
+
+        vm.restore()
+        advanceUntilIdle()
+
+        assertEquals(1, billing.restoreCalls)
+        assertEquals(BillingResult.Success, vm.lastResult.first())
     }
 
     @Test
@@ -770,6 +1113,40 @@ class PaywallViewModelTest {
         override suspend fun clearPaypalReturnPending() {
             state.value = false
         }
+    }
+
+    /**
+     * Records calls to the checkout-return sync seam. [outcome] is reported to
+     * the onResult callback; when [gate] is provided the call suspends on it
+     * first so tests can observe the in-flight (Syncing) state.
+     */
+    private class FakeEntitlementSync(
+        private val outcome: Boolean? = null,
+        private val gate: CompletableDeferred<Unit>? = null
+    ) : CheckoutReturnSync {
+        var syncCalls = 0
+            private set
+
+        override suspend fun syncAfterCheckoutReturn(onResult: (Boolean) -> Unit): Boolean {
+            syncCalls++
+            gate?.await()
+            val result = outcome ?: error("FakeEntitlementSync needs an outcome for this call")
+            onResult(result)
+            return result
+        }
+    }
+
+    /** Billing whose purchase suspends on [gate] before returning OpenCheckout. */
+    private class GatedBilling(private val gate: CompletableDeferred<Unit>) : BillingController {
+        val purchaseIds = mutableListOf<String>()
+        override val isPlayAvailable: Boolean = false
+        override suspend fun startTrial(productId: String): BillingResult = BillingResult.Pending
+        override suspend fun purchase(productId: String): BillingResult {
+            purchaseIds.add(productId)
+            gate.await()
+            return BillingResult.OpenCheckout("https://paypal.test/approve")
+        }
+        override suspend fun restorePurchases(): BillingResult = BillingResult.Success
     }
 
     private object NoopGoogle : GoogleIdTokenProvider {

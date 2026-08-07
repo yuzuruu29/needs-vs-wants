@@ -30,7 +30,7 @@ class EntitlementSync @Inject constructor(
     private val entitlements: EntitlementRepository,
     private val preferences: AppPreferences,
     private val config: SupabaseConfig
-) {
+) : CheckoutReturnSync {
     companion object {
         /**
          * Retry schedule after a PayPal checkout return, in milliseconds.
@@ -89,7 +89,7 @@ class EntitlementSync @Inject constructor(
      *
      * @return true when Pro access was confirmed during the retry window.
      */
-    suspend fun syncAfterCheckoutReturn(onResult: (Boolean) -> Unit = {}): Boolean {
+    override suspend fun syncAfterCheckoutReturn(onResult: (Boolean) -> Unit): Boolean {
         if (!config.enabled) {
             // No remote to consult — a grant cannot arrive; do not spin the delays.
             onResult(false)
