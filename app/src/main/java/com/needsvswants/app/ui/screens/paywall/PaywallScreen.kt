@@ -114,10 +114,12 @@ fun PaywallScreen(
                 delay(3000)
                 viewModel.consumeResult()
             }
-            is BillingResult.Failed, BillingResult.Unavailable, BillingResult.Pending -> {
+            BillingResult.Pending -> {
                 delay(3000)
                 viewModel.consumeResult()
             }
+            // Failed / Unavailable persist so the reason + "Try PayPal again" stay visible.
+            is BillingResult.Failed, BillingResult.Unavailable -> Unit
             null -> Unit
         }
     }
@@ -152,8 +154,8 @@ fun PaywallScreen(
     val ctaEnabled = !busy && !authState.busy
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
-        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Start Pro 3-day free trial"
-        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Start Max plan"
+        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Continue with PayPal · Pro"
+        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Continue with PayPal · Max"
     }
     val primaryEnabled = when (selected) {
         MembershipPlan.Free -> true
@@ -162,8 +164,8 @@ fun PaywallScreen(
     }
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
-        MembershipPlan.Pro -> "Then ₱199 / mo · $3.49. Pay with PayPal. Cancel anytime."
-        MembershipPlan.Max -> "₱399 / mo · $6.99 via PayPal. Includes Pro + AI Advisor."
+        MembershipPlan.Pro, MembershipPlan.Max ->
+            "3-day free trial is on PayPal if enabled on the plan. You'll approve in the browser. Cancel anytime in PayPal."
     }
 
     Box(
@@ -303,7 +305,7 @@ fun PaywallScreen(
                             maxLines = 2
                         )
                         Text(
-                            "Purchases will apply to this account.",
+                            "Tap continue to open PayPal.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -314,17 +316,13 @@ fun PaywallScreen(
                     Spacer(Modifier.height(14.dp))
                     PaywallNoticeSurface(accent = palette.crimson) {
                         Text(
-                            when (pending) {
-                                PendingPurchase.ProSubscribe -> "Sign in to start your Pro trial"
-                                PendingPurchase.MaxSubscribe -> "Sign in to upgrade to Max"
-                                else -> "Sign in to continue"
-                            },
+                            "Step 1 of 2 · Sign in with Google",
                             style = PaywallType.planFeatureEmph,
                             color = palette.textPrimary
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Google is only used when you subscribe. Free use stays private on this device.",
+                            "Sign in with Google to start PayPal checkout. Free use never needs an account.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -362,11 +360,19 @@ fun PaywallScreen(
                 }
 
                 Spacer(Modifier.height(12.dp))
-                when (lastResult) {
-                    BillingResult.Unavailable -> StatusText(
-                        "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
-                        color = palette.textMuted
-                    )
+                when (val r = lastResult) {
+                    BillingResult.Unavailable -> {
+                        StatusText(
+                            "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
+                            color = palette.textMuted
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        RetryPayPalButton(
+                            onRetry = { viewModel.retryCheckout() },
+                            enabled = !busy,
+                            color = palette.textMuted
+                        )
+                    }
                     BillingResult.Pending -> StatusText(
                         "Your payment is processing…",
                         color = palette.gilt
@@ -381,10 +387,18 @@ fun PaywallScreen(
                         else "Account refreshed. If you just paid, wait a few seconds and tap Restore.",
                         color = palette.marketGreen
                     )
-                    is BillingResult.Failed -> StatusText(
-                        "Payment didn't go through. Sign in and try again.",
-                        color = palette.crimson
-                    )
+                    is BillingResult.Failed -> {
+                        StatusText(
+                            r.reason ?: "Payment didn't go through. Try again.",
+                            color = palette.crimson
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        RetryPayPalButton(
+                            onRetry = { viewModel.retryCheckout() },
+                            enabled = !busy,
+                            color = palette.textMuted
+                        )
+                    }
                     null -> Unit
                 }
 
@@ -453,7 +467,7 @@ fun PaywallScreen(
                         Text(
                             text = when {
                                 needsSignInForPurchase && !isSignedIn ->
-                                    "Sign in with Google to finish your upgrade."
+                                    "First Google, then PayPal opens in your browser."
                                 isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
                                     "You're on Pro. Select Max for the AI Advisor."
                                 else ->
@@ -481,4 +495,19 @@ private fun StatusText(text: String, color: Color) {
         textAlign = TextAlign.Center,
         softWrap = true
     )
+}
+
+@Composable
+private fun RetryPayPalButton(onRetry: () -> Unit, enabled: Boolean, color: Color) {
+    TextButton(
+        onClick = onRetry,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled
+    ) {
+        Text(
+            "Try PayPal again",
+            style = PaywallType.meta,
+            color = color
+        )
+    }
 }
