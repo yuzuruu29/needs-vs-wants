@@ -38,6 +38,7 @@ import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
 import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.ReceiptFeatureLine
+import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.TierTag
 import com.needsvswants.app.ui.theme.themedInkWash
 
@@ -57,6 +58,7 @@ fun FinancialAdvisorScreen(
             .background(themedInkWash())
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
+            .verticalScrollFirst()
             .verticalScroll(scrollState)
     ) {
         Row(
@@ -307,7 +309,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "₱499 / mo · $9.99 · includes everything in Pro",
+                text = "₱399 / mo · $6.99 · includes everything in Pro",
                 style = AppType.bodySm,
                 color = palette.textMuted,
                 textAlign = TextAlign.Center

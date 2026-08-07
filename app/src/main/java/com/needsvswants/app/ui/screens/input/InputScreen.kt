@@ -74,7 +74,9 @@ import com.needsvswants.app.ui.theme.PremiumDialog
 import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.SealStampOverlay
 import com.needsvswants.app.ui.theme.DailyBudgetMeter
+import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.rememberAppHaptics
+import com.needsvswants.app.ui.theme.rememberAppSfx
 import com.needsvswants.app.ui.theme.themedInkWash
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -106,6 +108,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     var showNewSheetConfirm by remember { mutableStateOf(false) }
     var showSealStamp by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
+    val sfx = rememberAppSfx()
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val palette = AppTheme.colors
@@ -155,7 +158,9 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScrollFirst(),
             contentPadding = PaddingValues(bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
@@ -272,13 +277,19 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                                             )
                                             Spacer(Modifier.width(10.dp))
                                             TypeChip("NEED", type == EntryType.NEED, palette.need) {
-                                                if (type != EntryType.NEED) haptics.tick()
+                                                if (type != EntryType.NEED) {
+                                                    haptics.tick()
+                                                    sfx.tap()
+                                                }
                                                 viewModel.activeType.value = EntryType.NEED
                                                 viewModel.trySeal()
                                             }
                                             Spacer(Modifier.width(8.dp))
                                             TypeChip("WANT", type == EntryType.WANT, palette.want) {
-                                                if (type != EntryType.WANT) haptics.tick()
+                                                if (type != EntryType.WANT) {
+                                                    haptics.tick()
+                                                    sfx.tap()
+                                                }
                                                 viewModel.activeType.value = EntryType.WANT
                                                 viewModel.trySeal()
                                             }

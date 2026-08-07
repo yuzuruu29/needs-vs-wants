@@ -1,0 +1,15 @@
+Needs vs Wants — interaction sound credits
+==========================================
+
+Pack:    UI Audio
+Author:  Kenney Vleugels (Kenney.nl)
+License: Creative Commons Zero (CC0 1.0)
+         https://creativecommons.org/publicdomain/zero/1.0/
+Source:  https://kenney.nl/assets/ui-audio
+
+Mapped files (original Kenney names):
+  sfx_tap.ogg        <- click1.ogg      (quick ledger / UI tap)
+  sfx_long_press.ogg <- switch19.ogg    (long-press delete)
+  sfx_orb.ogg        <- switch3.ogg     (Summary orb press)
+
+Credit is optional under CC0; this app still credits Kenney in Settings > About.

@@ -10,7 +10,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -25,12 +27,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -45,8 +44,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -97,10 +100,75 @@ fun themedInkWash(): Brush {
 }
 
 /**
- * Glossy card surface: white/raised fill, soft elevation, gold-kissed border.
- * Prefer this over bare [Surface] on main screens for a premium feel.
+ * Rich multi-blob background for the faux-glass look.
  *
- * @param raised true = elevated gold-edge card; false = flat inset paper panel.
+ * Paints a soft base gradient, then several large, muted crimson/green/gold radial
+ * blobs behind everything. The translucent glass surfaces sit on top, so this color
+ * depth bleeds through the cards — that translucency-over-depth is what makes frosted
+ * glass read as glass instead of just flat transparency.
+ *
+ * On HighContrast this falls back to the flat [themedInkWash] to preserve contrast.
+ *
+ * Apply in place of a plain `.background(themedInkWash())`:
+ * `Column(Modifier.fillMaxSize().glassBlobBackground())`
+ */
+@Composable
+fun Modifier.glassBlobBackground(): Modifier = if (
+    AppTheme.colors.glassFillAlpha > 0.95f
+) {
+    this.background(themedInkWash())
+} else {
+    val c = AppTheme.colors
+    this.drawBehind {
+        // Base vertical wash.
+        drawRect(
+            brush = themedInkWashBrush(c),
+            size = size
+        )
+        val w = size.width
+        val h = size.height
+        // Dark backgrounds need stronger blobs so the brand color shows through
+        // the translucent glass rather than vanishing into the near-black wash.
+        val boost = if (c.isLightStatusBars) 1f else 1.55f
+        // Brand blobs — strong enough that their depth visibly bleeds through the
+        // translucent cards (net tint ≈ 0.15-0.20). Cores stay under 0.5 so they
+        // read atmospheric. The top-left region stays gentle (it sits behind the
+        // header title/subtitle drawn on the raw wash), depth gathers lower/side.
+        val blobs = listOf(
+            Triple(c.crimson.copy(alpha = 0.18f * boost), Offset(w * 0.12f, h * 0.08f), size.width * 0.7f),
+            Triple(c.marketGreen.copy(alpha = 0.30f * boost), Offset(w * 0.90f, h * 0.26f), size.width * 0.75f),
+            Triple(c.gold.copy(alpha = 0.34f * boost), Offset(w * 0.26f, h * 0.90f), size.width * 0.66f),
+            Triple(c.crimson.copy(alpha = 0.20f * boost), Offset(w * 0.84f, h * 0.84f), size.width * 0.45f),
+            Triple(c.want.copy(alpha = 0.22f * boost), Offset(w * 0.04f, h * 0.55f), size.width * 0.5f),
+        )
+        for ((color, center, radius) in blobs) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color, color.copy(alpha = 0f)),
+                    center = center,
+                    radius = radius
+                ),
+                radius = radius,
+                center = center
+            )
+        }
+    }
+}
+
+/** Non-composable vertical base wash so [glassBlobBackground] can read palette colors. */
+private fun themedInkWashBrush(c: AppPalette): Brush = Brush.verticalGradient(
+    colorStops = arrayOf(
+        0.0f to c.background,
+        0.55f to c.background,
+        1.0f to c.surfaceSunken
+    )
+)
+
+/**
+ * Ledger paper card: near-opaque stock, optional rules (raised), gold or ink
+ * hairline, soft desk shadow. Prefer over bare [Surface] on main screens.
+ *
+ * @param raised true = elevated ruled sheet; false = flat inset panel.
  */
 @Composable
 fun PremiumSurface(
@@ -110,35 +178,13 @@ fun PremiumSurface(
     raised: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val c = AppTheme.colors
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        color = if (raised) c.surfaceCard else c.surfaceSunken,
-        shadowElevation = if (raised) 5.dp else 0.dp,
-        tonalElevation = 0.dp,
-        border = BorderStroke(
-            1.dp,
-            if (goldEdge) c.gold.copy(alpha = if (raised) 0.28f else 0.18f) else c.divider
-        )
+    val spec = rememberPaperSpec(if (raised) PaperKind.RAISED else PaperKind.FLAT, goldEdge = goldEdge)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .paperSurface(spec, shape)
     ) {
-        Box {
-            if (raised) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = if (c.isLightStatusBars) 0.55f else 0.06f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
-            Column(content = content)
-        }
+        Column(content = content)
     }
 }
 
@@ -153,13 +199,22 @@ fun Eyebrow(
     text: String,
     modifier: Modifier = Modifier,
     color: Color? = null,
-    size: Int = 11,
+    size: Int = 12,
     align: TextAlign? = null,
     softWrap: Boolean = true,
     maxLines: Int = Int.MAX_VALUE
 ) {
     val resolved = color ?: AppTheme.colors.crimson
-    val baseStyle = if (size <= 10) AppType.eyebrowSm else AppType.eyebrow
+    // Floor at 11sp so call sites with size=9/10 never go illegible.
+    val floored = size.coerceAtLeast(11)
+    val baseStyle = if (floored <= 11) {
+        AppType.eyebrowSm
+    } else {
+        AppType.eyebrow.copy(
+            fontSize = floored.sp,
+            lineHeight = (floored * 1.35f).sp
+        )
+    }
     Text(
         text = text.uppercase(),
         style = if (align != null) baseStyle.copy(textAlign = align) else baseStyle,
@@ -207,23 +262,26 @@ fun DailyBudgetMeter(
             pulse.animateTo(1f, Motion.feedback())
         }
     }
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = AppTheme.colors.surfaceCard,
-        border = BorderStroke(1.dp, edge),
-        shadowElevation = 2.dp,
-        tonalElevation = 0.dp,
-        modifier = modifier.fillMaxWidth()
+    val guardShape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .paperSurface(
+                rememberPaperSpec(PaperKind.CHIP, goldEdge = !over),
+                guardShape
+            )
+            // over-state edge: crimson when over budget (paper chip already has gold rim)
+            .border(BorderStroke(1.dp, if (over) edge else Color.Transparent), guardShape)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(scaledSpacing(16f))) {
             Eyebrow("DAILY BUDGET", color = if (over) AppTheme.colors.crimson else AppTheme.colors.gilt)
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(scaledSpacing(8f)))
             Text(
                 "${status.spentCents.toMoney(symbol)} / ${status.budgetCents.toMoney(symbol)}",
                 style = AppType.moneyMd,
                 color = AppTheme.colors.textPrimary
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(scaledSpacing(8f)))
             LinearProgressIndicator(
                 progress = { animatedProgress },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
@@ -231,7 +289,7 @@ fun DailyBudgetMeter(
                 trackColor = AppTheme.colors.surfaceRaised,
                 strokeCap = StrokeCap.Round
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(scaledSpacing(8f)))
             Text(
                 if (over) "Over by ${(-status.remainingCents).toMoney(symbol)}"
                 else "Remaining ${status.remainingCents.toMoney(symbol)}",
@@ -318,12 +376,23 @@ fun HeaderIconWell(
     } else {
         BorderStroke(1.dp, c.gold.copy(alpha = 0.32f))
     }
+    val well = scaledSpacing(48f)
     Box(
         modifier = modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (enabled) bg else bg.copy(alpha = 0.45f))
-            .border(border, RoundedCornerShape(14.dp))
+            .size(well)
+            .then(
+                if (filled) {
+                    Modifier
+                        .background(if (enabled) bg else bg.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                        .border(border, RoundedCornerShape(14.dp))
+                } else {
+                    // Solid paper chip — gold hairline, no translucent chrome
+                    Modifier.paperSurface(
+                        rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                        RoundedCornerShape(14.dp)
+                    )
+                }
+            )
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
@@ -337,17 +406,48 @@ fun HeaderIconWell(
 /**
  * Shrink a money string's font so it always fits its container instead of
  * clipping or overflowing. `base` is the normal size for short amounts.
+ *
+ * Calibrated to measured Source Sans 3 Regular advances (2026-08-07):
+ * "₱ 1,234.56" = 4.177em, "₱ 12,345.67" = 4.674em, "₱ 1,234,567.89" = 5.917em,
+ * "₱ 12,345,678.90" = 6.414em. The ledger cost column is 92dp since the
+ * delete affordance moved to long-press (D97), so amounts up to 13 glyphs
+ * (≈ ₱ 1,234,567.89) keep the FULL base size at every scale — 5.917em × 15sp
+ * = 88.8dp ≤ 92dp. Only longer amounts step down; floor at 11sp so money
+ * never shrinks below the eyebrow scale at Extra large.
  */
 fun adaptiveMoneySize(text: String, base: TextUnit): TextUnit {
     val len = text.length
     val factor = when {
+        len <= 7 -> 1f
         len <= 9 -> 1f
-        len <= 12 -> 0.82f
-        len <= 15 -> 0.68f
-        len <= 19 -> 0.58f
-        else -> 0.5f
+        len <= 13 -> 1f
+        len <= 15 -> 0.90f
+        len <= 18 -> 0.78f
+        len <= 22 -> 0.66f
+        else -> 0.58f
     }
-    return (base.value * factor).sp
+    return (base.value * factor).coerceAtLeast(11f).sp
+}
+
+/**
+ * Width-aware money size for tight cards. Uses [maxWidth] so long amounts
+ * scale down before they paint outside the gold-edge box.
+ *
+ * The 0.58em/glyph estimate deliberately over-estimates real Source Sans 3
+ * advances (measured ≈ 0.45em for money strings), so the result is always
+ * safe — and with the 11sp floor, money never falls below the eyebrow scale
+ * even at Extra large. The length-based [adaptiveMoneySize] curve is only
+ * used where no container width is known (ledger columns).
+ */
+@Composable
+fun fittingMoneySize(text: String, base: TextUnit, maxWidth: Dp): TextUnit {
+    val density = LocalDensity.current
+    val basePx = with(density) { base.toPx() }
+    val maxPx = with(density) { maxWidth.toPx() }.coerceAtLeast(1f)
+    // Tabular Source Sans 3 is ~0.58em average glyph width incl. currency symbol.
+    val estimated = text.length * basePx * 0.58f
+    val scale = if (estimated <= maxPx) 1f else (maxPx / estimated).coerceIn(0.38f, 1f)
+    return (base.value * scale).coerceAtLeast(11f).sp
 }
 
 /** Premium card — glossy surface with gold edge. */
@@ -446,7 +546,11 @@ fun LedgerField(
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { focused = it.isFocused }
-                .background(c.surfaceCard, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                // Recessed ink-well on paper stock (no glass)
+                .paperSurface(
+                    rememberPaperSpec(PaperKind.FIELD, goldEdge = false),
+                    RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                )
                 .border(
                     BorderStroke(1.dp, if (focused) c.gold.copy(alpha = 0.45f) else c.divider),
                     RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
@@ -530,9 +634,11 @@ fun PremiumDialog(
         ) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = c.surfaceCard,
-                border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
-                shadowElevation = 8.dp
+                color = Color.Transparent,
+                modifier = Modifier.paperSurface(
+                    rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                    RoundedCornerShape(20.dp)
+                )
             ) {
                 Column(modifier = Modifier.padding(22.dp)) {
                     if (eyebrow != null) {
@@ -626,41 +732,44 @@ fun SealStampOverlay(
 }
 
 /**
- * Shared ledger column metrics — widths scale with fontScale so enlarged text
- * does not clip into neighboring columns.
+ * Shared ledger column metrics — widths grow with fontScale so enlarged text
+ * never clips into neighboring columns (D8 + Log visibility fix).
+ *
+ * Text columns (TIME / COST / TYPE) track the scale at full rate; the gutter
+ * stays on the damped [scaledSpacing] curve. No delete column: delete is a
+ * long-press on the row (D97), which also frees ~44-57dp per row at Extra
+ * large and lets COST widen to 92dp so everyday amounts render at full size.
  */
-@Composable
-private fun ledgerScaled(base: Float): Dp {
-    val fs = androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceIn(1f, 1.35f)
-    return (base * fs).dp
-}
+fun ledgerScaledFactor(fontScale: Float): Float = fontScale.coerceIn(0.85f, 1.45f)
 
-/**
- * Shared ledger column widths. Item column owns flexible space; trailing cluster is tight
- * so long product names stay readable (D8 + Log visibility fix).
- */
 @Composable
-private fun ledgerColumnMetrics(): LedgerColumnMetrics {
-    return LedgerColumnMetrics(
-        timeW = ledgerScaled(42f),
-        costW = ledgerScaled(78f),
-        typeW = ledgerScaled(36f),
-        deleteW = ledgerScaled(40f),
-        gutter = ledgerScaled(6f),
-        gutterTight = ledgerScaled(4f),
-        trail = ledgerScaled(4f)
-    )
-}
+private fun ledgerScaled(base: Float): Dp =
+    (base * ledgerScaledFactor(LocalDensity.current.fontScale)).dp
 
-private data class LedgerColumnMetrics(
+internal data class LedgerColumnMetrics(
     val timeW: Dp,
     val costW: Dp,
     val typeW: Dp,
-    val deleteW: Dp,
     val gutter: Dp,
-    val gutterTight: Dp,
     val trail: Dp
 )
+
+/** Column widths at a given fontScale — pure so the Extra-large width budget is unit-testable. */
+internal fun ledgerColumnMetricsAt(fontScale: Float): LedgerColumnMetrics {
+    val f = ledgerScaledFactor(fontScale)
+    val c = scaledSpacingFactor(fontScale)
+    return LedgerColumnMetrics(
+        timeW = (40f * f).dp,
+        costW = (92f * f).dp,
+        typeW = (36f * f).dp,
+        gutter = (6f * c).dp,
+        trail = (4f * c).dp
+    )
+}
+
+@Composable
+private fun ledgerColumnMetrics(): LedgerColumnMetrics =
+    ledgerColumnMetricsAt(LocalDensity.current.fontScale)
 
 /** Column labels for the sealed-entry table on the Log screen. */
 @Composable
@@ -677,7 +786,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             modifier = Modifier.width(m.timeW),
             maxLines = 1,
             softWrap = false,
-            overflow = TextOverflow.Clip
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.width(m.gutter))
         Text(
@@ -698,7 +807,7 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             textAlign = TextAlign.End,
             maxLines = 1,
             softWrap = false,
-            overflow = TextOverflow.Clip
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.width(m.trail))
         Text(
@@ -709,17 +818,19 @@ fun EntryLedgerHeader(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,
-            overflow = TextOverflow.Clip
+            overflow = TextOverflow.Ellipsis
         )
-        Spacer(Modifier.width(m.gutterTight))
-        Spacer(Modifier.width(m.deleteW))
     }
 }
 
 /**
  * Single expense line used on both Log and History.
  * Item is the primary readable field (up to 2 lines); trailing cluster stays compact.
+ *
+ * Delete is a long-press on the row (D97) — the caller opens its confirm dialog.
+ * No trash affordance, so the row keeps every pixel of width at Extra large.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EntryLedgerRow(
     entry: Entry,
@@ -731,6 +842,17 @@ fun EntryLedgerRow(
     val typeColor = if (entry.type == EntryType.NEED) AppTheme.colors.need else AppTheme.colors.want
     val money = entry.costCents.toMoney(symbol)
     val m = ledgerColumnMetrics()
+    // Indication comes from the theme-wide ink wave (D99) via LocalIndication.
+    val sfx = rememberAppSfx()
+    val press = Modifier.combinedClickable(
+        onClick = { sfx.tap() },
+        onLongClick = {
+            sfx.longPress()
+            onDelete()
+        },
+        onLongClickLabel = "Delete entry",
+        role = Role.Button
+    )
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -748,16 +870,14 @@ fun EntryLedgerRow(
                 modifier = Modifier.width(m.timeW),
                 maxLines = 1,
                 softWrap = false,
-                overflow = TextOverflow.Clip
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.width(m.gutter))
             Text(
                 text = entry.item,
                 style = AppType.ledgerItem,
                 color = AppTheme.colors.textPrimary,
-                modifier = Modifier
-                    .weight(1f)
-                    .widthIn(min = 72.dp),
+                modifier = Modifier.weight(1f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = true
@@ -766,7 +886,7 @@ fun EntryLedgerRow(
             Text(
                 text = money,
                 style = AppType.moneySm.copy(
-                    fontSize = adaptiveMoneySize(money, 13.sp)
+                    fontSize = adaptiveMoneySize(money, 15.sp)
                 ),
                 color = AppTheme.colors.textPrimary,
                 modifier = Modifier.width(m.costW),
@@ -796,36 +916,25 @@ fun EntryLedgerRow(
                     )
                 }
             }
-            Spacer(Modifier.width(m.gutterTight))
-            Box(
-                modifier = Modifier
-                    .size(m.deleteW)
-                    .clickable(role = Role.Button, onClick = onDelete),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = AppTheme.colors.danger.copy(alpha = 0.55f),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
         }
     }
 
     if (showCard) {
-        Surface(
-            modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            color = AppTheme.colors.surfaceCard,
-            border = BorderStroke(1.dp, AppTheme.colors.gold.copy(alpha = 0.22f)),
-            shadowElevation = 1.dp,
-            tonalElevation = 0.dp
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                // Paper first, then press: the ink wave paints ON TOP of the
+                // stock and is clipped to the card shape (ripple convention).
+                .paperSurface(
+                    rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                    RoundedCornerShape(12.dp)
+                )
+                .then(press)
         ) {
             content()
         }
     } else {
-        Box(modifier = modifier.fillMaxWidth()) {
+        Box(modifier = modifier.fillMaxWidth().then(press)) {
             content()
         }
     }
@@ -930,8 +1039,10 @@ fun InsightStrip(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(palette.surfaceCard, RoundedCornerShape(16.dp))
-            .border(BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)), RoundedCornerShape(16.dp))
+            .paperSurface(
+                rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                RoundedCornerShape(16.dp)
+            )
             .padding(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -98,7 +98,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const row = (data ?? null) as EntitlementRow | null;
+    // RPC may return a single object or a one-row array depending on client.
+    const rawRow = Array.isArray(data) ? data[0] : data;
+    const row = (rawRow ?? null) as (EntitlementRow & { tier?: string }) | null;
     const serverNow = new Date().toISOString();
     const isActive = isEntitlementActive(
       {
@@ -108,12 +110,19 @@ Deno.serve(async (req: Request) => {
       },
       serverNow,
     );
+    const tierRaw = (row?.tier ?? "free").toLowerCase();
+    const plan = !isActive
+      ? "free"
+      : tierRaw === "max"
+      ? "max"
+      : "pro";
 
     return jsonResponse({
       success: true,
       data: {
         is_pro: isActive,
-        plan: isActive ? "pro" : "free",
+        plan,
+        tier: plan,
         trial_started_at: row?.trial_started_at ?? null,
         trial_ends_at: row?.trial_ends_at ?? null,
         paid_until: row?.paid_until ?? null,

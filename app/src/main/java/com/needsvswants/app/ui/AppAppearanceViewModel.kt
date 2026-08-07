@@ -20,4 +20,13 @@ class AppAppearanceViewModel @Inject constructor(
 
     val fontScaleStep: StateFlow<FontScaleStep> = preferences.fontScaleStep
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FontScaleStep.DEFAULT)
+
+    val sfxEnabled: StateFlow<Boolean> = preferences.sfxEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val hapticsEnabled: StateFlow<Boolean> = preferences.hapticsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val reducedMotion: StateFlow<Boolean> = preferences.reducedMotion
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 }

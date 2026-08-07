@@ -8,6 +8,15 @@ fun Long.toMoney(symbol: String): String {
     return "$symbol $whole.$cents"
 }
 
+/**
+ * Whole major units only (no decimals) — for cramped hero totals on the
+ * Summary orb where ".00" eats width and throws alignment off.
+ */
+fun Long.toMoneyWhole(symbol: String): String {
+    val whole = this / 100
+    return "$symbol $whole"
+}
+
 fun parseCents(input: String): Long? {
     val cleaned = input.replace(",", "").trim()
     if (cleaned.isEmpty()) return null

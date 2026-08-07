@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,9 +32,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +50,12 @@ import com.needsvswants.app.ui.screens.summary.SummaryScreen
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.PaperPagerPage
+import com.needsvswants.app.ui.theme.pagerPageOffset
 import com.needsvswants.app.ui.theme.rememberAppHaptics
+import com.needsvswants.app.ui.theme.rememberAppSfx
+import com.needsvswants.app.ui.theme.scaledSpacing
+import com.needsvswants.app.ui.theme.themedInkWash
 import kotlinx.coroutines.launch
 
 data class BottomNavItem(
@@ -80,6 +86,7 @@ fun AppNavigation(
     var softPaywallLaunched by remember { mutableStateOf(false) }
     var paywallOpen by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
+    val sfx = rememberAppSfx()
 
     // Soft paywall only on normal cold start — not when deep-linking to Log from a reminder.
     LaunchedEffect(shouldOfferSoftPaywall, startDestination) {
@@ -103,7 +110,9 @@ fun AppNavigation(
             }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(AppTheme.colors.background)) {
+    // Desk under the ledger: warm paper wash. Individual tabs are opaque sheets
+    // that paper-flip on swipe / pill tap (see [PaperPagerPage]).
+    Box(modifier = Modifier.fillMaxSize().background(themedInkWash())) {
         Scaffold(
             containerColor = AppTheme.colors.background,
             bottomBar = {
@@ -112,7 +121,10 @@ fun AppNavigation(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(
+                                horizontal = scaledSpacing(12f),
+                                vertical = scaledSpacing(10f)
+                            )
                     ) {
                         Surface(
                             shape = RoundedCornerShape(24.dp),
@@ -138,9 +150,14 @@ fun AppNavigation(
                                         selected = pagerState.currentPage == index,
                                         onClick = {
                                             haptics.tick()
+                                            sfx.tap()
                                             lastTappedPage = index
                                             scope.launch {
-                                                pagerState.animateScrollToPage(index)
+                                                // Same paper ease as swipe settle so tap and fling match.
+                                                pagerState.animateScrollToPage(
+                                                    page = index,
+                                                    animationSpec = Motion.pageFlip()
+                                                )
                                             }
                                         },
                                         modifier = Modifier.weight(1f)
@@ -152,36 +169,44 @@ fun AppNavigation(
                 }
             }
         ) { innerPadding ->
+            val fling = PagerDefaults.flingBehavior(
+                state = pagerState,
+                snapAnimationSpec = Motion.pageFlip()
+            )
+            // Axis lock + mid-gesture pager disable so up/down never pages left/right.
+            val scrollGate = rememberPagerScrollGate(pagerState)
+            val allowPagerScroll = scrollGate.allowPagerUserScroll.value
             HorizontalPager(
                 state = pagerState,
-                userScrollEnabled = !paywallOpen,
-                beyondViewportPageCount = 1,
+                userScrollEnabled = !paywallOpen && allowPagerScroll,
+                // 0 = less off-screen composition during fling (snappier on mid devices)
+                beyondViewportPageCount = 0,
+                flingBehavior = fling,
+                pageNestedScrollConnection = scrollGate.connection,
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
+                    // Hard-clip the strip so turning neighbors never paint into chrome.
+                    .clipToBounds()
             ) { page ->
-                // Subtle page parallax: content lags the page edge by up to 12dp
-                // (transform-only; off entirely under reduced motion — the offset
-                // state read is skipped too, so reduced motion costs nothing).
-                val pageOffset = if (Motion.enabled) {
-                    // Foundation 1.7 has no calculateCurrentOffsetForPage — use the
-                    // classic formula: (currentPage - page) + currentPageOffsetFraction.
-                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).toFloat()
-                } else {
-                    0f
-                }
-                val parallaxPx = with(LocalDensity.current) { 12.dp.toPx() }
-                Box(
+                val pageOffset = pagerPageOffset(pagerState, page)
+                PaperPagerPage(
+                    pageOffset = pageOffset,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer {
-                            translationX = pageOffset * parallaxPx
-                        }
+                        .clipToBounds()
+                        // Child-side axis lock (swallows residual X during vertical scroll).
+                        .verticalScrollFirst()
                 ) {
                     when (MainTab.entries[page]) {
                         MainTab.Home -> SummaryScreen(onNavigateToInput = {
                             lastTappedPage = MainTab.Log.ordinal
-                            scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                            scope.launch {
+                                pagerState.animateScrollToPage(
+                                    page = MainTab.Log.ordinal,
+                                    animationSpec = Motion.pageFlip()
+                                )
+                            }
                         })
                         MainTab.Log -> InputScreen()
                         MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
@@ -189,7 +214,12 @@ fun AppNavigation(
                         })
                         MainTab.History -> HistoryScreen(onNavigateToInput = {
                             lastTappedPage = MainTab.Log.ordinal
-                            scope.launch { pagerState.animateScrollToPage(MainTab.Log.ordinal) }
+                            scope.launch {
+                                pagerState.animateScrollToPage(
+                                    page = MainTab.Log.ordinal,
+                                    animationSpec = Motion.pageFlip()
+                                )
+                            }
                         })
                         MainTab.Settings -> SettingsScreen(onOpenPaywall = {
                             paywallOpen = true
@@ -225,7 +255,7 @@ private fun NavPill(
     val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, palette.crimson, tintProgress)
     val bg = palette.crimson.copy(alpha = 0.10f * tintProgress)
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.08f else 1f,
+        targetValue = if (selected) 1.04f else 1f,
         animationSpec = Motion.selectionSpring(),
         label = "navPillIconScale"
     )
@@ -235,8 +265,8 @@ private fun NavPill(
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
             .clickable(onClick = onClick)
-            .padding(vertical = 6.dp, horizontal = 1.dp)
-            .heightIn(min = 52.dp),
+            .padding(vertical = scaledSpacing(8f), horizontal = 2.dp)
+            .heightIn(min = scaledSpacing(56f)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -245,13 +275,13 @@ private fun NavPill(
             contentDescription = item.label,
             tint = tint,
             modifier = Modifier
-                .size(20.dp)
+                .size(scaledSpacing(22f))
                 .graphicsLayer {
                     scaleX = iconScale
                     scaleY = iconScale
                 }
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(scaledSpacing(3f)))
         Text(
             text = item.label,
             style = AppType.navLabel.copy(

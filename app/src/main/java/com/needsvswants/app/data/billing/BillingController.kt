@@ -9,18 +9,24 @@ sealed interface BillingResult {
     data object Pending : BillingResult
     data object Failed : BillingResult
     data object Unavailable : BillingResult
+    /** Open PayPal (or other web) approval in a browser / Custom Tab. */
+    data class OpenCheckout(val approvalUrl: String) : BillingResult
 }
 
 /**
- * Injected seam between the paywall UI and Google Play Billing.
+ * Injected seam between the paywall UI and billing providers.
  *
- * The app depends only on this interface; the concrete [PlayBillingController]
- * is a stub until Play Billing is fully wired (product ids, listener wiring,
- * purchase flow) — it reports [BillingResult.Unavailable] today.
+ * Website soft-launch path: [PayPalBillingController] creates a PayPal
+ * subscription via Supabase and returns [BillingResult.OpenCheckout].
+ * Play Billing remains available as a stub for a future store build.
  */
 interface BillingController {
-    /** False until a real BillingClient is connected. */
+    /** True when Google Play BillingClient is connected (store builds). */
     val isPlayAvailable: Boolean
+
+    /** True when PayPal checkout can be started (Supabase + plans configured). */
+    val isPayPalAvailable: Boolean
+        get() = false
 
     suspend fun startTrial(productId: String): BillingResult
     suspend fun purchase(productId: String): BillingResult

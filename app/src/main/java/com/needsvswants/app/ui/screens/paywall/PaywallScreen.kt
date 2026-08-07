@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,9 @@ import com.needsvswants.app.ui.theme.TrialTimelineCard
 import com.needsvswants.app.ui.theme.rememberAppHaptics
 import com.needsvswants.app.ui.theme.themedInkWash
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 
 /**
@@ -91,10 +96,29 @@ fun PaywallScreen(
     }
 
     LaunchedEffect(lastResult) {
-        if (lastResult != null) {
-            if (lastResult == BillingResult.Success) haptics.success()
-            delay(3000)
-            viewModel.consumeResult()
+        when (val r = lastResult) {
+            is BillingResult.OpenCheckout -> {
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(r.approvalUrl)).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    )
+                }
+                // Keep a short "opened PayPal" state, then clear so return can refresh.
+                delay(1500)
+                viewModel.consumeResult()
+            }
+            BillingResult.Success -> {
+                haptics.success()
+                delay(3000)
+                viewModel.consumeResult()
+            }
+            BillingResult.Failed, BillingResult.Unavailable, BillingResult.Pending -> {
+                delay(3000)
+                viewModel.consumeResult()
+            }
+            null -> Unit
         }
     }
 
@@ -102,6 +126,14 @@ fun PaywallScreen(
     LaunchedEffect(isSignedIn, pending) {
         if (isSignedIn && pending != PendingPurchase.None) {
             viewModel.onSignedInForPurchase()
+        }
+    }
+
+    // Returning from PayPal browser: re-fetch entitlement.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.onReturnFromCheckout()
         }
     }
 
@@ -130,8 +162,8 @@ fun PaywallScreen(
     }
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
-        MembershipPlan.Pro -> "Then ₱249 / mo · $4.99. Cancel anytime in Play."
-        MembershipPlan.Max -> "₱499 / mo · $9.99. Includes Pro + AI Advisor."
+        MembershipPlan.Pro -> "Then ₱199 / mo · $3.49. Pay with PayPal. Cancel anytime."
+        MembershipPlan.Max -> "₱399 / mo · $6.99 via PayPal. Includes Pro + AI Advisor."
     }
 
     Box(
@@ -217,8 +249,8 @@ fun PaywallScreen(
                     eyebrow = "Pro",
                     title = "Unlimited",
                     tag = "3-day free trial",
-                    price = "₱249",
-                    priceSuffix = "/ mo · $4.99",
+                    price = "₱199",
+                    priceSuffix = "/ mo · $3.49",
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
                         "Unlimited entries per log sheet" to true,
@@ -239,8 +271,8 @@ fun PaywallScreen(
                     eyebrow = "Max",
                     title = "AI Advisor",
                     tag = "Includes Pro",
-                    price = "₱499",
-                    priceSuffix = "/ mo · $9.99",
+                    price = "₱399",
+                    priceSuffix = "/ mo · $6.99",
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
                         "Everything in Pro" to true,
@@ -332,19 +364,25 @@ fun PaywallScreen(
                 Spacer(Modifier.height(12.dp))
                 when (lastResult) {
                     BillingResult.Unavailable -> StatusText(
-                        "Play billing isn't configured on this build yet.",
+                        "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
                         color = palette.textMuted
                     )
                     BillingResult.Pending -> StatusText(
                         "Your payment is processing…",
                         color = palette.gilt
                     )
+                    is BillingResult.OpenCheckout -> StatusText(
+                        "Opening PayPal… complete checkout, then return here.",
+                        color = palette.gilt
+                    )
                     BillingResult.Success -> StatusText(
-                        if (hasMaxAccess) "Welcome to Max." else "Welcome to Pro.",
+                        if (hasMaxAccess) "Welcome to Max."
+                        else if (isPro) "Welcome to Pro."
+                        else "Account refreshed. If you just paid, wait a few seconds and tap Restore.",
                         color = palette.marketGreen
                     )
                     BillingResult.Failed -> StatusText(
-                        "Payment didn't go through. Try again.",
+                        "Payment didn't go through. Sign in and try again.",
                         color = palette.crimson
                     )
                     null -> Unit

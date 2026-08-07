@@ -40,6 +40,13 @@ class MotionTokensTest {
         assertEquals(Motion.StampMs, Motion.stamp<Float>().durationMillis)
         assertEquals(Motion.BudgetMs, Motion.budget<Float>().durationMillis)
         assertEquals(Motion.StampMs, Motion.number<Float>().durationMillis)
+        assertEquals(Motion.PageFlipMs, Motion.pageFlip<Float>().durationMillis)
+    }
+
+    @Test
+    fun pageFlip_collapsesWhenReducedMotion() {
+        enableMotion(false)
+        assertEquals(1, Motion.pageFlip<Float>().durationMillis)
     }
 
     @Test
@@ -73,10 +80,11 @@ class MotionTokensTest {
     }
 
     @Test
-    fun enabled_selectionSpring_usesMediumBouncyMediumStiffness() {
+    fun enabled_selectionSpring_usesNoBouncyMediumStiffness() {
+        // D102: crisp selection — rubber MediumBouncy felt sloppy on nav pills.
         enableMotion(true)
         val spring = Motion.selectionSpring() as SpringSpec<Float>
-        assertEquals(Spring.DampingRatioMediumBouncy, spring.dampingRatio)
+        assertEquals(Spring.DampingRatioNoBouncy, spring.dampingRatio)
         assertEquals(Spring.StiffnessMedium, spring.stiffness)
     }
 
@@ -109,5 +117,23 @@ class MotionTokensTest {
     @Test
     fun staggerDelay_matchesFormula() {
         assertEquals(180, staggerDelay(3))
+    }
+
+    @Test
+    fun resolveMotionEnabled_userReducedMotionForcesOff() {
+        assertEquals(false, resolveMotionEnabled(1f, userReducedMotion = true))
+        assertEquals(true, resolveMotionEnabled(1f, userReducedMotion = false))
+        assertEquals(false, resolveMotionEnabled(0f, userReducedMotion = false))
+        assertEquals(false, resolveMotionEnabled(0f, userReducedMotion = true))
+    }
+
+    @Test
+    fun updateEnabled_respectsUserReducedMotion() {
+        Motion.updateEnabled(1f, userReducedMotion = true)
+        assertEquals(false, Motion.enabled)
+        Motion.updateEnabled(1f, userReducedMotion = false)
+        assertEquals(true, Motion.enabled)
+        Motion.updateEnabled(0f, userReducedMotion = false)
+        assertEquals(false, Motion.enabled)
     }
 }

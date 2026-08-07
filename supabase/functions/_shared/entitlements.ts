@@ -91,14 +91,37 @@ export function buildTrialGrant(
 }
 
 /**
+ * Resolve paid tier from a PayPal plan id using env plan ids.
+ * Defaults to "pro" when plan is unknown (legacy / single-plan setups).
+ */
+export function tierFromPayPalPlanId(
+  planId: string | null | undefined,
+  proPlanId?: string | null,
+  maxPlanId?: string | null,
+): "pro" | "max" {
+  if (!planId) return "pro";
+  if (maxPlanId && planId === maxPlanId) return "max";
+  if (proPlanId && planId === proPlanId) return "pro";
+  // Heuristic: plan id / name often contains "max"
+  if (/max/i.test(planId)) return "max";
+  return "pro";
+}
+
+/**
  * Map a PayPal BILLING.SUBSCRIPTION.* webhook event to an entitlement grant.
  * Returns null when the event is not one we grant/flag from.
  *
  * The user id is taken from the subscription's custom_id (the value the
  * client embedded when creating the subscription). We never trust the caller's
  * identity in the webhook; the mapping is derived from verified event data.
+ *
+ * Optional env plan ids (PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX) map plan_id → tier.
  */
-export function mapPayPalWebhookEvent(payload: unknown): {
+export function mapPayPalWebhookEvent(
+  payload: unknown,
+  proPlanId?: string | null,
+  maxPlanId?: string | null,
+): {
   user_id: string;
   grant: GrantState;
 } | null {
@@ -115,6 +138,12 @@ export function mapPayPalWebhookEvent(payload: unknown): {
         : null;
 
   if (!user_id) return null;
+
+  const planId =
+    typeof resource.plan_id === "string"
+      ? resource.plan_id
+      : null;
+  const tier = tierFromPayPalPlanId(planId, proPlanId, maxPlanId);
 
   // next_billing_time may be absent when PayPal cannot determine a next cycle.
   // Leave paid_until UNSET (undefined) in that case so grantToRowFields applies
@@ -137,6 +166,7 @@ export function mapPayPalWebhookEvent(payload: unknown): {
         user_id,
         grant: {
           mode: "paid",
+          tier,
           ...(hasPaidUntil ? { paid_until: paidUntil as string } : {}),
           provider: "paypal",
           source: "paypal",
@@ -166,10 +196,23 @@ export function mapPayPalWebhookEvent(payload: unknown): {
 /** Apply a mapped grant to the entitlements row (idempotent upsert fields). */
 export function grantToRowFields(
   grant: GrantState,
-): Partial<Pick<EntitlementRow, "is_pro" | "trial_started_at" | "trial_ends_at" | "paid_until" | "provider" | "source" | "status">> {
+): Partial<
+  Pick<
+    EntitlementRow,
+    | "is_pro"
+    | "tier"
+    | "trial_started_at"
+    | "trial_ends_at"
+    | "paid_until"
+    | "provider"
+    | "source"
+    | "status"
+  >
+> {
   const provider = grant.provider ?? null;
   const source = grant.source ?? null;
   const status = grant.status ?? null;
+  const tier = grant.tier ?? "pro";
 
   switch (grant.mode) {
     case "paid":
@@ -183,6 +226,7 @@ export function grantToRowFields(
         : grant.paid_until;
       return {
         is_pro: true,
+        tier,
         trial_started_at: null,
         trial_ends_at: null,
         paid_until: paidUntil,
@@ -197,6 +241,7 @@ export function grantToRowFields(
       );
       return {
         is_pro: true,
+        tier: grant.tier ?? "pro",
         trial_started_at: trialStart.toISOString(),
         trial_ends_at: trialEnd.toISOString(),
         paid_until: null,
@@ -216,6 +261,7 @@ export function grantToRowFields(
     case "clear":
       return {
         is_pro: false,
+        tier: "free",
         trial_started_at: null,
         trial_ends_at: null,
         paid_until: null,

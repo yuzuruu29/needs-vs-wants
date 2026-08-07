@@ -3,6 +3,9 @@
 build/
 *.apk
 *.aab
+# Soft-launch site hosts public download APKs (Vercel upload respects gitignore)
+!website/public/downloads/*.apk
+!website/downloads/*.apk
 local.properties
 .idea/
 *.iml

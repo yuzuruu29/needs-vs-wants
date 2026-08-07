@@ -25,8 +25,8 @@ const locks = [
   ['.pflip', /\.pflip|pflip-stage|buildFlipLeaves/],
   ['.cta-panel', /class="cta-panel/],
   ['payPalSeamBtn', /id="payPalSeamBtn"/],
-  ['₱249', /₱249/],
-  ['₱499', /₱499/],
+  ['₱199', /₱199/],
+  ['₱399', /₱399/],
   ['id=get', /id="get"/],
 ];
 locks.forEach(([name, re]) => {

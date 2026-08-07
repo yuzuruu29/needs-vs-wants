@@ -5,7 +5,7 @@ import com.needsvswants.app.data.auth.AuthSessionStore
 import com.needsvswants.app.data.auth.CredentialManagerGoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.billing.BillingController
-import com.needsvswants.app.data.billing.PlayBillingController
+import com.needsvswants.app.data.billing.PayPalBillingController
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.SupabaseEntitlementRemote
@@ -23,9 +23,8 @@ import javax.inject.Singleton
 /**
  * Wiring for the Pro subscription + Google auth seams.
  *
- * All values come from BuildConfig placeholders (empty by default), so the app
- * runs fully offline/local: the auth/entitlement clients self-disable and the
- * billing controller reports Unavailable.
+ * Billing default is [PayPalBillingController] (website / sideload live path).
+ * Play Billing remains in the tree for a future store build but is not bound.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -38,7 +37,7 @@ abstract class EntitlementModule {
     abstract fun bindEntitlementRemote(impl: SupabaseEntitlementRemote): EntitlementRemote
 
     @Binds
-    abstract fun bindBillingController(impl: PlayBillingController): BillingController
+    abstract fun bindBillingController(impl: PayPalBillingController): BillingController
 
     @Binds
     abstract fun bindGoogleIdTokenProvider(

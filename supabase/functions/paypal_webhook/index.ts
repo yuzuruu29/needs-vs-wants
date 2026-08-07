@@ -134,7 +134,11 @@ Deno.serve(async (req: Request) => {
       return error("Webhook signature verification failed", 401);
     }
 
-    const mapped = mapPayPalWebhookEvent(event);
+    const mapped = mapPayPalWebhookEvent(
+      event,
+      Deno.env.get("PAYPAL_PLAN_PRO"),
+      Deno.env.get("PAYPAL_PLAN_MAX"),
+    );
     if (!mapped) {
       // Known event types we ignore (payment, auth, etc.) - ack so PayPal
       // stops retrying; nothing to grant.

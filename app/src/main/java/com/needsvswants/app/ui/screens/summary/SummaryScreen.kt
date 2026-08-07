@@ -1,10 +1,14 @@
 package com.needsvswants.app.ui.screens.summary
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -19,24 +23,24 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,10 +51,13 @@ import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.StreakMilestone
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.domain.toMoneyWhole
+import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Composable
 fun SummaryScreen(
@@ -67,6 +74,7 @@ fun SummaryScreen(
     val hasHistory by viewModel.hasHistory.collectAsStateWithLifecycle()
     val isFirstLaunch by viewModel.isFirstLaunch.collectAsStateWithLifecycle()
     var showInstructions by remember { mutableStateOf(false) }
+    var showSplitPortal by remember { mutableStateOf(false) }
     var currentMilestone by remember { mutableStateOf<StreakMilestone?>(null) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
@@ -106,6 +114,7 @@ fun SummaryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(themedInkWash())
+                .verticalScrollFirst()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(top = 20.dp, bottom = 12.dp)
@@ -172,11 +181,13 @@ fun SummaryScreen(
         // Period selector — gold-edge pill bar
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = palette.surfaceCard,
-            border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)),
-            shadowElevation = 2.dp,
-            tonalElevation = 0.dp,
-            modifier = Modifier.fillMaxWidth()
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .paperSurface(
+                    rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                    RoundedCornerShape(16.dp)
+                )
         ) {
             Row(
                 modifier = Modifier
@@ -204,7 +215,7 @@ fun SummaryScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(40.dp)
+                            .heightIn(min = scaledSpacing(40f))
                             .background(pillColor, RoundedCornerShape(12.dp))
                             .clickable {
                                 haptics.tick()
@@ -267,39 +278,28 @@ fun SummaryScreen(
                     Spacer(Modifier.height(20.dp))
                 }
 
-                // Hero donut with gilt glow backdrop
+                // Hero ledger ring — tap opens Need/Want % portal
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 220.dp)
+                        .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (stats.totalCents == 0L) {
-                        val ringBreath = rememberIdleBreathAlpha()
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(180.dp)
-                                    .drawBehind {
-                                        drawCircle(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(palette.gilt.copy(alpha = 0.18f), Color.Transparent),
-                                                radius = size.minDimension
-                                            )
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
+                            FloatingGeminiOrb(
+                                needsSweepDegrees = 0f,
+                                empty = true,
+                                orbSize = 200.dp
                             ) {
-                                Canvas(
-                                    modifier = Modifier
-                                        .size(150.dp)
-                                        .alpha(ringBreath)
-                                ) {
-                                    drawArc(
-                                        color = palette.inkDivider,
-                                        startAngle = 0f,
-                                        sweepAngle = 360f,
-                                        useCenter = false,
-                                        style = Stroke(width = 16.dp.toPx(), cap = StrokeCap.Round),
-                                        size = Size(size.width, size.height)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Eyebrow("READY", color = palette.textMuted, size = 10)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        "—",
+                                        style = AppType.moneyLg,
+                                        color = palette.textSecondary
                                     )
                                 }
                             }
@@ -323,66 +323,53 @@ fun SummaryScreen(
                             label = "donutNeedsSweep"
                         )
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .drawBehind {
-                                        drawCircle(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(palette.gilt.copy(alpha = 0.16f), Color.Transparent),
-                                                radius = size.minDimension / 1.2f
-                                            )
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Canvas(Modifier.size(180.dp)) {
-                                    val ring = 22.dp.toPx()
-                                    val stroke = Stroke(width = ring, cap = StrokeCap.Round)
-                                    drawArc(
-                                        color = palette.inkDivider,
-                                        startAngle = 0f,
-                                        sweepAngle = 360f,
-                                        useCenter = false,
-                                        style = Stroke(width = ring),
-                                        size = Size(size.width, size.height)
-                                    )
-                                    drawArc(
-                                        color = palette.need,
-                                        startAngle = -90f,
-                                        sweepAngle = needsSweep,
-                                        useCenter = false,
-                                        style = stroke,
-                                        size = Size(size.width, size.height)
-                                    )
-                                    drawArc(
-                                        color = palette.want,
-                                        startAngle = -90f + needsSweep,
-                                        sweepAngle = 360f - needsSweep,
-                                        useCenter = false,
-                                        style = stroke,
-                                        size = Size(size.width, size.height)
-                                    )
+                            FloatingGeminiOrb(
+                                needsSweepDegrees = needsSweep,
+                                empty = false,
+                                orbSize = 210.dp,
+                                onClick = {
+                                    haptics.tick()
+                                    showSplitPortal = true
                                 }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp)
+                                ) {
                                     Eyebrow("TOTAL", color = palette.textMuted, size = 10)
-                                    Spacer(Modifier.height(2.dp))
-                                    AnimatedMoney(
-                                        cents = stats.totalCents,
-                                        symbol = symbol,
-                                        style = AppType.moneyLg.copy(
-                                            fontSize = adaptiveMoneySize(
-                                                stats.totalCents.toMoney(symbol),
-                                                22.sp
+                                    Spacer(Modifier.height(4.dp))
+                                    // Whole units only — ".00" cramps the dial and shifts alignment.
+                                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                        val totalText = stats.totalCents.toMoneyWhole(symbol)
+                                        AnimatedMoney(
+                                            cents = stats.totalCents,
+                                            symbol = symbol,
+                                            wholeOnly = true,
+                                            style = AppType.moneyLg.copy(
+                                                fontSize = fittingMoneySize(totalText, 22.sp, maxWidth),
+                                                lineHeight = fittingMoneySize(totalText, 22.sp, maxWidth) * 1.15f,
+                                                color = palette.textPrimary,
+                                                textAlign = TextAlign.Center
                                             ),
-                                            color = palette.textPrimary
-                                        ),
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Clip,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
                                 }
                             }
-                            Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "Tap the ring for the full split",
+                                style = AppType.caption,
+                                color = palette.textMuted
+                            )
+                            Spacer(Modifier.height(10.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -397,7 +384,7 @@ fun SummaryScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // Stat cards
+                // Money cards only — no redundant third NEED% box
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
                         label = "NEEDS",
@@ -415,15 +402,39 @@ fun SummaryScreen(
                         pct = stats.wantsPct,
                         modifier = Modifier.weight(1f).staggerIn(1)
                     )
-                    StatCard(
-                        label = "NEED %",
-                        value = "${stats.needsPct}%",
-                        accent = palette.gilt,
-                        pct = stats.needsPct,
-                        modifier = Modifier.weight(1f).staggerIn(2)
-                    )
                 }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Clear dual percentage summary of this period's logs (by spend share)
+                SplitSummaryCard(
+                    needsPct = stats.needsPct,
+                    wantsPct = stats.wantsPct,
+                    needsCents = stats.needsTotalCents,
+                    wantsCents = stats.wantsTotalCents,
+                    symbol = symbol,
+                    onOpenPortal = {
+                        if (stats.totalCents > 0L) {
+                            haptics.tick()
+                            showSplitPortal = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().staggerIn(2)
+                )
             }
+        }
+
+        if (showSplitPortal) {
+            SplitPercentagePortal(
+                needsPct = stats.needsPct,
+                wantsPct = stats.wantsPct,
+                needsCents = stats.needsTotalCents,
+                wantsCents = stats.wantsTotalCents,
+                totalCents = stats.totalCents,
+                symbol = symbol,
+                periodLabel = getPeriodLabel(period),
+                onDismiss = { showSplitPortal = false }
+            )
         }
 
         // Quiet streak + one insight — never above the donut (outside period fade)
@@ -477,12 +488,264 @@ private fun LegendChip(color: Color, label: String, pct: Int) {
     }
 }
 
+/**
+ * Full-width ledger strip: Need % and Want % of this period's spend.
+ * Replaces the old third "NEED %" money card (which only repeated needsPct).
+ */
+@Composable
+private fun SplitSummaryCard(
+    needsPct: Int,
+    wantsPct: Int,
+    needsCents: Long,
+    wantsCents: Long,
+    symbol: String,
+    onOpenPortal: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val palette = AppTheme.colors
+    Column(
+        modifier = modifier
+            .paperSurface(
+                rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onOpenPortal)
+            .padding(scaledSpacing(16f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Eyebrow("SPEND SPLIT", color = palette.crimson, size = 11)
+            Text(
+                "Open detail",
+                style = AppType.caption,
+                color = palette.gold.copy(alpha = 0.9f)
+            )
+        }
+        Spacer(Modifier.height(scaledSpacing(12f)))
+        // Dual percentage readout
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                Text("Need", style = AppType.meta, color = palette.need)
+                Text(
+                    "$needsPct%",
+                    style = AppType.moneyLg.copy(fontSize = 28.sp, color = palette.need)
+                )
+                Text(
+                    needsCents.toMoney(symbol),
+                    style = AppType.caption,
+                    color = palette.textSecondary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(56.dp)
+                    .background(palette.inkDivider)
+            )
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                Text("Want", style = AppType.meta, color = palette.want)
+                Text(
+                    "$wantsPct%",
+                    style = AppType.moneyLg.copy(fontSize = 28.sp, color = palette.want)
+                )
+                Text(
+                    wantsCents.toMoney(symbol),
+                    style = AppType.caption,
+                    color = palette.textSecondary
+                )
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        // Single bar: green left / crimson right share of 100%
+        val n = (needsPct.coerceIn(0, 100)) / 100f
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+        ) {
+            drawRect(color = palette.want, size = size)
+            drawRect(color = palette.need, size = Size(size.width * n, size.height))
+        }
+    }
+}
+
+/**
+ * Split percentage sheet — quiet paper land (D102).
+ * Desk dim + sheet rise/fade only — no black-hole suck/vignette.
+ */
+@Composable
+private fun SplitPercentagePortal(
+    needsPct: Int,
+    wantsPct: Int,
+    needsCents: Long,
+    wantsCents: Long,
+    totalCents: Long,
+    symbol: String,
+    periodLabel: String,
+    onDismiss: () -> Unit
+) {
+    val palette = AppTheme.colors
+    val reveal = remember { Animatable(0f) }
+    val scrim = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        if (!Motion.enabled) {
+            scrim.snapTo(1f)
+            reveal.snapTo(1f)
+            return@LaunchedEffect
+        }
+        scrim.animateTo(1f, Motion.portalPulse())
+        reveal.animateTo(1f, Motion.portalReveal())
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.42f * scrim.value))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            // Paper sheet with percentages
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .graphicsLayer {
+                        val t = reveal.value
+                        // Subtle land from 0.96 — not a 0.72 zoom pop.
+                        scaleX = Motion.RiseScale + (1f - Motion.RiseScale) * t
+                        scaleY = Motion.RiseScale + (1f - Motion.RiseScale) * t
+                        alpha = t
+                        translationY = (1f - t) * 18f
+                    }
+                    .paperSurface(
+                        rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                        RoundedCornerShape(22.dp)
+                    )
+                    .clickable(enabled = false, onClick = {})
+                    .padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Eyebrow(periodLabel.uppercase(), color = palette.crimson, size = 10)
+                    HeaderIconWell(
+                        onClick = onDismiss,
+                        contentDescription = "Close split"
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            tint = palette.textSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Your log split",
+                    style = AppType.sectionTitle,
+                    color = palette.textPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Share of spend this period",
+                    style = AppType.bodyMd,
+                    color = palette.textSecondary
+                )
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    totalCents.toMoney(symbol),
+                    style = AppType.moneyLg.copy(fontSize = 26.sp),
+                    color = palette.textPrimary
+                )
+                Eyebrow("TOTAL", color = palette.textMuted, size = 10)
+                Spacer(Modifier.height(20.dp))
+                GiltRule(width = 40.dp)
+                Spacer(Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("NEED", style = AppType.eyebrowSm, color = palette.need)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "$needsPct%",
+                            style = AppType.moneyLg.copy(fontSize = 36.sp, color = palette.need)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            needsCents.toMoney(symbol),
+                            style = AppType.bodyMd,
+                            color = palette.textSecondary
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .height(88.dp)
+                            .background(palette.inkDivider)
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("WANT", style = AppType.eyebrowSm, color = palette.want)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "$wantsPct%",
+                            style = AppType.moneyLg.copy(fontSize = 36.sp, color = palette.want)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            wantsCents.toMoney(symbol),
+                            style = AppType.bodyMd,
+                            color = palette.textSecondary
+                        )
+                    }
+                }
+                Spacer(Modifier.height(18.dp))
+                val n = needsPct.coerceIn(0, 100) / 100f
+                Canvas(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                ) {
+                    drawRect(color = palette.want, size = size)
+                    drawRect(color = palette.need, size = Size(size.width * n, size.height))
+                }
+                Spacer(Modifier.height(18.dp))
+                GiltButton(
+                    onClick = onDismiss,
+                    text = "Back to Home",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun StatCard(
     label: String,
-    value: String? = null,
-    cents: Long? = null,
-    symbol: String = "",
+    cents: Long,
+    symbol: String,
     accent: Color,
     pct: Int,
     modifier: Modifier
@@ -491,32 +754,36 @@ private fun StatCard(
     val dividerColor = palette.inkDivider
     Column(
         modifier = modifier
-            .background(palette.surfaceCard, RoundedCornerShape(16.dp))
-            .border(1.dp, palette.gold.copy(alpha = 0.28f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 14.dp)
+            .paperSurface(
+                rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = scaledSpacing(12f), vertical = scaledSpacing(14f))
     ) {
-        Eyebrow(label, color = palette.textMuted, size = 9)
-        Spacer(Modifier.height(6.dp))
-        if (cents != null && symbol.isNotEmpty()) {
+        Eyebrow(label, color = palette.textMuted, size = 11)
+        Spacer(Modifier.height(scaledSpacing(6f)))
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val moneyText = cents.toMoney(symbol)
+            val size = fittingMoneySize(moneyText, 17.sp, maxWidth)
             AnimatedMoney(
                 cents = cents,
                 symbol = symbol,
                 style = AppType.moneyMd.copy(
-                    fontSize = adaptiveMoneySize(cents.toMoney(symbol), 15.sp),
+                    fontSize = size,
                     color = accent
                 ),
                 maxLines = 1,
-                softWrap = false
-            )
-        } else {
-            Text(
-                value ?: "",
-                color = accent,
-                style = AppType.moneyMd.copy(fontSize = adaptiveMoneySize(value ?: "", 15.sp)),
-                maxLines = 1,
-                softWrap = false
+                softWrap = false,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
         }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "$pct% of spend",
+            style = AppType.caption,
+            color = palette.textSecondary
+        )
         Spacer(Modifier.height(8.dp))
         Canvas(Modifier.fillMaxWidth().height(3.dp)) {
             drawRect(color = dividerColor, size = Size(size.width, size.height))
@@ -546,9 +813,11 @@ fun InstructionsOverlay(onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = palette.surfaceCard,
-            border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)),
-            shadowElevation = 8.dp
+            color = Color.Transparent,
+            modifier = Modifier.paperSurface(
+                rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                RoundedCornerShape(20.dp)
+            )
         ) {
             Column(
                 modifier = Modifier.padding(22.dp),

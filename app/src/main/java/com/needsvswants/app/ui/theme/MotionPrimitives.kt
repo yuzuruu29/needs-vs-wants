@@ -23,9 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.domain.toMoneyWhole
 import kotlinx.coroutines.launch
 
 /**
@@ -107,7 +110,12 @@ fun AnimatedMoney(
     style: TextStyle = AppType.moneyLg,
     color: Color? = null,
     maxLines: Int = Int.MAX_VALUE,
-    softWrap: Boolean = true
+    softWrap: Boolean = true,
+    overflow: TextOverflow = TextOverflow.Clip,
+    /** When true, formats via [toMoneyWhole] (no decimals) for hero/orb totals. */
+    wholeOnly: Boolean = false,
+    textAlign: TextAlign? = null,
+    modifier: Modifier = Modifier
 ) {
     val target = cents.toFloat()
     val animated by animateFloatAsState(
@@ -115,12 +123,16 @@ fun AnimatedMoney(
         animationSpec = Motion.number(),
         label = "animatedMoney"
     )
+    val amount = animated.toLong()
     Text(
-        text = animated.toLong().toMoney(symbol),
+        text = if (wholeOnly) amount.toMoneyWhole(symbol) else amount.toMoney(symbol),
+        modifier = modifier,
         style = style,
         color = color ?: Color.Unspecified,
         maxLines = maxLines,
-        softWrap = softWrap
+        softWrap = softWrap,
+        overflow = overflow,
+        textAlign = textAlign
     )
 }
 

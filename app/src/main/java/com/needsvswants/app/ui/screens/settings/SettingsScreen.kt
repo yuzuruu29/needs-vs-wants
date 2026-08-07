@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
+import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
 import com.needsvswants.app.ui.theme.*
 
@@ -46,11 +47,15 @@ fun SettingsScreen(
     val fontScaleStep by viewModel.fontScaleStep.collectAsStateWithLifecycle()
     val symbol by viewModel.currentSymbol.collectAsStateWithLifecycle()
     val reminderEnabled by viewModel.reminderEnabled.collectAsStateWithLifecycle()
+    val sfxEnabled by viewModel.sfxEnabled.collectAsStateWithLifecycle()
+    val hapticsEnabled by viewModel.hapticsEnabled.collectAsStateWithLifecycle()
+    val reducedMotion by viewModel.reducedMotion.collectAsStateWithLifecycle()
     val dailyFreeLogs by viewModel.dailyFreeLogs.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     var showWipeConfirm by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
+    val sfx = rememberAppSfx()
     val context = LocalContext.current
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -68,6 +73,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(themedInkWash())
+            .verticalScrollFirst()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
@@ -327,59 +333,75 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
+        SectionLabel("FEEDBACK")
+        Spacer(Modifier.height(10.dp))
+        SettingsPanel {
+            FeedbackToggleRow(
+                title = "Sound effects",
+                body = "Tap, long-press, and orb sounds. Uses media volume.",
+                checked = sfxEnabled,
+                onCheckedChange = { checked ->
+                    sfx.enabled = checked
+                    viewModel.setSfxEnabled(checked)
+                    if (checked) sfx.tap()
+                    if (hapticsEnabled) haptics.tick()
+                },
+                palette = palette
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            FeedbackToggleRow(
+                title = "Vibration",
+                body = "Haptic ticks for seals, chips, deletes, and warnings.",
+                checked = hapticsEnabled,
+                onCheckedChange = { checked ->
+                    haptics.enabled = checked
+                    viewModel.setHapticsEnabled(checked)
+                    if (checked) haptics.tick()
+                },
+                palette = palette
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            FeedbackToggleRow(
+                title = "Reduced motion",
+                body = "Instant transitions — no page flip, ink wave, or portal land.",
+                checked = reducedMotion,
+                onCheckedChange = { checked ->
+                    viewModel.setReducedMotion(checked)
+                    if (hapticsEnabled) haptics.tick()
+                },
+                palette = palette
+            )
+        }
+
+        Spacer(Modifier.height(28.dp))
+
         SectionLabel("NOTIFICATIONS")
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Evening reminder",
-                        style = AppType.bodyMd,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "8:00 PM nudge if you have not sealed a purchase today.",
-                        style = AppType.bodySm,
-                        color = palette.textMuted
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Switch(
-                    checked = reminderEnabled,
-                    onCheckedChange = { checked ->
-                        haptics.tick()
-                        if (!checked) {
-                            viewModel.setReminderEnabled(false, context)
-                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            val granted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (granted) {
-                                viewModel.setReminderEnabled(true, context)
-                            } else {
-                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        } else {
+            FeedbackToggleRow(
+                title = "Evening reminder",
+                body = "8:00 PM nudge if you have not sealed a purchase today.",
+                checked = reminderEnabled,
+                onCheckedChange = { checked ->
+                    if (hapticsEnabled) haptics.tick()
+                    if (!checked) {
+                        viewModel.setReminderEnabled(false, context)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val granted = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (granted) {
                             viewModel.setReminderEnabled(true, context)
+                        } else {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = palette.surfaceCard,
-                        checkedTrackColor = palette.crimson,
-                        uncheckedThumbColor = palette.textMuted,
-                        uncheckedTrackColor = palette.inkDivider
-                    )
-                )
-            }
+                    } else {
+                        viewModel.setReminderEnabled(true, context)
+                    }
+                },
+                palette = palette
+            )
         }
 
         Spacer(Modifier.height(28.dp))
@@ -466,6 +488,29 @@ fun SettingsScreen(
                     text = "Offline first. No cloud for free use.",
                     accent = palette.textMuted
                 )
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(palette.divider)
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "CREDITS",
+                    style = AppType.caption,
+                    color = palette.textMuted,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(6.dp))
+                SfxCredits.ABOUT_LINES.forEach { line ->
+                    Text(
+                        line,
+                        style = AppType.caption,
+                        color = palette.textSecondary
+                    )
+                    Spacer(Modifier.height(2.dp))
+                }
             }
         }
     }
@@ -485,6 +530,49 @@ fun SettingsScreen(
             },
             dismissLabel = "Cancel",
             confirmDanger = true
+        )
+    }
+}
+
+@Composable
+private fun FeedbackToggleRow(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    palette: AppPalette,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = AppType.bodyMd,
+                color = palette.textPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                body,
+                style = AppType.bodySm,
+                color = palette.textMuted
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = palette.surfaceCard,
+                checkedTrackColor = palette.crimson,
+                uncheckedThumbColor = palette.textMuted,
+                uncheckedTrackColor = palette.inkDivider
+            )
         )
     }
 }

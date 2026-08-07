@@ -23,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -118,7 +119,12 @@ fun HistoryScreen(
                 }
             }
         } else {
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScrollFirst(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 items(grouped, key = { it.first }) { (date, dayEntries) ->
                         val displayDate = dateFormat.parse(date)?.let { displayFormat.format(it) } ?: date
                         val dayNeeds = dayEntries.filter { it.type == EntryType.NEED }.sumOf { it.costCents }

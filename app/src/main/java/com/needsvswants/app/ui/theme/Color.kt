@@ -30,10 +30,10 @@ val Need = MarketGreen                   // need = green (staple, "go")
 val Want = Crimson                       // want = red (indulgence, "stop")
 val Danger = Color(0xFFC8102E)
 
-// Text on light surfaces
+// Text on light surfaces — darkened a notch for AA contrast over translucent glass.
 val TextPrimary = Color(0xFF1A1A1A)      // near-ink, ≥16:1 on white
-val TextSecondary = Color(0xFF5A5A5A)
-val TextMuted = Color(0xFF8A8A8A)
+val TextSecondary = Color(0xFF454545)
+val TextMuted = Color(0xFF6E6E6E)
 
 // Aliases for any screens still referencing the old Ink-era names during migration.
 val Ink = Surface

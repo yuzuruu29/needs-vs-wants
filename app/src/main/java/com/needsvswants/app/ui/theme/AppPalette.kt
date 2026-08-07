@@ -33,6 +33,10 @@ data class AppPalette(
     val textSecondary: Color,
     val textMuted: Color,
     val isLightStatusBars: Boolean,
+    /** Fill opacity for standard glass surfaces (0..1). HighContrast pins near 1. */
+    val glassFillAlpha: Float,
+    /** Brand tint woven into glass body + halo (warms plain-paper fills toward glass). */
+    val glassTint: Color,
 ) {
     /** Ink-era aliases used across screens. */
     val ink: Color get() = background
@@ -113,7 +117,9 @@ data class AppPalette(
             textPrimary = TextPrimary,
             textSecondary = TextSecondary,
             textMuted = TextMuted,
-            isLightStatusBars = true
+            isLightStatusBars = true,
+            glassFillAlpha = 0.56f,
+            glassTint = GoldSoft,
         )
 
         fun marketDark(): AppPalette = AppPalette(
@@ -135,7 +141,9 @@ data class AppPalette(
             textPrimary = Color(0xFFF4F2EA),
             textSecondary = Color(0xFFB8B6AE),
             textMuted = Color(0xFF8A8880),
-            isLightStatusBars = false
+            isLightStatusBars = false,
+            glassFillAlpha = 0.44f,
+            glassTint = Gold,
         )
 
         fun highContrast(): AppPalette = AppPalette(
@@ -157,7 +165,11 @@ data class AppPalette(
             textPrimary = Color(0xFF000000),
             textSecondary = Color(0xFF1A1A1A),
             textMuted = Color(0xFF333333),
-            isLightStatusBars = true
+            isLightStatusBars = true,
+            // Near-opaque so high-contrast surfaces never fall below readable contrast.
+            glassFillAlpha = 0.97f,
+            // No decorative veining in high-contrast — fill stays near-surfaceCard.
+            glassTint = SurfaceCard,
         )
 
         fun forTheme(themeId: ThemeId, systemDark: Boolean): AppPalette {

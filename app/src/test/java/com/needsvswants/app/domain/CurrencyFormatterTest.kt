@@ -45,4 +45,14 @@ class CurrencyFormatterTest {
         assertEquals("1.05", 105L.toInputAmount())
         assertEquals("0.09", 9L.toInputAmount())
     }
+
+    @Test
+    fun toMoneyWhole_dropsDecimals() {
+        assertEquals("₱ 123", 12_345L.toMoneyWhole("₱"))
+        assertEquals("₱ 5", 500L.toMoneyWhole("₱"))
+        assertEquals("$ 0", 99L.toMoneyWhole("$"))
+        assertEquals("₱ 1", 100L.toMoneyWhole("₱"))
+        // Full toMoney still keeps cents elsewhere in the app.
+        assertEquals("₱ 123.45", 12_345L.toMoney("₱"))
+    }
 }

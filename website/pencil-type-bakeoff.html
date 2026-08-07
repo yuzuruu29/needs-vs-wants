@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pencil type bake-off — Needs vs Wants</title>
+  <!-- Comparison only. Not production. OFL fonts via Google Fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@500;700&family=Inter:wght@400;600&family=Kalam:wght@400;700&family=Patrick+Hand&family=Playfair+Display+SC:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #FAFAF7;
+      --card: #fff;
+      --ink: #1A1A1A;
+      --sub: #5A5A5A;
+      --muted: #8A8A8A;
+      --crimson: #C8102E;
+      --green: #0B6B3A;
+      --gold: #E8A92A;
+      --divider: #E6E2D6;
+      --body: Inter, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--body);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.5;
+      background-image: repeating-linear-gradient(
+        180deg, rgba(214,210,198,.14) 0 1px, transparent 1px 28px
+      );
+      padding: 28px 18px 64px;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    h1 { font-size: 1.35rem; letter-spacing: .02em; margin-bottom: 6px; }
+    .lede { color: var(--sub); font-size: 0.95rem; margin-bottom: 22px; max-width: 52ch; }
+    .note {
+      background: #fff8e8; border: 1px solid rgba(232,169,42,.45);
+      border-radius: 12px; padding: 12px 14px; font-size: 0.88rem; color: var(--sub);
+      margin-bottom: 22px;
+    }
+    .note strong { color: var(--ink); }
+    .grid { display: grid; gap: 16px; }
+    @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--divider);
+      border-radius: 16px;
+      padding: 18px 16px 16px;
+      box-shadow: 0 10px 28px -22px rgba(26,26,26,.35);
+    }
+    .card.pick { outline: 2px solid var(--gold); }
+    .tag {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      letter-spacing: 1.6px; text-transform: uppercase; color: var(--crimson);
+      margin-bottom: 8px;
+    }
+    .name { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; }
+    .title { font-size: clamp(28px, 5vw, 36px); line-height: 1.15; margin-bottom: 8px; }
+    .eyebrow {
+      font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--crimson); margin: 10px 0 4px;
+    }
+    .body { font-family: var(--body); font-size: 14.5px; color: var(--sub); margin-top: 10px; }
+    .money {
+      font-family: var(--body); font-variant-numeric: tabular-nums; font-weight: 600;
+      font-size: 20px; margin-top: 8px; color: var(--green);
+    }
+    .money span { color: var(--crimson); font-weight: 600; margin-left: 12px; }
+    .f-current { font-family: "Playfair Display SC", Georgia, serif; font-weight: 700; }
+    .f-architects { font-family: "Architects Daughter", cursive; }
+    .f-caveat { font-family: Caveat, cursive; font-weight: 700; }
+    .f-kalam { font-family: Kalam, cursive; font-weight: 700; }
+    .f-patrick { font-family: "Patrick Hand", cursive; }
+    .scopes {
+      margin-top: 28px; padding: 18px; background: var(--card);
+      border: 1px solid var(--divider); border-radius: 16px;
+    }
+    .scopes h2 { font-size: 1rem; margin-bottom: 10px; }
+    .scopes ul { padding-left: 1.2em; color: var(--sub); font-size: 0.92rem; }
+    .scopes li { margin: 6px 0; }
+    .scopes code { font-size: 0.85em; background: #f0eee6; padding: 1px 5px; border-radius: 4px; }
+    footer { margin-top: 28px; font-size: 0.8rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pencil type bake-off</h1>
+    <p class="lede">
+      Side-by-side samples for Needs vs Wants. Money stays Inter (tabular).
+      Open this file in a browser, pick a face + scope, then we wire it into the app.
+    </p>
+    <div class="note">
+      <strong>How to use:</strong> Compare the big title line first, then the eyebrow.
+      Ask: does this feel like a costing ledger, or like a kids app?
+      Recommended product default: <strong>hybrid</strong> (pencil titles, Inter body + money).
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <div class="tag">Current · D78</div>
+        <div class="name">Playfair Display SC</div>
+        <div class="title f-current">NEEDS vs WANTS</div>
+        <div class="eyebrow" style="font-family:Inter,sans-serif;font-weight:600">Daily budget</div>
+        <p class="body">Every purchase is a Need or a Want. Inter body for clarity.</p>
+        <p class="money">₱1,280.00 <span>₱420.00</span></p>
+      </article>
+
+      <article class="card pick">
+        <div class="tag">Shortlist · sketch ledger</div>
+        <div class="name">Architects Daughter</div>
+        <div class="title f-architects">NEEDS vs WANTS</div>
+        <div class="eyebrow f-architects">Daily budget</div>
+        <p class="body">Every purchase is a Need or a Want. Inter body for clarity.</p>
+        <p class="money">₱1,280.00 <span>₱420.00</span></p>
+      </article>
+
+      <article class="card">
+        <div class="tag">Shortlist · soft pencil</div>
+        <div class="name">Caveat</div>
+        <div class="title f-caveat">NEEDS vs WANTS</div>
+        <div class="eyebrow f-caveat">Daily budget</div>
+        <p class="body">Every purchase is a Need or a Want. Inter body for clarity.</p>
+        <p class="money">₱1,280.00 <span>₱420.00</span></p>
+      </article>
+
+      <article class="card">
+        <div class="tag">Shortlist · readable hand</div>
+        <div class="name">Kalam</div>
+        <div class="title f-kalam">NEEDS vs WANTS</div>
+        <div class="eyebrow f-kalam">Daily budget</div>
+        <p class="body">Every purchase is a Need or a Want. Inter body for clarity.</p>
+        <p class="money">₱1,280.00 <span>₱420.00</span></p>
+      </article>
+
+      <article class="card">
+        <div class="tag">Shortlist · school notebook</div>
+        <div class="name">Patrick Hand</div>
+        <div class="title f-patrick">NEEDS vs WANTS</div>
+        <div class="eyebrow f-patrick">Daily budget</div>
+        <p class="body">Every purchase is a Need or a Want. Inter body for clarity.</p>
+        <p class="money">₱1,280.00 <span>₱420.00</span></p>
+      </article>
+    </div>
+
+    <section class="scopes">
+      <h2>Scope (how much pencil)</h2>
+      <ul>
+        <li><strong>A · Titles only</strong> — screen titles use pencil; eyebrows stay Inter.</li>
+        <li><strong>B · Hybrid (recommended)</strong> — titles + optional eyebrows pencil; body/buttons/settings Inter; money always Inter.</li>
+        <li><strong>C · Moments only</strong> — website hero + empty states / portal titles.</li>
+        <li><strong>D · Full body</strong> — not recommended for a budget trainer.</li>
+      </ul>
+      <p style="margin-top:14px;font-size:0.9rem;color:var(--sub)">
+        Reply with e.g. <code>B + Architects Daughter + pencil eyebrows</code>
+        and we implement in <code>Type.kt</code> + website CSS, then rebuild the APK.
+      </p>
+    </section>
+
+    <footer>
+      File: website/pencil-type-bakeoff.html · comparison only · not linked from production site
+    </footer>
+  </div>
+</body>
+</html>

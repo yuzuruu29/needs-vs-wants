@@ -101,10 +101,14 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
 | SUPABASE_URL                          | yes      | all                 | auto-set in hosted env                   |
 | SUPABASE_ANON_KEY                     | yes      | get_entitlement     | auto-set in hosted env                   |
 | SUPABASE_SERVICE_ROLE_KEY             | yes      | webhooks/verify     | auto-set in hosted env (never in client) |
-| PAYPAL_ENVIRONMENT                    | yes      | paypal_webhook      | `live` or `sandbox`                      |
-| PAYPAL_CLIENT_ID                      | yes      | paypal_webhook      | REST API app credential                  |
-| PAYPAL_CLIENT_SECRET                  | yes      | paypal_webhook      | REST API app credential                  |
+| PAYPAL_ENVIRONMENT                    | yes      | paypal_*            | `live` or `sandbox`                      |
+| PAYPAL_CLIENT_ID                      | yes      | paypal_*            | REST API app credential                  |
+| PAYPAL_CLIENT_SECRET                  | yes      | paypal_*            | REST API app credential                  |
 | PAYPAL_WEBHOOK_ID                     | yes      | paypal_webhook      | from the PayPal dashboard                |
+| PAYPAL_PLAN_PRO                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Pro       |
+| PAYPAL_PLAN_MAX                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Max       |
+| PAYPAL_RETURN_URL                     | no       | create_subscription | default `needsvswants://paypal/return`   |
+| PAYPAL_CANCEL_URL                     | no       | create_subscription | default `needsvswants://paypal/cancel`   |
 | GOOGLE_PLAY_SERVICE_ACCOUNT_JSON      | yes      | google_play_verify  | full service-account JSON                |
 | APPLE_SHARED_SECRET                   | yes      | apple_verify        | App Store shared secret                  |
 | APPLE_BUNDLE_ID                       | yes      | apple_verify        | app bundle id the receipt must match     |

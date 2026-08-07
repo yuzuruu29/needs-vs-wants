@@ -8,9 +8,11 @@ import org.junit.Test
 class AppearancePrefsTest {
     @Test
     fun fontMultipliers() {
+        // Steps stay modest — extra air at Large/XL comes from scaledSpacing()
+        // chrome growth, not huge multipliers (Type.kt scale notes).
         assertEquals(1.00f, FontScaleStep.DEFAULT.multiplier)
-        assertEquals(1.12f, FontScaleStep.LARGE.multiplier)
-        assertEquals(1.22f, FontScaleStep.EXTRA_LARGE.multiplier)
+        assertEquals(1.10f, FontScaleStep.LARGE.multiplier)
+        assertEquals(1.18f, FontScaleStep.EXTRA_LARGE.multiplier)
     }
 
     @Test

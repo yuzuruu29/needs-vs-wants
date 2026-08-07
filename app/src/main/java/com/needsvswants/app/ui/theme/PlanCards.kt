@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,7 +113,9 @@ fun MaxSealBadge(modifier: Modifier = Modifier, label: String = "MAX") {
     ) {
         Text(
             text = label,
-            style = AppType.eyebrowSm.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold),
+            // Above the 11sp legibility floor used elsewhere: at Extra large this
+            // renders ≈11.2sp inside the fixed 36dp seal.
+            style = AppType.eyebrowSm.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
             color = Color(0xFF1A1208),
             maxLines = 1
         )
@@ -192,7 +193,7 @@ fun PlanTierCard(
     statusNote: String? = null
 ) {
     val c = AppTheme.colors
-    val interaction = remember { MutableInteractionSource() }
+
     val scale by animateFloatAsState(
         targetValue = if (selected) 1f else 0.985f,
         animationSpec = Motion.selectionSpring(),
@@ -244,8 +245,6 @@ fun PlanTierCard(
             )
             .clickable(
                 enabled = enabled,
-                interactionSource = interaction,
-                indication = null,
                 role = Role.RadioButton,
                 onClick = onClick
             )
@@ -483,7 +482,7 @@ private fun TimelineRow(label: String, detail: String) {
             text = label,
             style = PaywallType.planFeatureEmph,
             color = c.textPrimary,
-            modifier = Modifier.width(64.dp)
+            modifier = Modifier.width(scaledSpacing(72f))
         )
         Text(
             text = detail,

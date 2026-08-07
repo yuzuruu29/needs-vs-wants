@@ -59,6 +59,9 @@ class PaywallViewModel @Inject constructor(
     private val _pendingPurchase = MutableStateFlow(PendingPurchase.None)
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
 
+    /** Set when PayPal approval URL is opened; cleared after return refresh. */
+    private var awaitingPaypalReturn: Boolean = false
+
     /**
      * True only after the user taps Start trial / Upgrade while signed out.
      * Drives the Google sign-in strip — never shown for free browsing of the paywall.
@@ -118,6 +121,23 @@ class PaywallViewModel @Inject constructor(
         }
     }
 
+    /**
+     * After returning from PayPal browser, re-pull entitlement.
+     * No-op unless a checkout was just started (avoids spam on every resume).
+     */
+    fun onReturnFromCheckout() {
+        if (!awaitingPaypalReturn) return
+        awaitingPaypalReturn = false
+        viewModelScope.launch {
+            _busy.value = true
+            try {
+                _lastResult.value = billing.restorePurchases()
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
     fun consumeResult() {
         _lastResult.value = null
     }
@@ -126,7 +146,11 @@ class PaywallViewModel @Inject constructor(
         if (_busy.value) return
         _busy.value = true
         try {
-            _lastResult.value = block()
+            val result = block()
+            if (result is BillingResult.OpenCheckout) {
+                awaitingPaypalReturn = true
+            }
+            _lastResult.value = result
         } finally {
             _busy.value = false
         }

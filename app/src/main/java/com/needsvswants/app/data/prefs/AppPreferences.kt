@@ -29,6 +29,9 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val LAST_MILESTONE_SHOWN = intPreferencesKey("last_milestone_shown")
         private val REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
         private val REMINDER_HOUR = intPreferencesKey("reminder_hour")
+        private val SFX_ENABLED = booleanPreferencesKey("sfx_enabled")
+        private val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        private val REDUCED_MOTION = booleanPreferencesKey("reduced_motion")
         private val THEME_ID = stringPreferencesKey("theme_id")
         private val FONT_SCALE_STEP = stringPreferencesKey("font_scale_step")
         private val ENTITLEMENT_TIER = stringPreferencesKey("entitlement_tier")
@@ -71,6 +74,12 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     val lastMilestoneShown: Flow<Int> = context.dataStore.data.map { it[LAST_MILESTONE_SHOWN] ?: 0 }
     val reminderEnabled: Flow<Boolean> = context.dataStore.data.map { it[REMINDER_ENABLED] ?: false }
     val reminderHour: Flow<Int> = context.dataStore.data.map { it[REMINDER_HOUR] ?: 20 }
+    /** Interaction sounds (tap / long-press / orb). Default on. */
+    val sfxEnabled: Flow<Boolean> = context.dataStore.data.map { it[SFX_ENABLED] ?: true }
+    /** Vibration / haptic feedback. Default on. */
+    val hapticsEnabled: Flow<Boolean> = context.dataStore.data.map { it[HAPTICS_ENABLED] ?: true }
+    /** In-app reduced motion (also collapses when system animator scale is 0). Default off. */
+    val reducedMotion: Flow<Boolean> = context.dataStore.data.map { it[REDUCED_MOTION] ?: false }
 
     suspend fun setReminderEnabled(enabled: Boolean) {
         context.dataStore.edit { it[REMINDER_ENABLED] = enabled }
@@ -78,6 +87,18 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
 
     suspend fun setReminderHour(hour: Int) {
         context.dataStore.edit { it[REMINDER_HOUR] = hour }
+    }
+
+    suspend fun setSfxEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[SFX_ENABLED] = enabled }
+    }
+
+    suspend fun setHapticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[HAPTICS_ENABLED] = enabled }
+    }
+
+    suspend fun setReducedMotion(enabled: Boolean) {
+        context.dataStore.edit { it[REDUCED_MOTION] = enabled }
     }
 
     val themeId: Flow<ThemeId> = context.dataStore.data.map {

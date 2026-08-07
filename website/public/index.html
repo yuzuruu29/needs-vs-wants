@@ -10,15 +10,46 @@
 <link rel="icon" href="./favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics.">
-<link rel="preload" href="./fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="./fonts/playfair-display-sc-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/source-sans3-regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="./fonts/caveat-bold.ttf" as="font" type="font/ttf" crossorigin>
 <style>
 /* ============ SELF-HOSTED FONTS ============ */
+@font-face{
+  font-family:'Caveat';
+  font-style:normal;font-weight:400;font-display:swap;
+  src:url('./fonts/caveat-regular.ttf') format('truetype');
+}
+@font-face{
+  font-family:'Caveat';
+  font-style:normal;font-weight:700;font-display:swap;
+  src:url('./fonts/caveat-bold.ttf') format('truetype');
+}
 @font-face{
   font-family:'Playfair Display SC';
   font-style:normal;font-weight:700;font-display:swap;
   src:url('./fonts/playfair-display-sc-700.woff2') format('woff2');
 }
+@font-face{
+  font-family:'Source Sans 3';
+  font-style:normal;font-weight:400;font-display:swap;
+  src:url('./fonts/source-sans3-regular.ttf') format('truetype');
+}
+@font-face{
+  font-family:'Source Sans 3';
+  font-style:normal;font-weight:500;font-display:swap;
+  src:url('./fonts/source-sans3-medium.ttf') format('truetype');
+}
+@font-face{
+  font-family:'Source Sans 3';
+  font-style:normal;font-weight:600;font-display:swap;
+  src:url('./fonts/source-sans3-semibold.ttf') format('truetype');
+}
+@font-face{
+  font-family:'Source Sans 3';
+  font-style:normal;font-weight:700;font-display:swap;
+  src:url('./fonts/source-sans3-bold.ttf') format('truetype');
+}
+/* Inter kept as fallback stack only if local Source Sans fails */
 @font-face{
   font-family:'Inter';
   font-style:normal;font-weight:400;font-display:swap;
@@ -52,14 +83,31 @@
   --gold:#E8A92A; --gold-soft:#F4C968; --gold-deep:#B9881E;
   --ink:#1A1A1A; --sub:#5A5A5A; --muted:#8A8A8A;
   --paypal:#0070ba; --aceu-blue:#1f6bff; --paper-line:#f7f5ef; --advisor-muted:#4a4a4a; --advisor-soft:#777;
-  --display:'Playfair Display SC', Georgia, 'Times New Roman', serif;
-  --body:'Inter', -apple-system, 'Segoe UI', Helvetica, sans-serif;
-  --money:'Inter Tight', 'Inter', ui-monospace, 'SF Mono', Menlo, monospace;
+  --display:'Caveat', 'Segoe Print', 'Comic Sans MS', cursive;
+  --display-serif:'Playfair Display SC', Georgia, 'Times New Roman', serif;
+  --body:'Source Sans 3', Inter, -apple-system, 'Segoe UI', Helvetica, sans-serif;
+  --money:'Source Sans 3', 'Inter Tight', Inter, ui-monospace, 'SF Mono', Menlo, monospace;
   --r-xs:6px; --r-s:8px; --r-m:16px; --r-l:20px; --r-xl:28px;
   --shadow-card:0 18px 40px -28px rgba(26,26,26,.28);
   --shadow-phone:0 28px 56px -32px rgba(26,26,26,.42), 0 8px 18px -12px rgba(26,26,26,.18);
   --ease-out:cubic-bezier(.22,1,.36,1);
   --ease-soft:cubic-bezier(.4,0,.2,1);
+  /* ---- Paper ledger craft (replaces glass) ---- */
+  --paper-bg: #FAFAF7;
+  --paper-card: #FFFFFF;
+  --paper-rule: rgba(26,26,26,.08);
+  --ink-rim: rgba(26,26,26,.14);
+  --ledger-gold: #E8A92A;
+  --paper-lift: 0 12px 26px -18px rgba(26,26,26,.22);
+  --paper-lift-up: 0 30px 60px -34px rgba(26,26,26,.28);
+  /* legacy aliases so residual rules still resolve */
+  --glass-blur: 0px;
+  --glass-sat: saturate(1);
+  --glass-rx: 16px;
+  --glass-hi: rgba(255,255,255,.45);
+  --glass-rim: var(--ink-rim);
+  --glass-lift: var(--paper-lift);
+  --glass-lift-up: var(--paper-lift-up);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -91,21 +139,50 @@ button{font-family:inherit;cursor:pointer}
 /* ============ HEADER ============ */
 header{
   position:sticky;top:0;z-index:50;max-height:72px;
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
-    background:rgba(250,250,247,.96);
-  }
-  background:rgba(250,250,247,.72);
-  backdrop-filter:blur(14px) saturate(1.2);
-  -webkit-backdrop-filter:blur(14px) saturate(1.2);
+  /* paper desk bar — near-opaque ledger stock, no backdrop blur */
+  background:rgba(250,250,247,.97);
   border-bottom:1px solid transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
   transition:border-color .35s var(--ease-soft), box-shadow .35s var(--ease-soft), background .35s var(--ease-soft);
 }
 header.is-shrunk .nav{padding:10px 24px}
 header.scrolled{
-  border-color:var(--divider);
-  background:rgba(250,250,247,.9);
-  box-shadow:0 10px 24px -18px rgba(26,26,26,.25);
+  border-bottom-color:var(--divider);
+  background:rgba(250,250,247,.99);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    var(--paper-lift);
 }
+/* ============ GLASS FALLBACKS & A11Y (shares tokens above) ============ */
+
+/* No backdrop-filter support → near-solid panes so text stays readable.
+   Separate, flat fills (no layered gradients) keep the durable surface simple. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  header{background:rgba(250,250,247,.96)}
+  header.scrolled{background:rgba(250,250,247,.98)}
+  .apk-qr-card{background:rgba(255,255,255,.18)}
+  .pri-shell{background:rgba(243,241,234,.94)}
+  .pri--pro .pri-shell{background:linear-gradient(180deg,rgba(244,201,104,.34),rgba(243,241,234,.94))}
+}
+
+/* Reduced transparency → kill blur and flatten to ~solid fill (WCAG 1.4.7 spirit) */
+@media (prefers-reduced-transparency: reduce){
+  header{background:rgba(250,250,247,.96);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+  header.scrolled{background:rgba(250,250,247,.98)}
+  .apk-qr-card{background:rgba(255,255,255,.24);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;border-color:rgba(255,255,255,.5)}
+  .pri-shell{background:rgba(243,241,234,.96);backdrop-filter:none;-webkit-backdrop-filter:none}
+  .pri--pro .pri-shell{background:linear-gradient(180deg,rgba(244,201,104,.30),rgba(243,241,234,.96))}
+}
+
+/* High contrast → fuller fill + stronger nav text so edges don't wash the bar away */
+@media (prefers-contrast: more){
+  header{background:rgba(250,250,247,.98);border-bottom-color:var(--divider-strong)}
+  header .nav-links a{color:var(--ink)}
+  .apk-qr-card{border-color:rgba(255,255,255,.65)}
+}
+/* Reduced motion → hover shadow motion already handled by the sheet's global
+   transition-duration collapse + the .pri-shell reduce block; glass gradients/rims
+   are static (cheap properties) and stay. */
 .nav{display:flex;align-items:center;gap:20px;padding:14px 24px;max-width:1180px;margin:0 auto;transition:padding .35s var(--ease-soft)}
 .wordmark{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 18px/1 var(--display);letter-spacing:.8px}
 .wordmark svg{width:22px;height:22px;color:var(--gold-deep)}
@@ -157,8 +234,8 @@ header.scrolled{
 @media (max-width:940px){.hero-grid{grid-template-columns:1fr}.hero-copy{padding-top:0}}
 .hero-copy .eyebrow{display:flex;align-items:center;gap:12px}
 .hero-copy .eyebrow::before{content:'';width:26px;height:1px;background:var(--gold-deep)}
-.display{font:700 clamp(48px,7.2vw,78px)/1.02 var(--display);letter-spacing:1.2px;margin:18px 0 6px}
-.display .vs{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:.56em;color:var(--gold-deep);letter-spacing:0;padding:0 .1em;vertical-align:.1em}
+.display{font:700 clamp(52px,7.6vw,84px)/1.05 var(--display);letter-spacing:0.4px;margin:18px 0 6px}
+.display .vs{font-family:var(--display);font-style:normal;font-size:.62em;color:var(--gold-deep);letter-spacing:0;padding:0 .12em;vertical-align:.05em;font-weight:700}
 .kicker{font:600 12px/1 var(--body);letter-spacing:2.4px;text-transform:uppercase;color:var(--crimson);margin-bottom:14px}
 .rule-sweep{width:190px;height:2px;margin:6px 0 22px;background:linear-gradient(90deg,var(--gold),var(--gold-soft),transparent);transform-origin:left}
 .lede{font-size:16px;line-height:1.75;color:var(--sub);max-width:52ch;hyphens:auto}
@@ -469,11 +546,13 @@ header.scrolled{
   pointer-events:auto;
   writing-mode:vertical-rl;text-orientation:mixed;
   transform:rotate(180deg);
-  min-height:72px;min-width:36px;padding:10px 6px;
+  min-height:76px;min-width:38px;padding:12px 7px;
   border:1px solid var(--divider-strong);border-right:0;
   border-radius:8px 0 0 8px;
   background:var(--card);color:var(--ink);
-  font:700 11px/1 var(--display);letter-spacing:1.4px;text-transform:uppercase;
+  /* UI labels: Source Sans (body), never Caveat display — stays legible when rotated */
+  font:600 11px/1.1 var(--body);letter-spacing:1.6px;text-transform:uppercase;
+  font-feature-settings:"kern" 1;
   box-shadow:-4px 2px 10px -6px rgba(26,26,26,.35);
   transition:transform .18s cubic-bezier(.22,1,.36,1), border-color .18s, color .18s, opacity .18s;
 }
@@ -861,14 +940,19 @@ section{padding:clamp(64px,8vw,104px) 0}
 .apk-qr-card{
   display:flex;flex-direction:column;align-items:center;gap:12px;
   width:min(100%,248px);
-  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.38);
   border-radius:var(--r-m);padding:20px 18px 16px;
-  backdrop-filter:blur(6px);
+  color:var(--ink);text-align:center;
+  /* Matte receipt slip on the red CTA — solid paper, no frost blur */
+  background:var(--paper-card);
+  border:1px solid rgba(26,26,26,.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    0 18px 32px -18px rgba(0,0,0,.45);
 }
 .apk-qr-card canvas{display:block;width:200px;height:200px;border-radius:var(--r-s);background:#fff;padding:10px;box-shadow:0 14px 32px -18px rgba(0,0,0,.4)}
-.apk-qr-cap{font:500 12.5px/1.5 var(--body);color:rgba(255,255,255,.92);text-align:center;max-width:22ch;margin:0}
+.apk-qr-cap{font:500 12.5px/1.5 var(--body);color:var(--ink);text-align:center;max-width:22ch;margin:0}
 .apk-qr-cap strong{font-weight:600}
-.apk-qr-url{font:500 10.5px/1.4 var(--body);color:rgba(255,255,255,.58);word-break:break-all;text-align:center;max-width:200px;margin:0}
+.apk-qr-url{font:500 10.5px/1.4 var(--body);color:var(--sub);word-break:break-all;text-align:center;max-width:200px;margin:0}
 .cta-note{display:flex;align-items:center;gap:9px;margin-top:26px;font:600 11.5px/1.5 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.75)}
 .cta-note svg{width:15px;height:15px;color:var(--gold-soft);flex:none}
 .stamp-rot{position:absolute;top:22px;right:22px;width:118px;height:118px;opacity:.9;z-index:1;pointer-events:none;animation:stampIn 1s .35s var(--ease-out) both}
@@ -1015,11 +1099,39 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .pri-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px;align-items:stretch}
 .pri{position:relative;display:flex;flex-direction:column}
 /* Outer shell + inner core (double-bezel) */
-.pri-shell{background:rgba(243,241,234,.6);border:1px solid var(--divider);border-radius:calc(var(--r-l) + 7px);padding:7px;transition:transform .34s var(--ease-out), box-shadow .34s var(--ease-out)}
+.pri-shell{
+  /* Paper shelf + white slip (double-bezel ledger desk) */
+  background:#F3F1EA;
+  border:1px solid var(--divider);
+  border-radius:calc(var(--r-l) + 7px);padding:7px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    0 14px 30px -20px rgba(26,26,26,.18);
+  transition:transform .34s var(--ease-out), box-shadow .34s var(--ease-out);
+}
 .pri-core{position:relative;display:flex;flex-direction:column;height:100%;background:#fff;border-radius:var(--r-l);padding:26px 24px 24px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.7);overflow:hidden}
-.pri:hover .pri-shell{transform:translateY(-6px);box-shadow:0 30px 60px -34px rgba(26,26,26,.35)}
-.pri--pro .pri-shell{border-color:rgba(232,169,42,.55);background:linear-gradient(180deg, rgba(232,169,42,.14), rgba(243,241,234,.5))}
+.pri:hover .pri-shell{
+  transform:translateY(-6px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    var(--paper-lift-up);
+}
+.pri--pro .pri-shell{
+  border-color:rgba(232,169,42,.55);
+  background:linear-gradient(180deg, rgba(244,201,104,.22), #F3F1EA 55%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 0 0 1px rgba(232,169,42,.18),
+    0 16px 34px -22px rgba(184,136,30,.35);
+}
+.pri--pro:hover .pri-shell{
+  transform:translateY(-6px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 0 0 1px rgba(232,169,42,.18),
+    var(--paper-lift-up);
+}
 .pri--max .pri-success{opacity:1}
 .pri--max .pri-shell{transform:none}
 .pri--max:hover .pri-shell{transform:translateY(-6px)}
@@ -1143,7 +1255,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
       Needs <b>vs</b> Wants
     </a>
-    <span class="chip-soft" title="Official launch · Version 1.5.0"><i aria-hidden="true"></i>Official</span>
+    <span class="chip-soft" title="Official launch · Version 2.0.1"><i aria-hidden="true"></i>Official</span>
     <nav class="nav-links" aria-label="Primary">
       <a href="#rule">The Rule</a>
       <a href="#how">How It Works</a>
@@ -1165,15 +1277,15 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div class="rule-sweep hero-in" aria-hidden="true"></div>
       <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong>, and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
       <div class="hero-cta hero-in hero-in-5">
-        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-1.5.0.apk" download>Download Android APK</a>
+        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-2.0.1.apk" download>Download Android APK</a>
         <button class="btn btn--ghost sec" id="heroCta" type="button">Try Live Demo ↓</button>
       </div>
       <a class="ios-notify-link hero-in hero-in-5" href="#get">iOS coming soon. Get notified</a>
       <p class="proof hero-in hero-in-6">
-        <span>Official launch</span><span class="dot" aria-hidden="true">◆</span>
+        <span>Free to try</span><span class="dot" aria-hidden="true">◆</span>
+        <span>Android APK</span><span class="dot" aria-hidden="true">◆</span>
         <span>Offline-first</span><span class="dot" aria-hidden="true">◆</span>
-        <span>No accounts</span><span class="dot" aria-hidden="true">◆</span>
-        <span>Optional daily budget</span><span class="dot" aria-hidden="true">◆</span>
+        <span>No account needed</span><span class="dot" aria-hidden="true">◆</span>
         <span class="cur">₱ $ € ¥ S$</span>
       </p>
     </div>
@@ -1187,8 +1299,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           </div>
           <div class="pad-stage" id="padStage"></div>
           <div class="pad-tabs">
-            <button type="button" class="pad-tab" id="pagePrevTab" aria-label="Previous page">‹ Prev</button>
-            <button type="button" class="pad-tab" id="pageNextTab" aria-label="Next page">Next ›</button>
+            <button type="button" class="pad-tab" id="pagePrevTab" aria-label="Previous page">Prev</button>
+            <button type="button" class="pad-tab" id="pageNextTab" aria-label="Next page">Next</button>
           </div>
         </div>
         <div class="pad-nav" role="navigation" aria-label="Notepad pages">
@@ -1207,19 +1319,19 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 </section>
 
 <!-- ================= PRO · MAX NOTICE ================= -->
-<div class="pro-notice" role="region" aria-label="Announcement: Pro and Max subscriptions available">
+<div class="pro-notice" role="region" aria-label="Announcement: free try-out now, Pro and Max coming next">
   <div class="wrap">
     <span class="pro-notice-badge reveal">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.5 5.6 6.1.6-4.6 4.1 1.3 6-5.3-3.2L6.7 19.4l1.3-6L3.4 9.2l6.1-.6z"/></svg>
-      New
+      Free now
     </span>
     <div class="pro-notice-copy reveal">
-      <h3>Pro &amp; Max subscriptions are here.</h3>
-      <p>Unlock <b>unlimited logging</b>, <b>lifetime history</b>, <b>full-period analytics</b>, and, with <b>Max</b>, a Google NotebookLM AI Financial Advisor. 3-day free trial on every paid tier.</p>
+      <h3>Free trainer on device. Pro and Max via PayPal in the app.</h3>
+      <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (AI Advisor) are next on the roadmap, not open for purchase on this soft launch.</p>
     </div>
     <div class="pro-notice-cta reveal">
-      <a class="btn btn--primary btn-arr" href="#pro-pricing">
-        See Pro &amp; Max
+      <a class="btn btn--primary btn-arr" href="#get">
+        Download free
         <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
       </a>
     </div>
@@ -1379,15 +1491,15 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   </div>
 </section>
 
-<!-- ================= WHAT'S NEW IN 1.5.0 ================= -->
+<!-- ================= WHAT'S NEW IN 2.0.1 ================= -->
 <section id="updates">
   <div class="wrap">
     <div class="sec-head reveal">
       <div>
         <p class="eyebrow eyebrow--gold">What's New</p>
-        <h2 class="title">Version 1.5.0 is here.</h2>
+        <h2 class="title">Version 2.0.1 is here.</h2>
       </div>
-      <p>The trainer grew up. Streaks, insights, CSV export, a home-screen widget, evening reminders, and a faster Log, all in one update.</p>
+      <p>PayPal Pro and Max in the app, live Supabase entitlements, and the free trainer still needs no account.</p>
     </div>
     <div class="update-grid reveal">
       <article class="update-card">
@@ -1422,18 +1534,18 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       </article>
       <article class="update-card">
         <span class="update-tag">Paywall</span>
-        <h3>Membership desk</h3>
-        <p>Free, Pro, and Max now read like a real desk in the app, matching this site's pricing cards.</p>
+        <h3>Membership desk preview</h3>
+        <p>Free, Pro, and Max read like a real desk in the app. Checkout stays closed until website billing is ready.</p>
       </article>
       <article class="update-card">
         <span class="update-tag">Advisor</span>
-        <h3>Advisor live for Max</h3>
-        <p>Ask about overspend and recovery; every answer cites the Google NotebookLM economic study notebooks.</p>
+        <h3>Max Advisor (roadmap)</h3>
+        <p>NotebookLM-grounded coaching with citations is built as a Max tier. It unlocks with paid Max, not on this free soft launch.</p>
       </article>
       <article class="update-card">
         <span class="update-tag">Type</span>
         <h3>A cleaner type system</h3>
-        <p>Playfair Display SC leads titles, Inter carries the body, and money lines up in tabular numerals.</p>
+        <p>Caveat leads titles like soft pencil on paper, Source Sans 3 carries the body, and money lines up in tabular numerals.</p>
       </article>
     </div>
   </div>
@@ -1594,7 +1706,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               </button>
               <p class="grp">About</p>
               <p class="about-name">Needs vs. Wants</p>
-              <p class="about-v">Version 1.5.0</p>
+              <p class="about-v">Version 2.0.1</p>
               <p class="about-d">An offline-first trainer for honest spenders.</p>
             </div>
           </div>
@@ -1625,7 +1737,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Financial Advisor</b> (Max Tier) Live guidance grounded in your Google NotebookLM economic study notebooks, with a citation on every answer.</p>
+        <p class="phone-cap"><b>Financial Advisor</b> (Max · roadmap) Preview of NotebookLM-grounded guidance with citations. Unlocks with Max when subscriptions open.</p>
       </div>
     </div>
   </div>
@@ -1653,14 +1765,14 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 </section>
 
 <!-- ================= PRO PRICING & PAYPAL ================= -->
-<section id="pro-pricing" aria-label="Pro Subscription &amp; Direct Purchase">
+<section id="pro-pricing" aria-label="Plans: free now, Pro and Max coming next">
   <div class="wrap">
     <div class="pro-head reveal">
       <div>
-        <p class="pro-note">Pro · Max · Direct Access</p>
-        <h2 class="title">Unlimited Diary. Lifetime History.</h2>
+        <p class="pro-note">Free now · Pro &amp; Max next</p>
+        <h2 class="title">Start free. Grow when you are ready.</h2>
       </div>
-      <p>Free keeps the honest 20-sheet, 35-day trainer. Pro removes the limits. Max adds the AI Financial Advisor. 3-day free trial on every paid tier.</p>
+      <p>This soft launch is a free Android download. Pro removes the 20-sheet and 35-day limits. Max adds the AI Advisor. Paid checkout opens later via this site (PayPal), not on a store yet.</p>
     </div>
     <div class="pri-grid reveal">
 
@@ -1670,9 +1782,9 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <div class="pri-flag" aria-hidden="true"></div>
             <p class="pri-eyebrow">Free Plan</p>
             <h3 class="pri-title">The Trainer</h3>
-            <span class="pri-tag">Default · Offline</span>
+            <span class="pri-tag">Open now · Offline</span>
             <p class="pri-price">₱0<small> forever</small></p>
-            <p class="pri-sub">The honest daily trainer, free from day one.</p>
+            <p class="pri-sub">The honest daily trainer. Download and seal today.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>20 entries per sheet</li>
@@ -1681,8 +1793,11 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>4 theme appearances</li>
             </ul>
             <div class="pri-cta">
-              <button class="btn btn--outline" type="button" disabled>Active by default</button>
-              <p class="pri-cta-note">No account needed · No network</p>
+              <a class="btn btn--primary btn-arr" href="#get">
+                Download free
+                <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
+              </a>
+              <p class="pri-cta-note">No account · Sideload APK · Not on Play Store yet</p>
             </div>
           </div>
         </div>
@@ -1692,27 +1807,27 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <div class="pri-shell">
           <div class="pri-core">
             <div class="pri-flag" aria-hidden="true"></div>
-            <span class="pri-popular" aria-hidden="true">Most popular</span>
-            <p class="pri-eyebrow">Pro Subscription</p>
+            <span class="pri-popular" aria-hidden="true">Planned</span>
+            <p class="pri-eyebrow">Pro · Coming next</p>
             <h3 class="pri-title">Unlimited</h3>
-            <span class="pri-tag">3-Day Free Trial</span>
-            <p class="pri-price">₱249<small> / mo · $4.99</small></p>
+            <span class="pri-tag">Subscribe in the app</span>
+            <p class="pri-price">₱199<small> / mo · $3.49</small></p>
             <p class="pri-sub">Unlimited logging, lifetime history, full analytics.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Unlimited</b> entries per log sheet</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Lifetime</b> history retention</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Full period summary analytics</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Priority updates &amp; direct APK activation</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Direct APK updates from this site</li>
             </ul>
             <div class="pri-cta">
               <div id="paypal-button-container">
-                <button class="btn btn--primary btn-arr" type="button" id="payPalSeamBtn" style="background:var(--paypal);border-color:var(--paypal)">
-                  Pay with PayPal / Card
+                <a class="btn btn--outline btn-arr" id="payPalSeamBtn" href="#get">
+                  Open the app to subscribe
                   <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
-                </button>
+                </a>
               </div>
-              <p class="pri-cta-note">3-day free trial · Cancel anytime</p>
+              <p class="pri-cta-note">PayPal checkout later · No charge on this page yet</p>
             </div>
           </div>
         </div>
@@ -1723,24 +1838,24 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <div class="pri-core">
             <div class="pri-flag" aria-hidden="true"></div>
             <span class="pri-success" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
-            <p class="pri-eyebrow">Max Subscription</p>
+            <p class="pri-eyebrow">Max · Coming next</p>
             <h3 class="pri-title">Complete Intelligence</h3>
-            <span class="pri-tag">AI Powered</span>
-            <p class="pri-price">₱499<small> / mo · $9.99</small></p>
+            <span class="pri-tag">Subscribe in the app</span>
+            <p class="pri-price">₱399<small> / mo · $6.99</small></p>
             <p class="pri-sub">Everything in Pro, plus the AI Financial Advisor.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Everything in Pro</b> · unlimited &amp; lifetime</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Google NotebookLM</b> AI Financial Advisor</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Zero-hallucination grounded citations</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Real-time overspend recovery &amp; chatbot</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Grounded citations on every answer</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Overspend recovery chat</li>
             </ul>
             <div class="pri-cta">
-              <a class="btn btn--primary btn-arr" href="#get">
-                Get the app
+              <a class="btn btn--outline btn-arr" href="#get">
+                Download free first
                 <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
               </a>
-              <p class="pri-cta-note">3-day free trial</p>
+              <p class="pri-cta-note">Max unlocks with paid billing · Not open yet</p>
             </div>
           </div>
         </div>
@@ -1760,7 +1875,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <circle cx="60" cy="60" r="57" fill="none" stroke="var(--gold-soft)" stroke-width="1.4"/>
           <circle cx="60" cy="60" r="33" fill="none" stroke="var(--gold-soft)" stroke-width="1" stroke-dasharray="2 3"/>
           <text fill="var(--gold-soft)" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" letter-spacing="2.6">
-            <textPath href="#stampPath">OFFICIAL · VERSION 1.5.0 · NEEDS VS WANTS ·</textPath>
+            <textPath href="#stampPath">OFFICIAL · VERSION 2.0.1 · NEEDS VS WANTS ·</textPath>
           </text>
         </g>
         <g class="stamp-pulse">
@@ -1772,7 +1887,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <h2>Start tracking today.</h2>
           <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 35 days, with an optional daily budget on today.</p>
           <div class="cta-btns">
-            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-1.5.0.apk" download="needs-vs-wants-1.5.0.apk">
+            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.1.apk" download="needs-vs-wants-2.0.1.apk">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
               Get the app</a>
             <button class="btn btn--outline" id="apkQrToggle" type="button" aria-expanded="false" aria-controls="apkQrPanel">
@@ -1798,7 +1913,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <div class="apk-qr-panel" id="apkQrPanel" hidden>
           <div class="apk-qr-card">
             <canvas id="apkQrCanvas" width="200" height="200" role="img" aria-label="QR code linking to the Android APK download"></canvas>
-            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-1.5.0.apk</strong></p>
+            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-2.0.1.apk</strong></p>
             <p class="apk-qr-url" id="apkQrUrl"></p>
           </div>
         </div>
@@ -1848,7 +1963,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <div class="foot-grid">
       <div>
         <span class="wordmark">Needs <b>vs</b> Wants</span>
-        <p class="foot-tag">A 35-day spending trainer for honest spenders. Official launch · v1.5.0.</p>
+        <p class="foot-tag">A 35-day spending trainer for honest spenders. Official launch · v2.0.1.</p>
       </div>
       <div>
         <p class="foot-h">Explore</p>
@@ -1862,7 +1977,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div>
         <p class="foot-h">Details</p>
         <p class="foot-meta">
-          Version 1.5.0<br>
+          Version 2.0.1<br>
           <span class="money">₱ $ € ¥ S$</span> · currency-aware<br>
           <span id="footDate">Friday, July 31, 2026</span>
         </p>

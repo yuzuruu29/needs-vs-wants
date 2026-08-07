@@ -78,6 +78,15 @@ class SettingsViewModel @Inject constructor(
     val reminderEnabled: StateFlow<Boolean> = preferences.reminderEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val sfxEnabled: StateFlow<Boolean> = preferences.sfxEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val hapticsEnabled: StateFlow<Boolean> = preferences.hapticsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val reducedMotion: StateFlow<Boolean> = preferences.reducedMotion
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private val entitlement: StateFlow<Entitlement> = preferences.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Entitlement.Free)
 
@@ -116,6 +125,18 @@ class SettingsViewModel @Inject constructor(
                 com.needsvswants.app.notification.ReminderScheduler.cancel(context)
             }
         }
+    }
+
+    fun setSfxEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferences.setSfxEnabled(enabled) }
+    }
+
+    fun setHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferences.setHapticsEnabled(enabled) }
+    }
+
+    fun setReducedMotion(enabled: Boolean) {
+        viewModelScope.launch { preferences.setReducedMotion(enabled) }
     }
 
     fun setCurrency(symbol: String, code: String) {
