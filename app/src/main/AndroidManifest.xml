@@ -29,6 +29,8 @@
                 <data
                     android:scheme="needsvswants"
                     android:host="paypal" />
+                <data android:path="/return" />
+                <data android:path="/cancel" />
             </intent-filter>
         </activity>
 

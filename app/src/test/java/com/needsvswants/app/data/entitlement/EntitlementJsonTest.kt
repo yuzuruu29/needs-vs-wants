@@ -48,6 +48,32 @@ class EntitlementJsonTest {
     }
 
     @Test
+    fun parse_paypalLiveShape_isProWithPaidUntilAndNullTrial() {
+        // Live get_entitlement envelope after a PayPal webhook grant: is_pro +
+        // paid_until present, trial fields null/absent (no trial started).
+        val json = """
+            {"success":true,"data":{
+              "is_pro": true,
+              "plan": "pro",
+              "tier": "pro",
+              "trial_started_at": null,
+              "trial_ends_at": null,
+              "paid_until": "2030-01-01T00:00:00.000Z",
+              "provider": "paypal",
+              "source": "paypal_webhook",
+              "status": "active"
+            }}
+        """.trimIndent()
+
+        val ent = EntitlementJson.parseGetEntitlementResponse(json)!!
+        assertEquals(EntitlementTier.PRO, ent.tier)
+        assertEquals(EntitlementType.PAID, ent.type)
+        assertEquals("paypal", ent.provider)
+        assertTrue(ent.isProAt(System.currentTimeMillis()))
+        assertTrue(ent.hasProAccessAt(System.currentTimeMillis()))
+    }
+
+    @Test
     fun parse_freePlan_returnsDefaultFree() {
         val json = """{"success":true,"data":{"is_pro":false,"plan":"free","paid_until":null,"trial_ends_at":null}}"""
         val ent = EntitlementJson.parseGetEntitlementResponse(json)!!

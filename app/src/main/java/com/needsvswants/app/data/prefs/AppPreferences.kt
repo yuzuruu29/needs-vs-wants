@@ -64,6 +64,7 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val QUOTA_LOGS_CREATED = intPreferencesKey("quota_logs_created")
         private val QUOTA_BONUS_LOGS = intPreferencesKey("quota_bonus_logs")
         private val QUOTA_ADS_WATCHED = intPreferencesKey("quota_ads_watched")
+        private val PAYPAL_RETURN_PENDING = booleanPreferencesKey("paypal_return_pending")
     }
 
     val currencySymbol: Flow<String> = context.dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
@@ -195,6 +196,21 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
 
     override suspend fun clear() {
         context.dataStore.edit { prefs -> AUTH_KEYS.forEach { prefs.remove(it) } }
+    }
+
+    // --- PayPal checkout return (durable across process death) --------------
+
+    /** True while a PayPal checkout return is pending but not yet confirmed. */
+    val paypalReturnPending: Flow<Boolean> = context.dataStore.data.map {
+        it[PAYPAL_RETURN_PENDING] ?: false
+    }
+
+    suspend fun setPaypalReturnPending(pending: Boolean) {
+        context.dataStore.edit { it[PAYPAL_RETURN_PENDING] = pending }
+    }
+
+    suspend fun clearPaypalReturnPending() {
+        context.dataStore.edit { it.remove(PAYPAL_RETURN_PENDING) }
     }
 
     suspend fun setCurrency(symbol: String, code: String) {
