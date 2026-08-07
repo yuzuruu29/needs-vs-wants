@@ -384,6 +384,81 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun onSignedInForPurchase_twiceWithSamePending_afterFailed_runsBillingExactlyOnce() = runTest(dispatcher) {
+        // Exactly-once auto-continue: after a failed attempt the intent stays
+        // pending; a re-entering composition (rotation) must NOT re-create the
+        // subscription. The second call must no-op on the autoContinued flag.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        // Same pending intent, auto-continue invoked again (rotation/re-entry):
+        // must NOT issue a second paypal_create_subscription POST.
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_runsAgain_afterCancelAndFreshSubscribe() = runTest(dispatcher) {
+        // A NEW user intent must auto-continue exactly once: cancel + fresh
+        // signed-out subscribe resets the autoContinued flag.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled
+        )
+        // First intent: continues once, fails, intent stays pending.
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(listOf("pro_monthly"), billing.purchaseIds)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        // Cancel the intent, sign out, then tap Pro again: fresh intent.
+        vm.cancelPendingSignIn()
+        advanceUntilIdle()
+        store.clear()
+        advanceUntilIdle()
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(1, billing.purchaseIds.size)
+
+        // Sign back in: the FRESH intent must auto-continue once again.
+        store.save(AuthSession("at2", "rt2", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(listOf("pro_monthly", "pro_monthly"), billing.purchaseIds)
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
     fun retryCheckout_retries_whenLastResultFailed() = runTest(dispatcher) {
         val billing = FakeBilling(BillingResult.Failed("paypal declined"))
         val store = FakeSessionStore(null)

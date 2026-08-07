@@ -65,6 +65,18 @@ class PaywallViewModel @Inject constructor(
     private val _pendingPurchase = MutableStateFlow(PendingPurchase.None)
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
 
+    /**
+     * The pending intent that has already been auto-continued by
+     * [onSignedInForPurchase]. Guards exactly-once auto-continue: the same
+     * pending intent must never run the subscription pipeline twice, even if
+     * the screen's fresh-result gate re-opens (e.g. restore() reports an
+     * unconditional Success, the screen consumes it, then rotation re-enters
+     * the paywall with lastResult == null and the intent still pending).
+     * Cleared whenever a fresh user intent can be established: a signed-out
+     * subscribe, [cancelPendingSignIn], or checkout actually starting.
+     */
+    private var autoContinued: PendingPurchase? = null
+
     /** Set when PayPal approval URL is opened; cleared after return refresh. */
     private var awaitingPaypalReturn: Boolean = false
 
@@ -82,6 +94,7 @@ class PaywallViewModel @Inject constructor(
             if (_busy.value) return@launch
             if (!authRepository.isSignedIn.first()) {
                 _pendingPurchase.value = PendingPurchase.ProSubscribe
+                autoContinued = null
                 return@launch
             }
             runBilling { billing.purchase(monthlyProductId) }
@@ -94,6 +107,7 @@ class PaywallViewModel @Inject constructor(
             if (_busy.value) return@launch
             if (!authRepository.isSignedIn.first()) {
                 _pendingPurchase.value = PendingPurchase.MaxSubscribe
+                autoContinued = null
                 return@launch
             }
             runBilling { billing.purchase(maxProductId) }
@@ -105,10 +119,16 @@ class PaywallViewModel @Inject constructor(
      * Completes the subscription the user originally chose. Pending stays set
      * until checkout actually starts, so a failed attempt can be retried via
      * [retryCheckout].
+     *
+     * Exactly-once: if the current pending intent was already auto-continued
+     * (see [autoContinued]) this is a no-op — the same intent must never run
+     * the pipeline twice, regardless of how lastResult evolves on screen.
+     * Explicit retry paths ([retryCheckout], the CTA) are unaffected.
      */
     fun onSignedInForPurchase() {
         viewModelScope.launch {
             if (!authRepository.isSignedIn.first()) return@launch
+            if (autoContinued == _pendingPurchase.value) return@launch
             runPendingSubscription()
         }
     }
@@ -136,6 +156,7 @@ class PaywallViewModel @Inject constructor(
 
     fun cancelPendingSignIn() {
         _pendingPurchase.value = PendingPurchase.None
+        autoContinued = null
     }
 
     fun restore() {
@@ -181,8 +202,14 @@ class PaywallViewModel @Inject constructor(
             // Force a fresh access token; the billing controller re-reads it.
             authRepository.ensureFreshAccessToken()
             when (_pendingPurchase.value) {
-                PendingPurchase.ProSubscribe -> executeBilling { billing.purchase(monthlyProductId) }
-                PendingPurchase.MaxSubscribe -> executeBilling { billing.purchase(maxProductId) }
+                PendingPurchase.ProSubscribe -> {
+                    autoContinued = PendingPurchase.ProSubscribe
+                    executeBilling { billing.purchase(monthlyProductId) }
+                }
+                PendingPurchase.MaxSubscribe -> {
+                    autoContinued = PendingPurchase.MaxSubscribe
+                    executeBilling { billing.purchase(maxProductId) }
+                }
                 PendingPurchase.None -> Unit
             }
         } finally {
@@ -211,6 +238,7 @@ class PaywallViewModel @Inject constructor(
             awaitingPaypalReturn = true
             // Checkout started: the deferred intent has been consumed.
             _pendingPurchase.value = PendingPurchase.None
+            autoContinued = null
         }
         _lastResult.value = result
     }
