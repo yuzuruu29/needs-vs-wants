@@ -4,6 +4,7 @@ import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.remote.HttpJsonClient
 import com.needsvswants.app.data.remote.SupabaseConfig
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -89,7 +90,10 @@ class PayPalBillingController @Inject constructor(
             body = body
         )
 
-        val json = result.getOrElse { return BillingResult.Failed(httpFailureReason(it)) }
+        val json = result.getOrElse { throwable ->
+            if (throwable is CancellationException) throw throwable
+            return BillingResult.Failed(httpFailureReason(throwable))
+        }
         val approval = PayPalCheckoutJson.parseApprovalUrl(json)
             ?: return BillingResult.Failed("PayPal checkout returned an unexpected response. Please try again.")
         return BillingResult.OpenCheckout(approval)

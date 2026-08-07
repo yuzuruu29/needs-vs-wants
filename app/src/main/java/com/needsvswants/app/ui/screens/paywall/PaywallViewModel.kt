@@ -77,9 +77,10 @@ class PaywallViewModel @Inject constructor(
         .map { it != PendingPurchase.None }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
-    /** Start a Pro subscription; defers to Google sign-in when signed out. */
+    /** Start a Pro subscription; defers to Google sign-in when signed out. Ignored while a billing pipeline is in flight. */
     fun subscribePro() {
         viewModelScope.launch {
+            if (_busy.value) return@launch
             if (!authRepository.isSignedIn.first()) {
                 _pendingPurchase.value = PendingPurchase.ProSubscribe
                 return@launch
@@ -88,9 +89,10 @@ class PaywallViewModel @Inject constructor(
         }
     }
 
-    /** Start a Max subscription; defers to Google sign-in when signed out. */
+    /** Start a Max subscription; defers to Google sign-in when signed out. Ignored while a billing pipeline is in flight. */
     fun subscribeMax() {
         viewModelScope.launch {
+            if (_busy.value) return@launch
             if (!authRepository.isSignedIn.first()) {
                 _pendingPurchase.value = PendingPurchase.MaxSubscribe
                 return@launch
@@ -114,12 +116,21 @@ class PaywallViewModel @Inject constructor(
 
     /**
      * Re-runs the deferred subscription after a checkout that never started.
-     * No-op when nothing is pending or the user is signed out.
+     *
+     * Gating: [PendingPurchase] is the durable proxy — it survives every result
+     * except [BillingResult.OpenCheckout] (which clears it) — so additionally
+     * no-oping on a Success/OpenCheckout last result covers the window where
+     * the result was consumed or reported success while pending was still set.
+     * No-op when nothing is pending, busy, signed out, or last result was
+     * Success/OpenCheckout.
      */
     fun retryCheckout() {
         viewModelScope.launch {
             if (_pendingPurchase.value == PendingPurchase.None) return@launch
+            if (_busy.value) return@launch
             if (!authRepository.isSignedIn.first()) return@launch
+            val last = _lastResult.value
+            if (last is BillingResult.Success || last is BillingResult.OpenCheckout) return@launch
             runPendingSubscription()
         }
     }
@@ -156,18 +167,27 @@ class PaywallViewModel @Inject constructor(
     }
 
     /**
-     * Runs the pending subscription the user chose. A short settle delay plus a
-     * forced token refresh mitigate the post-sign-in token race; pending is
-     * cleared by [runBilling] only once checkout starts.
+     * Runs the pending subscription the user chose. Holds the in-flight guard
+     * over the WHOLE pipeline (settle delay + token refresh + billing) so no
+     * second tap can reach [BillingController.purchase] while this runs. A
+     * short settle delay plus a forced token refresh mitigate the post-sign-in
+     * token race; pending is re-read after the delay (aborts if the user
+     * cancelled) and cleared by [runBilling] only once checkout starts.
      */
     private suspend fun runPendingSubscription() {
-        delay(TOKEN_SETTLE_MILLIS)
-        // Force a fresh access token; the billing controller re-reads it.
-        authRepository.ensureFreshAccessToken()
-        when (_pendingPurchase.value) {
-            PendingPurchase.ProSubscribe -> runBilling { billing.purchase(monthlyProductId) }
-            PendingPurchase.MaxSubscribe -> runBilling { billing.purchase(maxProductId) }
-            PendingPurchase.None -> Unit
+        if (_busy.value) return
+        _busy.value = true
+        try {
+            delay(TOKEN_SETTLE_MILLIS)
+            // Force a fresh access token; the billing controller re-reads it.
+            authRepository.ensureFreshAccessToken()
+            when (_pendingPurchase.value) {
+                PendingPurchase.ProSubscribe -> runBilling { billing.purchase(monthlyProductId) }
+                PendingPurchase.MaxSubscribe -> runBilling { billing.purchase(maxProductId) }
+                PendingPurchase.None -> Unit
+            }
+        } finally {
+            _busy.value = false
         }
     }
 
