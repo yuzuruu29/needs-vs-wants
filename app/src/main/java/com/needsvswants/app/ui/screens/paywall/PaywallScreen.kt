@@ -118,7 +118,7 @@ fun PaywallScreen(
                 delay(3000)
                 viewModel.consumeResult()
             }
-            // Failed / Unavailable persist so the reason + "Try PayPal again" stay visible.
+            // Failed / Unavailable persist until the user acts (retry, plan switch, or close).
             is BillingResult.Failed, BillingResult.Unavailable -> Unit
             null -> Unit
         }
@@ -148,10 +148,24 @@ fun PaywallScreen(
         if (selected != plan) {
             selected = plan
             haptics.tick()
+            viewModel.consumeResult()
+        }
+    }
+
+    fun retryPayPal() {
+        when (selected) {
+            MembershipPlan.Pro -> viewModel.subscribePro()
+            MembershipPlan.Max -> viewModel.subscribeMax()
+            MembershipPlan.Free -> Unit
         }
     }
 
     val ctaEnabled = !busy && !authState.busy
+    val retryEnabled = !busy && when (selected) {
+        MembershipPlan.Free -> false
+        MembershipPlan.Pro -> !isPro
+        MembershipPlan.Max -> !hasMaxAccess
+    }
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
         MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Continue with PayPal · Pro"
@@ -299,7 +313,7 @@ fun PaywallScreen(
                     Spacer(Modifier.height(14.dp))
                     PaywallNoticeSurface(accent = palette.gold) {
                         Text(
-                            signedInEmail ?: "Signed in",
+                            "Signed in as ${signedInEmail ?: "you"}",
                             style = PaywallType.planFeatureEmph,
                             color = palette.textPrimary,
                             maxLines = 2
@@ -361,18 +375,10 @@ fun PaywallScreen(
 
                 Spacer(Modifier.height(12.dp))
                 when (val r = lastResult) {
-                    BillingResult.Unavailable -> {
-                        StatusText(
-                            "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
-                            color = palette.textMuted
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        RetryPayPalButton(
-                            onRetry = { viewModel.retryCheckout() },
-                            enabled = !busy,
-                            color = palette.textMuted
-                        )
-                    }
+                    BillingResult.Unavailable -> StatusText(
+                        "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
+                        color = palette.textMuted
+                    )
                     BillingResult.Pending -> StatusText(
                         "Your payment is processing…",
                         color = palette.gilt
@@ -394,8 +400,8 @@ fun PaywallScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         RetryPayPalButton(
-                            onRetry = { viewModel.retryCheckout() },
-                            enabled = !busy,
+                            onRetry = { retryPayPal() },
+                            enabled = retryEnabled,
                             color = palette.textMuted
                         )
                     }
