@@ -5,6 +5,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.billing.BillingResult
+import com.needsvswants.app.data.billing.PaymentProvider
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -84,7 +89,18 @@ fun PaywallScreen(
     val pending by viewModel.pendingPurchase.collectAsStateWithLifecycle()
     val needsSignInForPurchase by viewModel.needsSignInForPurchase.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val selectedProvider by viewModel.selectedProvider.collectAsStateWithLifecycle()
+    val payPalAvailable = viewModel.payPalAvailable
+    val payMongoAvailable = viewModel.payMongoAvailable
     val context = LocalContext.current
+
+    /** The provider the CTA/footer/timeline actually describe: the user's
+     *  choice when available, otherwise the one provider this build has. */
+    val effectiveProvider = when {
+        selectedProvider == PaymentProvider.PAYPAL && !payPalAvailable -> PaymentProvider.PAYMONGO
+        selectedProvider == PaymentProvider.PAYMONGO && !payMongoAvailable -> PaymentProvider.PAYPAL
+        else -> selectedProvider
+    }
 
     var selected by remember {
         mutableStateOf(
@@ -184,6 +200,13 @@ fun PaywallScreen(
         }
     }
 
+    fun selectProvider(provider: PaymentProvider) {
+        if (provider != selectedProvider) {
+            haptics.tick()
+            viewModel.selectProvider(provider)
+        }
+    }
+
     val ctaEnabled = !busy && !authState.busy
     val retryEnabled = !busy && when (selected) {
         MembershipPlan.Free -> false
@@ -192,8 +215,14 @@ fun PaywallScreen(
     }
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
-        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Continue with PayMongo · Pro"
-        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Continue with PayMongo · Max"
+        MembershipPlan.Pro -> if (isPro) "You're on Pro" else when (effectiveProvider) {
+            PaymentProvider.PAYPAL -> "Continue with PayPal · Pro (3-day trial)"
+            PaymentProvider.PAYMONGO -> "Continue with PayMongo · Pro"
+        }
+        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else when (effectiveProvider) {
+            PaymentProvider.PAYPAL -> "Continue with PayPal · Max"
+            PaymentProvider.PAYMONGO -> "Continue with PayMongo · Max"
+        }
     }
     val primaryEnabled = when (selected) {
         MembershipPlan.Free -> true
@@ -202,9 +231,21 @@ fun PaywallScreen(
     }
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
-        MembershipPlan.Pro, MembershipPlan.Max ->
-            "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
+        MembershipPlan.Pro -> when (effectiveProvider) {
+            PaymentProvider.PAYPAL ->
+                "3-day free trial on PayPal if enabled on the plan, then ₱199/mo. Cancel anytime in PayPal."
+            PaymentProvider.PAYMONGO ->
+                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
+        }
+        MembershipPlan.Max -> when (effectiveProvider) {
+            PaymentProvider.PAYPAL -> "₱399/mo via PayPal. Cancel anytime in PayPal."
+            PaymentProvider.PAYMONGO ->
+                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
+        }
     }
+    /** Payment-method selector is meaningful only when both providers are configured. */
+    val showProviderSelector = (selected == MembershipPlan.Pro || selected == MembershipPlan.Max) &&
+        payPalAvailable && payMongoAvailable
 
     Box(
         modifier = Modifier
@@ -288,9 +329,9 @@ fun PaywallScreen(
                     onClick = { selectPlan(MembershipPlan.Pro) },
                     eyebrow = "Pro",
                     title = "Unlimited",
-                    tag = "One-time ₱199",
+                    tag = if (effectiveProvider == PaymentProvider.PAYPAL) "3-day free trial" else "One-time ₱199",
                     price = "₱199",
-                    priceSuffix = "/ mo · renewed manually",
+                    priceSuffix = if (effectiveProvider == PaymentProvider.PAYPAL) "/ mo after trial" else "/ mo · renewed manually",
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
                         "Unlimited entries per log sheet" to true,
@@ -312,7 +353,7 @@ fun PaywallScreen(
                     title = "AI Advisor",
                     tag = "Includes Pro",
                     price = "₱399",
-                    priceSuffix = "/ mo · renewed manually",
+                    priceSuffix = if (effectiveProvider == PaymentProvider.PAYPAL) "/ mo" else "/ mo · renewed manually",
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
                         "Everything in Pro" to true,
@@ -323,14 +364,26 @@ fun PaywallScreen(
                     statusNote = if (hasMaxAccess) "You're on Max" else null
                 )
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
+
+                if (showProviderSelector) {
+                    PaymentMethodSelector(
+                        provider = effectiveProvider,
+                        onSelect = ::selectProvider,
+                        forMax = selected == MembershipPlan.Max
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
 
                 AnimatedVisibility(
                     visible = selected == MembershipPlan.Pro || selected == MembershipPlan.Max,
                     enter = fadeIn(Motion.entrance()) + slideInVertically(Motion.entrance()) { it / 8 },
                     exit = fadeOut(Motion.feedback())
                 ) {
-                    TrialTimelineCard(forMax = selected == MembershipPlan.Max)
+                    TrialTimelineCard(
+                        forMax = selected == MembershipPlan.Max,
+                        provider = effectiveProvider
+                    )
                 }
 
                 if (isSignedIn) {
@@ -343,7 +396,7 @@ fun PaywallScreen(
                             maxLines = 2
                         )
                         Text(
-                            "Tap continue to open PayMongo.",
+                            "Tap continue to open checkout.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -360,7 +413,7 @@ fun PaywallScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Sign in with Google to start PayMongo checkout. Free use never needs an account.",
+                            "Sign in with Google to start checkout. Free use never needs an account.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -400,7 +453,7 @@ fun PaywallScreen(
                 Spacer(Modifier.height(12.dp))
                 when (val r = lastResult) {
                     BillingResult.Unavailable -> StatusText(
-                        "PayMongo isn't configured yet. Try again.",
+                        "Checkout isn't configured yet. Try again.",
                         color = palette.textMuted
                     )
                     BillingResult.Pending -> StatusText(
@@ -408,7 +461,7 @@ fun PaywallScreen(
                         color = palette.gilt
                     )
                     is BillingResult.OpenCheckout -> StatusText(
-                        "Opening PayMongo… complete checkout, then return here.",
+                        "Opening checkout… complete it, then return here.",
                         color = palette.gilt
                     )
                     BillingResult.Success -> when {
@@ -430,7 +483,7 @@ fun PaywallScreen(
                             color = palette.crimson
                         )
                         Spacer(Modifier.height(4.dp))
-                        RetryPayPalButton(
+                        RetryCheckoutButton(
                             onRetry = { retryPayPal() },
                             enabled = retryEnabled,
                             color = palette.textMuted
@@ -552,16 +605,92 @@ private fun StatusText(text: String, color: Color) {
 }
 
 @Composable
-private fun RetryPayPalButton(onRetry: () -> Unit, enabled: Boolean, color: Color) {
+private fun RetryCheckoutButton(onRetry: () -> Unit, enabled: Boolean, color: Color) {
     TextButton(
         onClick = onRetry,
         modifier = Modifier.fillMaxWidth(),
         enabled = enabled
     ) {
         Text(
-            "Try PayMongo again",
+            "Try again",
             style = PaywallType.meta,
             color = color
         )
+    }
+}
+
+/** Payment-method picker (PayPal vs PayMongo) for the selected paid plan. */
+@Composable
+private fun PaymentMethodSelector(
+    provider: PaymentProvider,
+    onSelect: (PaymentProvider) -> Unit,
+    forMax: Boolean
+) {
+    val c = AppTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ProviderOption(
+            title = "PayPal",
+            detail = if (forMax) {
+                "₱399/mo. Cancel anytime in PayPal."
+            } else {
+                "3-day free trial, then ₱199/mo. Cancel anytime in PayPal."
+            },
+            selected = provider == PaymentProvider.PAYPAL,
+            onClick = { onSelect(PaymentProvider.PAYPAL) }
+        )
+        ProviderOption(
+            title = "PayMongo",
+            detail = if (forMax) {
+                "One-time ₱399 · 30 days · no auto-charge"
+            } else {
+                "One-time ₱199 · 30 days · no auto-charge"
+            },
+            selected = provider == PaymentProvider.PAYMONGO,
+            onClick = { onSelect(PaymentProvider.PAYMONGO) }
+        )
+    }
+}
+
+@Composable
+private fun ProviderOption(
+    title: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val c = AppTheme.colors
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) c.surfaceCard else c.surfaceSunken,
+        border = BorderStroke(1.dp, if (selected) c.gold else c.gold.copy(alpha = 0.28f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = PaywallType.planFeatureEmph, color = c.textPrimary)
+                Text(detail, style = PaywallType.planSub, color = c.textSecondary)
+            }
+            Spacer(Modifier.weight(0.1f))
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .border(1.dp, if (selected) c.gold else c.textMuted.copy(alpha = 0.4f), RoundedCornerShape(9.dp))
+                    .padding(3.dp)
+            ) {
+                if (selected) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(c.gold, RoundedCornerShape(6.dp))
+                    )
+                }
+            }
+        }
     }
 }

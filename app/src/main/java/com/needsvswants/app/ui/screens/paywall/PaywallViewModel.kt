@@ -89,8 +89,14 @@ class PaywallViewModel @Inject constructor(
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
 
     /** Provider used for the next checkout; PayPal trial-first, PayMongo as the one-time alternative. */
-    private val _selectedProvider = MutableStateFlow(PaymentProvider.PAYPAL)
+    private val _selectedProvider = MutableStateFlow(
+        if (checkoutProvider.payPalAvailable) PaymentProvider.PAYPAL else PaymentProvider.PAYMONGO
+    )
     val selectedProvider: StateFlow<PaymentProvider> = _selectedProvider.asStateFlow()
+
+    /** Static per-build availability of each checkout provider (config-driven). */
+    val payPalAvailable: Boolean = checkoutProvider.payPalAvailable
+    val payMongoAvailable: Boolean = checkoutProvider.payMongoAvailable
 
     /**
      * Checkout-return sync lifecycle ([CheckoutSyncState]). Drives the paywall

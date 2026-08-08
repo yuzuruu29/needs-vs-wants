@@ -1238,6 +1238,26 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun selectedProvider_defaultsToPayMongo_whenPayPalUnavailable() {
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Unavailable),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(
+                FakeBilling(BillingResult.Success),
+                FakeBilling(BillingResult.Success),
+                payPalAvailable = false
+            )
+        )
+        assertEquals(PaymentProvider.PAYMONGO, vm.selectedProvider.value)
+        assertFalse(vm.payPalAvailable)
+        assertTrue(vm.payMongoAvailable)
+    }
+
+    @Test
     fun subscribePro_payPalRoutesToStartTrial_withMonthlyProductId() = runTest(dispatcher) {
         // PayPal Pro: the plan carries the 3-day trial — the route is startTrial,
         // never a plain purchase, and it uses the monthly (plan) product id.

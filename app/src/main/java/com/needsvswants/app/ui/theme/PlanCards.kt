@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.needsvswants.app.data.billing.PaymentProvider
 
 /**
  * Membership plan identity for the paywall (website #pro-pricing parity).
@@ -445,11 +446,16 @@ fun NeedWantSealMark(modifier: Modifier = Modifier) {
     }
 }
 
-/** Timeline strip under selected paid plan — manual-renewal, honest. */
+/**
+ * Timeline strip under the selected paid plan, matched to the chosen payment
+ * provider: PayPal auto-subscription (trial on Pro, straight billing on Max)
+ * or PayMongo one-time manual renewal.
+ */
 @Composable
 fun TrialTimelineCard(
     modifier: Modifier = Modifier,
-    forMax: Boolean = false
+    forMax: Boolean = false,
+    provider: PaymentProvider = PaymentProvider.PAYMONGO
 ) {
     val c = AppTheme.colors
     val planWord = if (forMax) "Max" else "Pro"
@@ -461,11 +467,28 @@ fun TrialTimelineCard(
             .border(BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)), RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
-        Eyebrow("WHEN YOU NEED IT", color = c.gilt, size = 10)
-        Spacer(Modifier.height(8.dp))
-        TimelineRow("Today", "After payment, $planWord unlocks on this device.")
-        TimelineRow("Expiry", "Access lasts until your expiry date — no auto-charge.")
-        TimelineRow("Renew", "Pay again only when you're ready to continue.")
+        when (provider) {
+            PaymentProvider.PAYPAL -> if (forMax) {
+                Eyebrow("BILLED MONTHLY", color = c.gilt, size = 10)
+                Spacer(Modifier.height(8.dp))
+                TimelineRow("Today", "Max unlocks after PayPal approval.")
+                TimelineRow("Monthly", "PayPal charges ₱399 each month until you cancel.")
+                TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
+            } else {
+                Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 10)
+                Spacer(Modifier.height(8.dp))
+                TimelineRow("Today", "After PayPal approval, Pro unlocks on this device.")
+                TimelineRow("Day 3", "Trial ends. PayPal charges the monthly rate unless you cancel.")
+                TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
+            }
+            PaymentProvider.PAYMONGO -> {
+                Eyebrow("WHEN YOU NEED IT", color = c.gilt, size = 10)
+                Spacer(Modifier.height(8.dp))
+                TimelineRow("Today", "After payment, $planWord unlocks on this device.")
+                TimelineRow("Expiry", "Access lasts until your expiry date — no auto-charge.")
+                TimelineRow("Renew", "Pay again only when you're ready to continue.")
+            }
+        }
     }
 }
 
