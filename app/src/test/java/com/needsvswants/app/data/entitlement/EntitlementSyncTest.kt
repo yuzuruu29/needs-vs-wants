@@ -72,8 +72,9 @@ class EntitlementSyncTest {
     @Test
     fun syncAfterCheckoutReturn_concurrentSecondCall_returnsWithoutSecondRoutine() = runTest {
         // The warm deep-link return fires two entry points (MainActivity handler
-        // + paywall RESUMED path). Only the FIRST routine may run: a concurrent
-        // second call must return immediately without a second refresh loop.
+        // + paywall RESUMED path). Only the FIRST routine runs — but the
+        // deduped second caller must still receive the shared outcome on its
+        // OWN callback (no lost onResult, no stranded caller).
         val gate = CompletableDeferred<Unit>()
         val remote = GatedRemote(gate)
         val store = FakePayPalReturnStore()
@@ -84,16 +85,23 @@ class EntitlementSyncTest {
         // First routine in flight: its first refresh is suspended on the gate.
         assertEquals(1, remote.fetchCalls)
 
-        val second = async { sync.syncAfterCheckoutReturn() }
+        var forwarded: Boolean? = null
+        val second = async { sync.syncAfterCheckoutReturn { forwarded = it } }
         runCurrent()
-        // The second call collapsed into the in-flight routine: no extra refresh.
-        assertTrue(second.isCompleted)
+        // The second caller is deduped (no second refresh) and awaits the
+        // winner's shared outcome instead of returning immediately.
+        assertFalse(second.isCompleted)
         assertEquals(1, remote.fetchCalls)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertFalse(first.await())
+        val firstResult = first.await()
+        val secondResult = second.await()
+        assertFalse(firstResult)
+        // The losing caller observed the same outcome on its own callback.
+        assertFalse(secondResult)
+        assertEquals(firstResult, forwarded)
         // Only the first routine's own 4 scheduled attempts ran.
         assertEquals(4, remote.fetchCalls)
     }

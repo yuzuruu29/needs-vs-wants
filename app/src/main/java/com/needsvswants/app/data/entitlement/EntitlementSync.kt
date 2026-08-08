@@ -3,10 +3,13 @@ package com.needsvswants.app.data.entitlement
 import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.remote.SupabaseConfig
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -64,8 +67,21 @@ class EntitlementSync @Inject constructor(
             hasProAccess || retryIndex >= checkoutRetryDelaysMillis.lastIndex
     }
 
-    /** In-flight guard so concurrent entry points collapse into a single routine. */
+    /**
+     * In-flight guard so concurrent entry points collapse into a single
+     * routine; the owner publishes its outcome on [retryOutcome] so deduped
+     * callers can await and forward it.
+     */
     private val retryInFlight = AtomicBoolean(false)
+
+    /**
+     * Shared outcome of the routine that owns [retryInFlight], published right
+     * after claiming so a deduped concurrent caller can await the final result
+     * and forward it to its own callback. Replaced when a new routine claims;
+     * a completed deferred is left in place until then so a late loser can
+     * still capture the outcome it was deduped against.
+     */
+    private val retryOutcome = AtomicReference<CompletableDeferred<Boolean>?>(null)
 
     /**
      * Single best-effort refresh from the remote entitlement source.
@@ -101,32 +117,62 @@ class EntitlementSync @Inject constructor(
      * Each attempt is bounded by [ATTEMPT_TIMEOUT_MILLIS]; worst case when Pro
      * never confirms is 4 × 20s + 17s of delays ≈ 97s (a cold-start caller is
      * still capped overall by [COLD_START_SYNC_TIMEOUT_MILLIS]). Concurrent
-     * calls collapse into the routine already in flight: a second caller
-     * returns immediately without starting another loop.
+     * callers collapse into one routine: the first wins the claim, deduped
+     * callers await its shared outcome and forward it to their own [onResult]
+     * before returning — every caller observes the final result, so no
+     * caller's callback is ever lost (e.g. the paywall's Syncing strip
+     * resolves even when the deep-link handler's routine won the claim).
      *
      * @return true when Pro access was confirmed during the retry window.
      */
     override suspend fun syncAfterCheckoutReturn(onResult: (Boolean) -> Unit): Boolean {
-        if (!retryInFlight.compareAndSet(false, true)) return false
+        val outcome = CompletableDeferred<Boolean>()
+        if (!retryInFlight.compareAndSet(false, true)) {
+            // Deduped: another routine owns the retry window. Await its shared
+            // outcome and forward it to this caller's OWN callback — the
+            // per-caller contract holds even for the losing caller.
+            val result = awaitSharedOutcome()
+            onResult(result)
+            return result
+        }
+        retryOutcome.set(outcome)
+        var confirmed = false
         try {
-            if (!config.enabled) {
+            if (config.enabled) {
+                checkoutRetryDelaysMillis.forEachIndexed { index, delayMillis ->
+                    if (delayMillis > 0L) delay(delayMillis)
+                    confirmed = withTimeoutOrNull(ATTEMPT_TIMEOUT_MILLIS) { refreshOnce() } ?: false
+                    if (shouldStop(index, confirmed)) return@forEachIndexed
+                }
+                if (confirmed) {
+                    runCatching { preferences.setPaypalReturnPending(false) }
+                }
+            } else {
                 // No remote to consult — a grant cannot arrive; do not spin the delays.
-                onResult(false)
-                return false
-            }
-            var confirmed = false
-            checkoutRetryDelaysMillis.forEachIndexed { index, delayMillis ->
-                if (delayMillis > 0L) delay(delayMillis)
-                confirmed = withTimeoutOrNull(ATTEMPT_TIMEOUT_MILLIS) { refreshOnce() } ?: false
-                if (shouldStop(index, confirmed)) return@forEachIndexed
-            }
-            if (confirmed) {
-                runCatching { preferences.setPaypalReturnPending(false) }
+                confirmed = false
             }
             onResult(confirmed)
             return confirmed
         } finally {
+            // Always release waiting callers — even when this routine is
+            // cancelled mid-flight — so no deduped caller can strand.
+            outcome.complete(confirmed)
             retryInFlight.set(false)
+        }
+    }
+
+    /**
+     * Awaits the outcome of the in-flight routine. In practice the owner
+     * publishes [retryOutcome] before its first suspension, so the retry loop
+     * only covers the tiny publish window when a caller lands on another
+     * thread between the owner's claim and its write.
+     */
+    private suspend fun awaitSharedOutcome(): Boolean {
+        while (true) {
+            val shared = retryOutcome.get()
+            if (shared != null) return shared.await()
+            if (!retryInFlight.get()) return false
+            yield()
         }
     }
 

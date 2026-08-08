@@ -15,6 +15,11 @@ interface CheckoutReturnSync {
      * Retried refresh after a PayPal checkout return; see
      * [EntitlementSync.syncAfterCheckoutReturn] for the full contract.
      *
+     * Every caller receives the final outcome through [onResult] — including a
+     * caller deduped against an already-running routine: the losing caller
+     * awaits the in-flight routine's shared outcome and forwards it to its own
+     * callback before returning.
+     *
      * @param onResult final outcome: true when Pro access was confirmed during
      *   the retry window, false after the schedule exhausted without a grant.
      * @return true when Pro access was confirmed during the retry window.

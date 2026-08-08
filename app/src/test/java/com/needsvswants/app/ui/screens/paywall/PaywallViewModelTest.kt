@@ -11,6 +11,7 @@ import com.needsvswants.app.data.entitlement.CheckoutReturnSync
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.EntitlementSync
 import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.AuthSession
 import com.needsvswants.app.data.remote.SupabaseAuth
@@ -30,6 +31,7 @@ import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -841,6 +843,52 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun onReturnFromCheckout_vmIsSecondCaller_receivesSharedOutcome() = runTest(dispatcher) {
+        // Warm return: the deep-link handler's routine (first caller, ahead of
+        // the paywall RESUMED effect) wins the in-flight claim. The VM's
+        // RESUMED path is the deduped second caller, but its callback must
+        // still fire with the shared outcome — "Welcome to Pro." must appear,
+        // never a stranded "Still unlocking — retrying…" strip.
+        val gate = CompletableDeferred<Unit>()
+        val remote = GatedProRemote(gate)
+        val store = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = EntitlementSync(
+            auth = authForStore(FakeSessionStore(AuthSession("at", "rt", "u1", "user@example.com", null))),
+            entitlements = EntitlementRepository(FakeLocal(), remote),
+            preferences = store,
+            config = enabledSyncConfig()
+        )
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), remote),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            store,
+            sync
+        )
+
+        // First caller: the deep-link handler routine (in flight, gated).
+        launch { sync.syncAfterCheckoutReturn() }
+        runCurrent()
+        assertEquals(1, remote.fetchCalls)
+
+        // Second caller: the VM's RESUMED path — deduped, so it surfaces
+        // Syncing while the shared routine is still in flight.
+        vm.onReturnFromCheckout()
+        runCurrent()
+        assertEquals(CheckoutSyncState.Syncing, vm.checkoutSyncState.first())
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        // The deduped VM call forwarded the winner's outcome: Pro confirmed →
+        // Idle + Success (not stranded in Syncing, not wrongly Exhausted).
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+        assertFalse(store.paypalReturnPending.first())
+    }
+
+    @Test
     fun onReturnFromCheckout_newOpenCheckout_rearmsLoop() = runTest(dispatcher) {
         val gate = CompletableDeferred<Unit>()
         val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
@@ -1112,6 +1160,15 @@ class PaywallViewModelTest {
         config = SupabaseConfig.Disabled
     )
 
+    /** Enabled Supabase config for a REAL [EntitlementSync] (refresh path live). */
+    private fun enabledSyncConfig(): SupabaseConfig = SupabaseConfig(
+        url = "https://supabase.example",
+        anonKey = "anon-key",
+        proTrialProductId = "",
+        proMonthlyProductId = "",
+        maxMonthlyProductId = ""
+    )
+
     private class FakeBilling(private val result: BillingResult) : BillingController {
         var restoreCalls = 0
         val purchaseIds = mutableListOf<String>()
@@ -1147,6 +1204,17 @@ class PaywallViewModelTest {
 
     private class FakeRemote : EntitlementRemote {
         override suspend fun fetchEntitlement(accessToken: String?): Entitlement? = null
+    }
+
+    /** Suspends each fetch on [gate], then confirms Pro access (a landed grant). */
+    private class GatedProRemote(private val gate: CompletableDeferred<Unit>) : EntitlementRemote {
+        var fetchCalls = 0
+            private set
+        override suspend fun fetchEntitlement(accessToken: String?): Entitlement? {
+            fetchCalls++
+            gate.await()
+            return proEntitlement
+        }
     }
 
     companion object {
