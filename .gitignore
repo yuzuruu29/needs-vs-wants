@@ -70,3 +70,6 @@ supabase/.temp/
 
 # Vault-gate daily stamp (written by .claude/hooks/vault-gate.js)
 .claude/.vault-gate
+
+# Local LLM orientation dump (not source of truth — vault + AGENTS.md are)
+CHATGPT_CONTEXT.md
