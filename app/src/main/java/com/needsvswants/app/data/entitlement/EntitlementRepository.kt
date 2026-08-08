@@ -35,12 +35,7 @@ class EntitlementRepository @Inject constructor(
             flowOf(Entitlement.Free)
         } else {
             combine(local.entitlement, local.entitlementSyncedAtMillis) { snapshot, syncedAt ->
-                val now = System.currentTimeMillis()
-                val trusted = trustedLocalEntitlement(snapshot, syncedAt, now)
-                // #region agent log
-                debugEntitlementTrust(snapshot, syncedAt, now, trusted)
-                // #endregion
-                trusted
+                trustedLocalEntitlement(snapshot, syncedAt, System.currentTimeMillis())
             }
         }
 
@@ -85,30 +80,3 @@ class EntitlementRepository @Inject constructor(
         local.clearEntitlement()
     }
 }
-
-// #region agent log
-/** JVM-unit-test debug sink for the local-trust gate (no-op if the path is unwritable). */
-private fun debugEntitlementTrust(
-    snapshot: Entitlement,
-    syncedAt: Long,
-    now: Long,
-    trusted: Entitlement
-) {
-    try {
-        val line = buildString {
-            append("{\"sessionId\":\"9e09d9\",\"runId\":\"p2-trust\",\"hypothesisId\":\"P2\",")
-            append("\"location\":\"EntitlementRepository.kt\",\"message\":\"trustedLocalEntitlement\",")
-            append("\"data\":{")
-            append("\"snapPaid\":").append(snapshot.hasProAccessAt(now)).append(',')
-            append("\"syncedAt\":").append(syncedAt).append(',')
-            append("\"trustedPaid\":").append(trusted.hasProAccessAt(now)).append(',')
-            append("\"degraded\":").append(snapshot.hasProAccessAt(now) && !trusted.hasProAccessAt(now))
-            append("},\"timestamp\":").append(now).append('}')
-            append('\n')
-        }
-        java.io.File("debug-9e09d9.log").appendText(line)
-    } catch (_: Exception) {
-        // Device / sandbox may not allow workspace writes — ignore.
-    }
-}
-// #endregion

@@ -64,3 +64,9 @@ docs/**/__pycache__/
 
 # Cursor debug-session NDJSON logs
 debug-*.log
+
+# Supabase CLI local cache (project-ref etc. stay; version stamps churn)
+supabase/.temp/
+
+# Vault-gate daily stamp (written by .claude/hooks/vault-gate.js)
+.claude/.vault-gate
