@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
+import com.needsvswants.app.data.billing.CheckoutProvider
+import com.needsvswants.app.data.billing.PaymentProvider
 import com.needsvswants.app.data.entitlement.CheckoutReturnSync
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.entitlement.PayPalReturnStore
@@ -50,12 +52,15 @@ private const val TOKEN_SETTLE_MILLIS = 200L
 
 @HiltViewModel
 class PaywallViewModel @Inject constructor(
+    /** Default billing controller — used only for provider-agnostic [restore]. */
     private val billing: BillingController,
     private val repository: EntitlementRepository,
     private val authRepository: AuthRepository,
     private val config: SupabaseConfig,
     private val payPalReturn: PayPalReturnStore,
-    private val entitlementSync: CheckoutReturnSync
+    private val entitlementSync: CheckoutReturnSync,
+    /** Resolves the concrete controller for the user-selected [PaymentProvider]. */
+    private val checkoutProvider: CheckoutProvider
 ) : ViewModel() {
 
     val isPro: StateFlow<Boolean> = repository.isPro
@@ -82,6 +87,10 @@ class PaywallViewModel @Inject constructor(
 
     private val _pendingPurchase = MutableStateFlow(PendingPurchase.None)
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
+
+    /** Provider used for the next checkout; PayPal trial-first, PayMongo as the one-time alternative. */
+    private val _selectedProvider = MutableStateFlow(PaymentProvider.PAYPAL)
+    val selectedProvider: StateFlow<PaymentProvider> = _selectedProvider.asStateFlow()
 
     /**
      * Checkout-return sync lifecycle ([CheckoutSyncState]). Drives the paywall
@@ -121,6 +130,41 @@ class PaywallViewModel @Inject constructor(
         .map { it != PendingPurchase.None }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    /**
+     * Switches the payment provider used for the next checkout. Mirrors the
+     * plan-switch semantics (D108): while a deferred intent is pending, a
+     * signed-in user's intent is cleared (fresh CTA with the new provider);
+     * a signed-out user's intent is re-asserted for the CURRENT plan so
+     * sign-in completes the purchase with the provider just picked. The
+     * pending intent is provider-agnostic in storage — the auto-continue path
+     * reads the current provider at run time.
+     */
+    fun selectProvider(provider: PaymentProvider) {
+        if (provider == _selectedProvider.value) return
+        _selectedProvider.value = provider
+        consumeResult()
+        viewModelScope.launch {
+            when (_pendingPurchase.value) {
+                PendingPurchase.None -> Unit
+                else -> {
+                    if (authRepository.isSignedIn.first()) {
+                        // A deferred purchase must never cross a provider change:
+                        // the user re-taps the CTA to start fresh.
+                        cancelPendingSignIn()
+                    } else {
+                        // Signed out: re-assert the deferred intent for the NEW
+                        // selection so sign-in completes the purchase just picked.
+                        when (_pendingPurchase.value) {
+                            PendingPurchase.ProSubscribe -> subscribePro()
+                            PendingPurchase.MaxSubscribe -> subscribeMax()
+                            PendingPurchase.None -> Unit
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /** Start a Pro subscription; defers to Google sign-in when signed out. Ignored while a billing pipeline is in flight. */
     fun subscribePro() {
         viewModelScope.launch {
@@ -130,7 +174,7 @@ class PaywallViewModel @Inject constructor(
                 autoContinued = null
                 return@launch
             }
-            runBilling { billing.purchase(monthlyProductId) }
+            runBilling { routeProCheckout() }
         }
     }
 
@@ -143,7 +187,7 @@ class PaywallViewModel @Inject constructor(
                 autoContinued = null
                 return@launch
             }
-            runBilling { billing.purchase(maxProductId) }
+            runBilling { routeMaxCheckout() }
         }
     }
 
@@ -273,17 +317,40 @@ class PaywallViewModel @Inject constructor(
             when (_pendingPurchase.value) {
                 PendingPurchase.ProSubscribe -> {
                     autoContinued = PendingPurchase.ProSubscribe
-                    executeBilling { billing.purchase(monthlyProductId) }
+                    executeBilling { routeProCheckout() }
                 }
                 PendingPurchase.MaxSubscribe -> {
                     autoContinued = PendingPurchase.MaxSubscribe
-                    executeBilling { billing.purchase(maxProductId) }
+                    executeBilling { routeMaxCheckout() }
                 }
                 PendingPurchase.None -> Unit
             }
         } finally {
             _busy.value = false
         }
+    }
+
+    /**
+     * Routes a Pro intent to the currently selected provider's controller:
+     * PayPal starts the plan-carrying 3-day trial; PayMongo charges the
+     * monthly one-time checkout.
+     */
+    private suspend fun routeProCheckout(): BillingResult = when (_selectedProvider.value) {
+        PaymentProvider.PAYPAL ->
+            checkoutProvider.controllerFor(PaymentProvider.PAYPAL).startTrial(monthlyProductId)
+        PaymentProvider.PAYMONGO ->
+            checkoutProvider.controllerFor(PaymentProvider.PAYMONGO).purchase(monthlyProductId)
+    }
+
+    /**
+     * Routes a Max intent to the currently selected provider's controller
+     * (no trial on Max — both providers charge the max checkout directly).
+     */
+    private suspend fun routeMaxCheckout(): BillingResult = when (_selectedProvider.value) {
+        PaymentProvider.PAYPAL ->
+            checkoutProvider.controllerFor(PaymentProvider.PAYPAL).purchase(maxProductId)
+        PaymentProvider.PAYMONGO ->
+            checkoutProvider.controllerFor(PaymentProvider.PAYMONGO).purchase(maxProductId)
     }
 
     private suspend fun runBilling(block: suspend () -> BillingResult) {

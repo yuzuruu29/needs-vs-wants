@@ -7,6 +7,8 @@ import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenResult
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
+import com.needsvswants.app.data.billing.CheckoutProvider
+import com.needsvswants.app.data.billing.PaymentProvider
 import com.needsvswants.app.data.entitlement.CheckoutReturnSync
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
@@ -75,8 +77,11 @@ class PaywallViewModelTest {
             authRepository = signedInAuth(),
             config = SupabaseConfig.Disabled,
             payPalReturn = FakePayPalReturnStore(),
-            entitlementSync = FakeEntitlementSync()
+            entitlementSync = FakeEntitlementSync(),
+            checkoutProvider = FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribePro()
         advanceUntilIdle()
@@ -95,7 +100,8 @@ class PaywallViewModelTest {
             authRepository = signedOutAuth(),
             config = SupabaseConfig.Disabled,
             payPalReturn = FakePayPalReturnStore(),
-            entitlementSync = FakeEntitlementSync()
+            entitlementSync = FakeEntitlementSync(),
+            checkoutProvider = FakeCheckoutProvider()
         )
 
         vm.subscribePro()
@@ -116,7 +122,8 @@ class PaywallViewModelTest {
             authRepository = signedOutAuth(),
             config = SupabaseConfig.Disabled,
             payPalReturn = FakePayPalReturnStore(),
-            entitlementSync = FakeEntitlementSync()
+            entitlementSync = FakeEntitlementSync(),
+            checkoutProvider = FakeCheckoutProvider()
         )
 
         vm.subscribeMax()
@@ -143,8 +150,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             config,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribePro()
         advanceUntilIdle()
@@ -164,7 +174,8 @@ class PaywallViewModelTest {
             authRepository = signedOutAuth(),
             config = SupabaseConfig.Disabled,
             payPalReturn = FakePayPalReturnStore(),
-            entitlementSync = FakeEntitlementSync()
+            entitlementSync = FakeEntitlementSync(),
+            checkoutProvider = FakeCheckoutProvider()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -191,8 +202,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             config,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribeMax()
         advanceUntilIdle()
@@ -217,8 +231,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             config,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribeMax()
         advanceUntilIdle()
@@ -236,7 +253,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
 
         vm.subscribeMax()
@@ -253,7 +271,8 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
 
         advanceUntilIdle()
@@ -270,7 +289,8 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
 
         vm.restore()
@@ -288,7 +308,8 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
         assertEquals("pro_monthly", vm.monthlyProductId)
         assertEquals("max_monthly", vm.maxProductId)
@@ -311,8 +332,11 @@ class PaywallViewModelTest {
             authForStore(store),
             config,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         // User taps Start Pro while signed out: deferred, no billing yet.
         vm.subscribePro()
         advanceUntilIdle()
@@ -349,8 +373,11 @@ class PaywallViewModelTest {
             authForStore(store),
             config,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribeMax()
         advanceUntilIdle()
         assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
@@ -375,8 +402,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
@@ -402,8 +432,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
@@ -432,8 +465,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
@@ -466,8 +502,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         // First intent: continues once, fails, intent stays pending.
         vm.subscribePro()
         advanceUntilIdle()
@@ -508,8 +547,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
@@ -536,8 +578,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
@@ -563,7 +608,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
 
         vm.retryCheckout()
@@ -581,7 +627,8 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -602,7 +649,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -626,8 +674,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribePro()
         advanceUntilIdle()
@@ -652,7 +703,8 @@ class PaywallViewModelTest {
             signedOutAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
         vm.subscribePro()
         advanceUntilIdle()
@@ -678,8 +730,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
@@ -700,13 +755,15 @@ class PaywallViewModelTest {
     fun openCheckout_setsDurablePendingFlag() = runTest(dispatcher) {
         val payPalReturn = FakePayPalReturnStore()
         val sync = FakeEntitlementSync(outcome = true)
+        val billing = FakeBilling(BillingResult.OpenCheckout("https://paypal.test/approve"))
         val vm = PaywallViewModel(
-            FakeBilling(BillingResult.OpenCheckout("https://paypal.test/approve")),
+            billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider(billing)
         )
 
         vm.subscribePro()
@@ -729,7 +786,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -752,7 +810,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -782,7 +841,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -805,7 +865,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -826,7 +887,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -864,7 +926,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             store,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         // First caller: the deep-link handler routine (in flight, gated).
@@ -900,7 +963,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider(billing)
         )
 
         vm.onReturnFromCheckout()
@@ -935,8 +999,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribePro()
         runCurrent()
@@ -964,8 +1031,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
@@ -999,8 +1069,11 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
 
         vm.subscribePro()
         advanceUntilIdle()
@@ -1022,7 +1095,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
         )
 
         vm.restore()
@@ -1047,7 +1121,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         // Retry schedule exhausts: surface the payment-recorded message.
@@ -1081,7 +1156,8 @@ class PaywallViewModelTest {
             signedInAuth(),
             SupabaseConfig.Disabled,
             payPalReturn,
-            sync
+            sync,
+            FakeCheckoutProvider()
         )
 
         vm.onReturnFromCheckout()
@@ -1115,8 +1191,11 @@ class PaywallViewModelTest {
             authForStore(store),
             SupabaseConfig.Disabled,
             FakePayPalReturnStore(),
-            FakeEntitlementSync()
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
         )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
         vm.subscribePro()
         advanceUntilIdle()
         assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
@@ -1144,6 +1223,239 @@ class PaywallViewModelTest {
         assertEquals(BillingResult.Failed(null), BillingResult.Failed())
     }
 
+    @Test
+    fun selectedProvider_defaultsToPayPal() {
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Unavailable),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+        assertEquals(PaymentProvider.PAYPAL, vm.selectedProvider.value)
+    }
+
+    @Test
+    fun subscribePro_payPalRoutesToStartTrial_withMonthlyProductId() = runTest(dispatcher) {
+        // PayPal Pro: the plan carries the 3-day trial — the route is startTrial,
+        // never a plain purchase, and it uses the monthly (plan) product id.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val config = providerRoutingConfig()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            config,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(listOf("startTrial" to "monthly_x"), payPal.calls)
+        assertEquals(emptyList<Pair<String, String>>(), payMongo.calls)
+    }
+
+    @Test
+    fun subscribeMax_payPalRoutesToPurchase_withMaxProductId() = runTest(dispatcher) {
+        // PayPal Max: no trial on the max plan — a direct subscription purchase.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+
+        vm.subscribeMax()
+        advanceUntilIdle()
+
+        assertEquals(listOf("purchase" to "max_x"), payPal.calls)
+        assertEquals(emptyList<Pair<String, String>>(), payMongo.calls)
+    }
+
+    @Test
+    fun subscribePro_payMongoRoutesToPurchase_withMonthlyProductId() = runTest(dispatcher) {
+        // PayMongo Pro: one-time monthly checkout, never the PayPal trial path.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Pair<String, String>>(), payPal.calls)
+        assertEquals(listOf("purchase" to "monthly_x"), payMongo.calls)
+    }
+
+    @Test
+    fun subscribeMax_payMongoRoutesToPurchase_withMaxProductId() = runTest(dispatcher) {
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+
+        vm.subscribeMax()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Pair<String, String>>(), payPal.calls)
+        assertEquals(listOf("purchase" to "max_x"), payMongo.calls)
+    }
+
+    @Test
+    fun onSignedInForPurchase_pendingUsesCurrentProvider() = runTest(dispatcher) {
+        // The deferred intent is provider-agnostic in storage: after a provider
+        // switch the sign-in auto-continue routes via the CURRENT provider.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        // User taps Start Pro while signed out (PAYPAL default): deferred.
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        // Switch to PayMongo before signing in: the intent re-asserts and the
+        // auto-continue must run on the PayMongo one-time checkout.
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+        assertEquals(PaymentProvider.PAYMONGO, vm.selectedProvider.first())
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Pair<String, String>>(), payPal.calls)
+        assertEquals(listOf("purchase" to "monthly_x"), payMongo.calls)
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+    }
+
+    @Test
+    fun selectProvider_whileSignedOutPending_reassertsPending() = runTest(dispatcher) {
+        // Mirror of the plan-switch semantics (D108): signed out + deferred
+        // intent → the intent re-asserts for the current plan so sign-in
+        // completes the purchase with the provider just picked.
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+
+        assertEquals(PaymentProvider.PAYMONGO, vm.selectedProvider.first())
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertTrue(vm.needsSignInForPurchase.first())
+        assertEquals(0, billing.purchaseIds.size)
+    }
+
+    @Test
+    fun selectProvider_whileSignedInPending_clearsPending() = runTest(dispatcher) {
+        // Mirror of the plan-switch semantics (D108): a signed-in deferred
+        // intent must never cross a provider change — it is cleared and the
+        // user re-taps the CTA to start fresh with the new provider.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(BillingResult.Failed("timeout"), vm.lastResult.first())
+
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+
+        assertEquals(PaymentProvider.PAYMONGO, vm.selectedProvider.first())
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertFalse(vm.needsSignInForPurchase.first())
+        assertNull(vm.lastResult.first())
+    }
+
+    @Test
+    fun restore_usesDefaultBilling_notProviderControllers() = runTest(dispatcher) {
+        // restore() is provider-agnostic: it always goes through the default
+        // BillingController binding, never the provider-resolved controllers.
+        val defaultBilling = FakeBilling(BillingResult.Pending)
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            defaultBilling,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+
+        vm.restore()
+        advanceUntilIdle()
+
+        assertEquals(1, defaultBilling.restoreCalls)
+        assertEquals(0, payPal.restoreCalls)
+        assertEquals(0, payMongo.restoreCalls)
+        assertEquals(BillingResult.Pending, vm.lastResult.first())
+    }
+
     private fun signedInAuth(): AuthRepository {
         val session = AuthSession("at", "rt", "u1", "user@example.com", null)
         return authForStore(FakeSessionStore(session))
@@ -1169,6 +1481,15 @@ class PaywallViewModelTest {
         maxMonthlyProductId = ""
     )
 
+    /** Plan ids distinct from the VM fallbacks, for provider-routing assertions. */
+    private fun providerRoutingConfig(): SupabaseConfig = SupabaseConfig(
+        url = "",
+        anonKey = "",
+        proTrialProductId = "trial_x",
+        proMonthlyProductId = "monthly_x",
+        maxMonthlyProductId = "max_x"
+    )
+
     private class FakeBilling(private val result: BillingResult) : BillingController {
         var restoreCalls = 0
         val purchaseIds = mutableListOf<String>()
@@ -1189,6 +1510,48 @@ class PaywallViewModelTest {
         override suspend fun startTrial(productId: String): BillingResult = throw RuntimeException("boom")
         override suspend fun purchase(productId: String): BillingResult = throw RuntimeException("boom")
         override suspend fun restorePurchases(): BillingResult = throw RuntimeException("boom")
+    }
+
+    /** Records every checkout call as (method, productId); restore tracked separately. */
+    private class RecordingBilling(
+        private val result: BillingResult = BillingResult.Success
+    ) : BillingController {
+        val calls = mutableListOf<Pair<String, String>>()
+        var restoreCalls = 0
+            private set
+        override val isPlayAvailable: Boolean = false
+        override suspend fun startTrial(productId: String): BillingResult {
+            calls.add("startTrial" to productId)
+            return result
+        }
+        override suspend fun purchase(productId: String): BillingResult {
+            calls.add("purchase" to productId)
+            return result
+        }
+        override suspend fun restorePurchases(): BillingResult {
+            restoreCalls++
+            return result
+        }
+    }
+
+    /**
+     * Routes a [PaymentProvider] to the matching fake controller. When built
+     * with a single controller ([constructor] overload) it is used for BOTH
+     * providers, for tests that only care that the billing fake was called.
+     */
+    private class FakeCheckoutProvider(
+        private val payPal: BillingController,
+        private val payMongo: BillingController,
+        override val payPalAvailable: Boolean = true,
+        override val payMongoAvailable: Boolean = true
+    ) : CheckoutProvider {
+        constructor(billing: BillingController) : this(billing, billing)
+        constructor() : this(FakeBilling(BillingResult.Success), FakeBilling(BillingResult.Success))
+
+        override fun controllerFor(provider: PaymentProvider): BillingController = when (provider) {
+            PaymentProvider.PAYPAL -> payPal
+            PaymentProvider.PAYMONGO -> payMongo
+        }
     }
 
     private class FakeLocal(initial: Entitlement = Entitlement()) : EntitlementLocalStore {

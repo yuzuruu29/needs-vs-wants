@@ -5,6 +5,8 @@ import com.needsvswants.app.data.auth.AuthSessionStore
 import com.needsvswants.app.data.auth.CredentialManagerGoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.billing.BillingController
+import com.needsvswants.app.data.billing.CheckoutProvider
+import com.needsvswants.app.data.billing.DefaultCheckoutProvider
 import com.needsvswants.app.data.billing.PayMongoBillingController
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
@@ -40,6 +42,9 @@ abstract class EntitlementModule {
 
     @Binds
     abstract fun bindBillingController(impl: PayMongoBillingController): BillingController
+
+    @Binds
+    abstract fun bindCheckoutProvider(impl: DefaultCheckoutProvider): CheckoutProvider
 
     @Binds
     abstract fun bindGoogleIdTokenProvider(
