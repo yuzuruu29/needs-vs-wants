@@ -31,8 +31,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        // Fresh process launched by a PayPal deep link.
-        handlePayPalDeepLink(intent?.data)
+        // Fresh process launched by a PayPal / PayMongo checkout deep link.
+        handleCheckoutDeepLink(intent?.data)
         val openTab = intent?.getStringExtra(EXTRA_OPEN_TAB)
         setContent {
             val appearanceVm: AppAppearanceViewModel = hiltViewModel()
@@ -65,20 +65,27 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * singleTop: a PayPal deep link while this activity is on top re-delivers
-     * the intent here instead of creating a second instance.
+     * singleTop: a PayPal / PayMongo deep link while this activity is on top
+     * re-delivers the intent here instead of creating a second instance.
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handlePayPalDeepLink(intent.data)
+        handleCheckoutDeepLink(intent.data)
     }
 
-    /** Routes `needsvswants://paypal/return|cancel` into [PayPalReturnHandler]. */
-    private fun handlePayPalDeepLink(uri: Uri?) {
+    /**
+     * Routes `needsvswants://paypal/return|cancel` and
+     * `needsvswants://paymongo/return|cancel` into [PayPalReturnHandler].
+     *
+     * The handler / sync machinery is provider-agnostic: both hosts persist the
+     * durable pending-return flag and run the retried entitlement refresh, which
+     * the PayPal or PayMongo webhook has already granted server-side.
+     */
+    private fun handleCheckoutDeepLink(uri: Uri?) {
         if (uri == null) return
         if (uri.scheme?.equals("needsvswants", ignoreCase = true) != true) return
-        if (uri.host != "paypal") return
+        if (uri.host != "paypal" && uri.host != "paymongo") return
         when (uri.path?.trimEnd('/')) {
             "/return" -> payPalReturnHandler.onCheckoutReturned()
             "/cancel" -> payPalReturnHandler.onCheckoutCancelled()

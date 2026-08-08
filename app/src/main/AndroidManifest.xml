@@ -32,6 +32,17 @@
                 <data android:path="/return" />
                 <data android:path="/cancel" />
             </intent-filter>
+            <!-- PayMongo return / cancel deep links (one-time manual-renewal checkout) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="needsvswants"
+                    android:host="paymongo" />
+                <data android:path="/return" />
+                <data android:path="/cancel" />
+            </intent-filter>
         </activity>
 
         <receiver

@@ -5,7 +5,7 @@ import com.needsvswants.app.data.auth.AuthSessionStore
 import com.needsvswants.app.data.auth.CredentialManagerGoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.billing.BillingController
-import com.needsvswants.app.data.billing.PayPalBillingController
+import com.needsvswants.app.data.billing.PayMongoBillingController
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.PayPalReturnStore
@@ -24,7 +24,8 @@ import javax.inject.Singleton
 /**
  * Wiring for the Pro subscription + Google auth seams.
  *
- * Billing default is [PayPalBillingController] (website / sideload live path).
+ * Billing default is [PayMongoBillingController] (one-time manual-renewal
+ * checkout via PayMongo — GCash / card — for the soft-launch live path).
  * Play Billing remains in the tree for a future store build but is not bound.
  */
 @Module
@@ -38,7 +39,7 @@ abstract class EntitlementModule {
     abstract fun bindEntitlementRemote(impl: SupabaseEntitlementRemote): EntitlementRemote
 
     @Binds
-    abstract fun bindBillingController(impl: PayPalBillingController): BillingController
+    abstract fun bindBillingController(impl: PayMongoBillingController): BillingController
 
     @Binds
     abstract fun bindGoogleIdTokenProvider(
