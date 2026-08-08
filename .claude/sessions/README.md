@@ -57,6 +57,12 @@ Reply: <!-- appended below by the recipient -->
 - **Report facts, not opinions.** When you act on a message, write what you did
   and any files/commits you changed so the sender can verify.
 
+## poll.sh subcommands
+
+- `poll.sh <subject>` — poll inbox; prints new-mail digest (exit 0) or "no new mail" (exit 3).
+- `poll.sh heartbeat <subject> "task"` — write/update this session's row in `status.md`.
+- `poll.sh status` — print the shared `status.md` table (what all sessions are doing).
+
 ## One-time setup per session
 
 Every session that participates must register itself by running a durable cron
@@ -68,6 +74,22 @@ that polls its own inbox. From the session, call the scheduled-task helper:
 On each wake, the session reads `inbox/<subject>.md`, processes any `[ ]`/new
 messages, and replies. Sessions that are idle (no new inbox items) should just
 report "no new mail" and stop — do not burn tokens narrating.
+
+Suggested cron prompt (paste into the session, replacing `<subject>`):
+
+> Set up a durable scheduled task that fires every 2 minutes. On each wake:
+> 1. Run `.claude/sessions/poll.sh heartbeat <subject> "<current task>"` to update the shared status table.
+> 2. Run `.claude/sessions/poll.sh <subject>`.
+> 3. If it exits 0 (new mail), read `inbox/<subject>.md`, act on the fresh
+>    messages, and append a reply to `inbox/<sender>.md`; mark handled items `[x]`.
+> 4. If exit 3 (no new mail), do nothing further this wake.
+
+## Live status heartbeat
+
+Each session writes a row to `status.md` on every wake, so any session can run
+`.claude/sessions/poll.sh status` to see what all sessions are currently doing.
+Timestamps update on each poll — a stale timestamp means that session's cron
+stopped (closed terminal or idle session).
 
 ## What this does NOT do
 

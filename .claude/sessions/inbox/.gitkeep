@@ -1,0 +1,2 @@
+# Inbox/outbox are populated by sessions at runtime.
+# Message files are tracked so mail survives restarts; delete stale ones to keep it tidy.
