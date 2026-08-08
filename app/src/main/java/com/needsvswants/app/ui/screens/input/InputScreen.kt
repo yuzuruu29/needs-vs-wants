@@ -100,6 +100,8 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
+    // Pro/Max: sheets are unlimited — the counter shows just the count, no "/ 20".
+    val hasProAccess = viewModel.entitlement.value.hasProAccessAt(System.currentTimeMillis())
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
     var budgetAmount by remember { mutableStateOf("") }
     var budgetError by remember { mutableStateOf(false) }
@@ -183,8 +185,8 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             Eyebrow("SHEET", color = palette.textMuted, size = 10)
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                "$filled / 20",
-                                color = if (filled >= 18) palette.danger else palette.textPrimary,
+                                if (hasProAccess) "$filled" else "$filled / 20",
+                                color = if (!hasProAccess && filled >= 18) palette.danger else palette.textPrimary,
                                 style = AppType.moneyMd
                             )
                         }

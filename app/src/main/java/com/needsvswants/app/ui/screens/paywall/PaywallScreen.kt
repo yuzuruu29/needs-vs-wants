@@ -106,7 +106,7 @@ fun PaywallScreen(
                         }
                     )
                 }
-                // Keep a short "opened PayPal" state, then clear so return can refresh.
+                // Keep a short "opened checkout" state, then clear so return can refresh.
                 delay(1500)
                 viewModel.consumeResult()
             }
@@ -138,7 +138,7 @@ fun PaywallScreen(
         }
     }
 
-    // Returning from PayPal browser: re-fetch entitlement.
+    // Returning from the checkout browser: re-fetch entitlement.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -192,8 +192,8 @@ fun PaywallScreen(
     }
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
-        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Continue with PayPal · Pro"
-        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Continue with PayPal · Max"
+        MembershipPlan.Pro -> if (isPro) "You're on Pro" else "Continue with PayMongo · Pro"
+        MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else "Continue with PayMongo · Max"
     }
     val primaryEnabled = when (selected) {
         MembershipPlan.Free -> true
@@ -203,7 +203,7 @@ fun PaywallScreen(
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
         MembershipPlan.Pro, MembershipPlan.Max ->
-            "3-day free trial is on PayPal if enabled on the plan. You'll approve in the browser. Cancel anytime in PayPal."
+            "One-time payment via GCash or card. You pay each month when ready — access ends on your expiry date. No auto-charge."
     }
 
     Box(
@@ -288,9 +288,9 @@ fun PaywallScreen(
                     onClick = { selectPlan(MembershipPlan.Pro) },
                     eyebrow = "Pro",
                     title = "Unlimited",
-                    tag = "3-day free trial",
+                    tag = "One-time ₱199",
                     price = "₱199",
-                    priceSuffix = "/ mo · $3.49",
+                    priceSuffix = "/ mo · renewed manually",
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
                         "Unlimited entries per log sheet" to true,
@@ -312,7 +312,7 @@ fun PaywallScreen(
                     title = "AI Advisor",
                     tag = "Includes Pro",
                     price = "₱399",
-                    priceSuffix = "/ mo · $6.99",
+                    priceSuffix = "/ mo · renewed manually",
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
                         "Everything in Pro" to true,
@@ -343,7 +343,7 @@ fun PaywallScreen(
                             maxLines = 2
                         )
                         Text(
-                            "Tap continue to open PayPal.",
+                            "Tap continue to open PayMongo.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -360,7 +360,7 @@ fun PaywallScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Sign in with Google to start PayPal checkout. Free use never needs an account.",
+                            "Sign in with Google to start PayMongo checkout. Free use never needs an account.",
                             style = PaywallType.planSub,
                             color = palette.textMuted
                         )
@@ -400,7 +400,7 @@ fun PaywallScreen(
                 Spacer(Modifier.height(12.dp))
                 when (val r = lastResult) {
                     BillingResult.Unavailable -> StatusText(
-                        "PayPal isn't configured yet. Add plan IDs (P-…) and try again.",
+                        "PayMongo isn't configured yet. Try again.",
                         color = palette.textMuted
                     )
                     BillingResult.Pending -> StatusText(
@@ -408,7 +408,7 @@ fun PaywallScreen(
                         color = palette.gilt
                     )
                     is BillingResult.OpenCheckout -> StatusText(
-                        "Opening PayPal… complete checkout, then return here.",
+                        "Opening PayMongo… complete checkout, then return here.",
                         color = palette.gilt
                     )
                     BillingResult.Success -> when {
@@ -521,7 +521,7 @@ fun PaywallScreen(
                         Text(
                             text = when {
                                 needsSignInForPurchase && !isSignedIn ->
-                                    "First Google, then PayPal opens in your browser."
+                                    "First Google, then PayMongo opens in your browser."
                                 isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
                                     "You're on Pro. Select Max for the AI Advisor."
                                 else ->
@@ -559,7 +559,7 @@ private fun RetryPayPalButton(onRetry: () -> Unit, enabled: Boolean, color: Colo
         enabled = enabled
     ) {
         Text(
-            "Try PayPal again",
+            "Try PayMongo again",
             style = PaywallType.meta,
             color = color
         )

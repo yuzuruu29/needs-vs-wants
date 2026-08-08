@@ -51,6 +51,9 @@ fun SettingsScreen(
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsStateWithLifecycle()
     val reducedMotion by viewModel.reducedMotion.collectAsStateWithLifecycle()
     val dailyFreeLogs by viewModel.dailyFreeLogs.collectAsStateWithLifecycle()
+    val membership by viewModel.membership.collectAsStateWithLifecycle()
+    val refreshBusy by viewModel.refreshBusy.collectAsStateWithLifecycle()
+    val refreshFeedback by viewModel.refreshFeedback.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     var showWipeConfirm by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
@@ -287,6 +290,64 @@ fun SettingsScreen(
                     "upgrade to pro",
                     tint = palette.gold.copy(alpha = 0.7f)
                 )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        // Membership snapshot: plan + expiry, with a manual refresh affordance
+        // for the "webhook granted but local app still FREE" case.
+        SettingsPanel {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                val now = System.currentTimeMillis()
+                val pro = membership.hasProAccessAt(now)
+                val max = membership.hasMaxAccessAt(now)
+                val planName = when {
+                    max -> "Max"
+                    pro -> "Pro"
+                    else -> "Free"
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Membership",
+                            style = AppType.bodyMd,
+                            color = palette.textPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Plan · $planName",
+                            style = AppType.bodySm,
+                            color = if (pro) palette.gilt else palette.textMuted
+                        )
+                        val expiry = membership.expiresAtEpochMillis
+                        if (expiry != null && pro) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Renews on ${java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date(expiry))}",
+                                style = AppType.caption,
+                                color = palette.textMuted
+                            )
+                        }
+                    }
+                    GhostTextAction(
+                        text = if (refreshBusy) "Refreshing…" else "Refresh membership",
+                        onClick = { viewModel.refreshMembership() },
+                        enabled = !refreshBusy
+                    )
+                }
+                refreshFeedback?.let { msg ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        msg,
+                        style = AppType.caption,
+                        color = palette.textSecondary
+                    )
+                }
             }
         }
 

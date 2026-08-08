@@ -445,7 +445,7 @@ fun NeedWantSealMark(modifier: Modifier = Modifier) {
     }
 }
 
-/** Trial timeline strip under selected paid plan. */
+/** Timeline strip under selected paid plan — manual-renewal, honest. */
 @Composable
 fun TrialTimelineCard(
     modifier: Modifier = Modifier,
@@ -461,11 +461,11 @@ fun TrialTimelineCard(
             .border(BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)), RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
-        Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 10)
+        Eyebrow("WHEN YOU NEED IT", color = c.gilt, size = 10)
         Spacer(Modifier.height(8.dp))
-        TimelineRow("Today", "After PayPal approval, $planWord unlocks on this device.")
-        TimelineRow("Day 3", "Trial ends. PayPal charges the monthly rate unless you cancel.")
-        TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
+        TimelineRow("Today", "After payment, $planWord unlocks on this device.")
+        TimelineRow("Expiry", "Access lasts until your expiry date — no auto-charge.")
+        TimelineRow("Renew", "Pay again only when you're ready to continue.")
     }
 }
 

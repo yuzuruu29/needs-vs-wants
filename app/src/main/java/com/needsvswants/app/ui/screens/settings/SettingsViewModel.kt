@@ -3,6 +3,8 @@ package com.needsvswants.app.ui.screens.settings
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.needsvswants.app.data.billing.BillingController
+import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.domain.AdsConfig
@@ -62,6 +64,7 @@ data class DailyFreeLogsInfo(
 class SettingsViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val entryRepository: EntryRepository,
+    private val billingController: BillingController,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     val currentSymbol: StateFlow<String> = preferences.currencySymbol
@@ -87,8 +90,43 @@ class SettingsViewModel @Inject constructor(
     val reducedMotion: StateFlow<Boolean> = preferences.reducedMotion
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    private val entitlement: StateFlow<Entitlement> = preferences.entitlement
+    /** Membership snapshot for the Settings panel (plan + expiry). */
+    val membership: StateFlow<Entitlement> = preferences.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Entitlement.Free)
+
+    private val _refreshBusy = MutableStateFlow(false)
+    val refreshBusy: StateFlow<Boolean> = _refreshBusy.asStateFlow()
+
+    private val _refreshFeedback = MutableStateFlow<String?>(null)
+    val refreshFeedback: StateFlow<String?> = _refreshFeedback.asStateFlow()
+
+    /**
+     * Best-effort "Refresh membership": re-pulls entitlement from the remote
+     * via the billing restore path (webhook may have granted Pro/Max while the
+     * local snapshot stayed FREE). Surfaces a lightweight status for the panel.
+     */
+    fun refreshMembership() {
+        viewModelScope.launch {
+            if (_refreshBusy.value) return@launch
+            _refreshBusy.value = true
+            _refreshFeedback.value = null
+            try {
+                when (val result = billingController.restorePurchases()) {
+                    BillingResult.Success -> _refreshFeedback.value =
+                        if (membership.value.hasProAccessAt(System.currentTimeMillis()))
+                            "Membership refreshed."
+                        else
+                            "No active membership found."
+                    BillingResult.Unavailable -> _refreshFeedback.value = "Membership sync is not configured."
+                    is BillingResult.Failed -> _refreshFeedback.value =
+                        result.reason ?: "Could not refresh membership."
+                    else -> _refreshFeedback.value = null
+                }
+            } finally {
+                _refreshBusy.value = false
+            }
+        }
+    }
 
     /**
      * Read-only daily free logs state for Settings.
@@ -96,7 +134,7 @@ class SettingsViewModel @Inject constructor(
      * Uses the day-rolled quota flow — never the raw prefs read (see Phase 1 plan risk note).
      */
     val dailyFreeLogs: StateFlow<DailyFreeLogsInfo?> = combine(
-        entitlement,
+        membership,
         preferences.quotaState.map { DailyLogQuota.rollDayIfNeeded(it, todayString()) }
     ) { ent, quota ->
         if (!AdsConfig.ENABLED || ent.hasProAccessAt(System.currentTimeMillis())) {
