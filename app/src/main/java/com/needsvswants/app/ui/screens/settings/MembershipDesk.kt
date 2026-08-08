@@ -131,14 +131,9 @@ fun MembershipDesk(
             if (expiryFmt != null && isPro) {
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Access until $expiryFmt · no auto-charge",
+                    "Access until $expiryFmt",
                     style = AppType.bodySm,
                     color = c.textSecondary
-                )
-                Text(
-                    "Pay again only when you're ready to continue.",
-                    style = AppType.caption,
-                    color = c.textMuted
                 )
             }
 

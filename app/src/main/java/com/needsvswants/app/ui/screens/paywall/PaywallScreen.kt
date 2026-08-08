@@ -101,6 +101,8 @@ fun PaywallScreen(
     val effectiveProvider = when {
         selectedProvider == PaymentProvider.PAYPAL && !payPalAvailable -> PaymentProvider.PAYMONGO
         selectedProvider == PaymentProvider.PAYMONGO && !payMongoAvailable -> PaymentProvider.PAYPAL
+        !payPalAvailable && payMongoAvailable -> PaymentProvider.PAYMONGO
+        !payMongoAvailable && payPalAvailable -> PaymentProvider.PAYPAL
         else -> selectedProvider
     }
 
