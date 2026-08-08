@@ -95,7 +95,9 @@ fun PaywallScreen(
     val context = LocalContext.current
 
     /** The provider the CTA/footer/timeline actually describe: the user's
-     *  choice when available, otherwise the one provider this build has. */
+     *  choice when available, otherwise the one provider this build has
+     *  (PayMongo wins the fully-unconfigured fallback, matching the
+     *  pre-selector default). */
     val effectiveProvider = when {
         selectedProvider == PaymentProvider.PAYPAL && !payPalAvailable -> PaymentProvider.PAYMONGO
         selectedProvider == PaymentProvider.PAYMONGO && !payMongoAvailable -> PaymentProvider.PAYPAL
@@ -574,7 +576,7 @@ fun PaywallScreen(
                         Text(
                             text = when {
                                 needsSignInForPurchase && !isSignedIn ->
-                                    "First Google, then PayMongo opens in your browser."
+                                    "First Google, then checkout opens in your browser."
                                 isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
                                     "You're on Pro. Select Max for the AI Advisor."
                                 else ->
