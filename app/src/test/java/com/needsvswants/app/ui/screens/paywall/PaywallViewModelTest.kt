@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -148,7 +149,6 @@ class PaywallViewModelTest {
 
         // The subscribe path must use the MONTHLY product id, never the trial id.
         assertEquals(listOf("monthly_x"), billing.purchaseIds)
-        assertFalse(billing.purchaseIds.contains("trial_x"))
         assertEquals(BillingResult.Success, vm.lastResult.first())
         assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
     }
@@ -1019,9 +1019,78 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun onReturnFromCheckout_restoreSuccessDuringLoop_notOverwrittenByExhaustedTail() = runTest(dispatcher) {
+        // A Restore-success reported while the retry loop is still in flight
+        // must survive the loop's exhausted tail: the paywall already shows
+        // "Welcome to Pro." and must not regress to the payment-recorded state.
+        val gate = CompletableDeferred<Unit>()
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = false, gate = gate)
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        vm.onReturnFromCheckout()
+        runCurrent()
+        assertEquals(CheckoutSyncState.Syncing, vm.checkoutSyncState.first())
+
+        // While the loop is gated, the user taps Restore purchases and it succeeds.
+        vm.restore()
+        runCurrent()
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+
+        // The loop tail reports false (still free) — Exhausted must NOT
+        // overwrite the restore success.
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_cancelMidSettleWindow_abortsBeforeBilling() = runTest(dispatcher) {
+        // The user cancels inside the 200ms token-settle window: the delayed
+        // path re-reads pending after the delay and must abort without billing.
+        val billing = FakeBilling(BillingResult.Success)
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync()
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceTimeBy(100)
+        assertTrue(vm.busy.first())
+
+        vm.cancelPendingSignIn()
+        advanceTimeBy(300)
+        advanceUntilIdle()
+
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertEquals(0, billing.purchaseIds.size)
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
     fun failedReason_roundTrips() {
         val withReason: BillingResult = BillingResult.Failed("paypal declined: 10486")
-        assertTrue(withReason is BillingResult.Failed)
         assertEquals("paypal declined: 10486", (withReason as BillingResult.Failed).reason)
         // Default argument is null; equality is preserved between the two forms.
         assertEquals(BillingResult.Failed(null), BillingResult.Failed())

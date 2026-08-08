@@ -22,7 +22,11 @@ const padJs = fs.readFileSync(path.join(parts, 'pad.js'), 'utf8');
   const start = html.indexOf('<div class="sheet-wrap hero-in hero-in-sheet">');
   const end = html.indexOf('</div><!-- .wrap.hero-grid -->');
   if (start < 0 || end < 0) throw new Error('HTML markers missing: ' + start + ' ' + end);
-  html = html.slice(0, start) + padHtml.trimEnd() + '\n  ' + html.slice(end);
+  // Idempotent insert: cut at the marker line's START so the source line's
+  // leading whitespace is dropped — pad.html carries its own base indent, and
+  // preserving both would grow the block by 4 spaces on every apply run.
+  const lineStart = html.lastIndexOf('\n', start - 1) + 1;
+  html = html.slice(0, lineStart) + padHtml.trimEnd() + '\n  ' + html.slice(end);
 }
 
 // Scripts: remove any previously-injected page-flip library (flip is now native CSS/WAAPI)

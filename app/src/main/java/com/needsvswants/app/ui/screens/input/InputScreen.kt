@@ -185,7 +185,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             Eyebrow("SHEET", color = palette.textMuted, size = 10)
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                if (hasProAccess) "$filled" else "$filled / 20",
+                                if (hasProAccess) "$filled · unlimited" else "$filled / 20",
                                 color = if (!hasProAccess && filled >= 18) palette.danger else palette.textPrimary,
                                 style = AppType.moneyMd
                             )

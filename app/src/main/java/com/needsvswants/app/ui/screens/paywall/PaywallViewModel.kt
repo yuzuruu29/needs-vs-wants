@@ -239,7 +239,13 @@ class PaywallViewModel @Inject constructor(
                     _checkoutSyncState.value = CheckoutSyncState.Idle
                     _lastResult.value = BillingResult.Success
                 } else {
-                    _checkoutSyncState.value = CheckoutSyncState.Exhausted
+                    // A Restore-success reported while the loop ran (user tapped
+                    // Restore and it confirmed Pro) must not be overwritten by
+                    // the exhausted loop tail — the paywall is already showing
+                    // "Welcome to Pro." from that restore.
+                    if (_lastResult.value !is BillingResult.Success) {
+                        _checkoutSyncState.value = CheckoutSyncState.Exhausted
+                    }
                 }
             }
         }

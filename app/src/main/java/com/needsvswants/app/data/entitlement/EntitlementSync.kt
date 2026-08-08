@@ -1,12 +1,12 @@
 package com.needsvswants.app.data.entitlement
 
 import com.needsvswants.app.data.auth.AuthRepository
-import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.remote.SupabaseConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,7 +28,7 @@ import javax.inject.Singleton
 class EntitlementSync @Inject constructor(
     private val auth: AuthRepository,
     private val entitlements: EntitlementRepository,
-    private val preferences: AppPreferences,
+    private val preferences: PayPalReturnStore,
     private val config: SupabaseConfig
 ) : CheckoutReturnSync {
     companion object {
@@ -47,6 +47,14 @@ class EntitlementSync @Inject constructor(
         const val COLD_START_SYNC_TIMEOUT_MILLIS = 30_000L
 
         /**
+         * Cooperative per-attempt cap for a single refresh inside the retry
+         * routine, matching [com.needsvswants.app.data.remote.HttpJsonClient]'s
+         * worst case (10s connect + 10s read). Each attempt is individually
+         * bounded, so one hung request can never stall the whole schedule.
+         */
+        const val ATTEMPT_TIMEOUT_MILLIS = 20_000L
+
+        /**
          * Decides whether the retry loop stops after attempt [retryIndex]:
          * true once Pro access is confirmed (stop early) or after the last
          * scheduled attempt (max attempts). Pure so unit tests can pin both
@@ -55,6 +63,9 @@ class EntitlementSync @Inject constructor(
         fun shouldStop(retryIndex: Int, hasProAccess: Boolean): Boolean =
             hasProAccess || retryIndex >= checkoutRetryDelaysMillis.lastIndex
     }
+
+    /** In-flight guard so concurrent entry points collapse into a single routine. */
+    private val retryInFlight = AtomicBoolean(false)
 
     /**
      * Single best-effort refresh from the remote entitlement source.
@@ -87,25 +98,36 @@ class EntitlementSync @Inject constructor(
      * with the final outcome so the UI can show "Payment recorded — tap
      * Restore, or wait a moment" instead of silent free.
      *
+     * Each attempt is bounded by [ATTEMPT_TIMEOUT_MILLIS]; worst case when Pro
+     * never confirms is 4 × 20s + 17s of delays ≈ 97s (a cold-start caller is
+     * still capped overall by [COLD_START_SYNC_TIMEOUT_MILLIS]). Concurrent
+     * calls collapse into the routine already in flight: a second caller
+     * returns immediately without starting another loop.
+     *
      * @return true when Pro access was confirmed during the retry window.
      */
     override suspend fun syncAfterCheckoutReturn(onResult: (Boolean) -> Unit): Boolean {
-        if (!config.enabled) {
-            // No remote to consult — a grant cannot arrive; do not spin the delays.
-            onResult(false)
-            return false
+        if (!retryInFlight.compareAndSet(false, true)) return false
+        try {
+            if (!config.enabled) {
+                // No remote to consult — a grant cannot arrive; do not spin the delays.
+                onResult(false)
+                return false
+            }
+            var confirmed = false
+            checkoutRetryDelaysMillis.forEachIndexed { index, delayMillis ->
+                if (delayMillis > 0L) delay(delayMillis)
+                confirmed = withTimeoutOrNull(ATTEMPT_TIMEOUT_MILLIS) { refreshOnce() } ?: false
+                if (shouldStop(index, confirmed)) return@forEachIndexed
+            }
+            if (confirmed) {
+                runCatching { preferences.setPaypalReturnPending(false) }
+            }
+            onResult(confirmed)
+            return confirmed
+        } finally {
+            retryInFlight.set(false)
         }
-        var confirmed = false
-        checkoutRetryDelaysMillis.forEachIndexed { index, delayMillis ->
-            if (delayMillis > 0L) delay(delayMillis)
-            confirmed = refreshOnce()
-            if (shouldStop(index, confirmed)) return@forEachIndexed
-        }
-        if (confirmed) {
-            runCatching { preferences.setPaypalReturnPending(false) }
-        }
-        onResult(confirmed)
-        return confirmed
     }
 
     /**

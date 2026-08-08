@@ -45,6 +45,9 @@ class PayMongoBillingController @Inject constructor(
     }
 
     override suspend fun purchase(productId: String): BillingResult {
+        // A blank product id must never fall through to a checkout: mapping it
+        // to Max would silently bill ₱399 on a misconfigured build.
+        if (productId.isBlank()) return BillingResult.Failed("Checkout not configured on this build.")
         // productId is config.maxMonthlyProductId for Max, anything else is Pro.
         val hint = productId.ifBlank { config.maxMonthlyProductId }
         val tier = when {

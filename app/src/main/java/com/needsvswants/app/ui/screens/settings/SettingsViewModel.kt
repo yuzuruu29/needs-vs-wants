@@ -113,7 +113,11 @@ class SettingsViewModel @Inject constructor(
             try {
                 when (val result = billingController.restorePurchases()) {
                     BillingResult.Success -> _refreshFeedback.value =
-                        if (membership.value.hasProAccessAt(System.currentTimeMillis()))
+                        // Read the FRESH snapshot (the suspend DataStore read
+                        // returns the just-written value); the stateIn-cached
+                        // `membership` can lag the write and briefly report
+                        // "No active membership found." right after a grant.
+                        if (preferences.entitlement.first().hasProAccessAt(System.currentTimeMillis()))
                             "Membership refreshed."
                         else
                             "No active membership found."

@@ -328,7 +328,7 @@ fun SettingsScreen(
                         if (expiry != null && pro) {
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                "Renews on ${java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date(expiry))}",
+                                "Access until ${java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date(expiry))}",
                                 style = AppType.caption,
                                 color = palette.textMuted
                             )

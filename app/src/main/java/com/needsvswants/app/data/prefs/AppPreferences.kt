@@ -20,6 +20,19 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
+/**
+ * Pure TTL gate for the durable PayPal-return pending flag: a stored timestamp
+ * reports active only while it is recent (strictly within [ttlMillis] of the
+ * current time). 0 (no flag) and expired timestamps report inactive, so a stale
+ * return — webhook never landed, return missed — stops retrying after the TTL.
+ * Extracted as a pure function so the boundary behavior is unit-testable.
+ */
+fun paypalReturnPendingActive(
+    storedAt: Long,
+    nowMillis: Long,
+    ttlMillis: Long = 24 * 60 * 60 * 1000L
+): Boolean = storedAt > 0L && nowMillis - storedAt < ttlMillis
+
 class AppPreferences(private val context: Context) : EntitlementLocalStore, AuthSessionStore, PayPalReturnStore {
     companion object {
         private val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
@@ -65,7 +78,7 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val QUOTA_LOGS_CREATED = intPreferencesKey("quota_logs_created")
         private val QUOTA_BONUS_LOGS = intPreferencesKey("quota_bonus_logs")
         private val QUOTA_ADS_WATCHED = intPreferencesKey("quota_ads_watched")
-        private val PAYPAL_RETURN_PENDING = booleanPreferencesKey("paypal_return_pending")
+        private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
     }
 
     val currencySymbol: Flow<String> = context.dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
@@ -201,17 +214,23 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
 
     // --- PayPal checkout return (durable across process death) --------------
 
-    /** True while a PayPal checkout return is pending but not yet confirmed. */
+    /**
+     * True while a PayPal checkout return is pending but not yet confirmed.
+     * A flag older than the 24h TTL is treated as stale (webhook never landed,
+     * return missed) and reports inactive, so a cold start never retries forever.
+     */
     override val paypalReturnPending: Flow<Boolean> = context.dataStore.data.map {
-        it[PAYPAL_RETURN_PENDING] ?: false
+        paypalReturnPendingActive(it[PAYPAL_RETURN_PENDING_AT] ?: 0L, System.currentTimeMillis())
     }
 
     override suspend fun setPaypalReturnPending(pending: Boolean) {
-        context.dataStore.edit { it[PAYPAL_RETURN_PENDING] = pending }
+        context.dataStore.edit {
+            it[PAYPAL_RETURN_PENDING_AT] = if (pending) System.currentTimeMillis() else 0L
+        }
     }
 
     override suspend fun clearPaypalReturnPending() {
-        context.dataStore.edit { it.remove(PAYPAL_RETURN_PENDING) }
+        context.dataStore.edit { it[PAYPAL_RETURN_PENDING_AT] = 0L }
     }
 
     suspend fun setCurrency(symbol: String, code: String) {

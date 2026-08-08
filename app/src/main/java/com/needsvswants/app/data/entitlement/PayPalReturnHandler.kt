@@ -1,6 +1,5 @@
 package com.needsvswants.app.data.entitlement
 
-import com.needsvswants.app.data.prefs.AppPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,8 +23,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class PayPalReturnHandler @Inject constructor(
-    private val preferences: AppPreferences,
-    private val sync: EntitlementSync
+    private val preferences: PayPalReturnStore,
+    private val sync: CheckoutReturnSync
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
