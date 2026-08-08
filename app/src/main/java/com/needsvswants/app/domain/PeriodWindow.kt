@@ -25,7 +25,9 @@ object PeriodWindow {
      * Inclusive window start for [period].
      * - DAY: local midnight today
      * - WEEK: local midnight 6 days ago (7 calendar days including today)
-     * - ALL: [retentionCutoffAt] or 0 when unlimited
+     * - MONTH: local midnight 29 days ago (30 calendar days including today)
+     * - ALL: [retentionCutoffAt] or 0 when unlimited (Free clamps to 35 days via
+     *   the cutoff; paid passes null → lifetime)
      */
     fun sinceEpochMs(
         period: Period,
@@ -36,6 +38,7 @@ object PeriodWindow {
         return when (period) {
             Period.DAY -> today
             Period.WEEK -> today - 6L * dayMs
+            Period.MONTH -> today - 29L * dayMs
             Period.ALL -> retentionCutoffAt ?: 0L
         }
     }

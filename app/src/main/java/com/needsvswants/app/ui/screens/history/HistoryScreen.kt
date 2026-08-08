@@ -40,6 +40,7 @@ fun HistoryScreen(
 ) {
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
+    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
     val haptics = rememberAppHaptics()
     val context = LocalContext.current
@@ -55,7 +56,10 @@ fun HistoryScreen(
             verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Eyebrow("HISTORY", color = AppTheme.colors.crimson)
+                Eyebrow(
+                    if (isPro) "LIFETIME HISTORY" else "HISTORY",
+                    color = if (isPro) AppTheme.colors.gilt else AppTheme.colors.crimson
+                )
                 Spacer(Modifier.height(6.dp))
                 Text("LEDGER", style = AppType.screenTitle, color = AppTheme.colors.textPrimary)
             }

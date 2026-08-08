@@ -74,6 +74,7 @@ import com.needsvswants.app.ui.theme.PremiumDialog
 import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.SealStampOverlay
 import com.needsvswants.app.ui.theme.DailyBudgetMeter
+import com.needsvswants.app.ui.theme.TierTag
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.rememberAppHaptics
 import com.needsvswants.app.ui.theme.rememberAppSfx
@@ -193,6 +194,21 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                     }
                     Spacer(Modifier.height(8.dp))
                     GiltRule(width = 40.dp)
+                }
+                if (hasProAccess) {
+                    Spacer(Modifier.height(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TierTag(
+                            text = if (viewModel.entitlement.value.hasMaxAccessAt(System.currentTimeMillis())) "MAX" else "PRO",
+                            color = if (viewModel.entitlement.value.hasMaxAccessAt(System.currentTimeMillis())) palette.crimson else palette.gold
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Unlimited sheet",
+                            style = AppType.caption,
+                            color = palette.textMuted
+                        )
+                    }
                 }
             }
 

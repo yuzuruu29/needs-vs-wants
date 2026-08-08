@@ -64,7 +64,8 @@ class SummaryViewModel @Inject constructor(
     private val allEntries: StateFlow<List<Entry>> = entryRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val entitlement: StateFlow<Entitlement> = entitlementRepository.entitlement
+    /** Live entitlement snapshot — drives tier-aware Summary chrome (eyebrow, pills, lifetime copy). */
+    val entitlement: StateFlow<Entitlement> = entitlementRepository.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Entitlement.Free)
 
     /** True when any history exists (even if the active period is empty). */
@@ -142,6 +143,22 @@ class SummaryViewModel @Inject constructor(
         _period.value = period
     }
 
+    /**
+     * When access drops (Pro/Max → Free), a previously selected paid-only period
+     * (MONTH) is no longer offered. Reset to a free period so the pill bar never
+     * shows a selection a free user cannot pick.
+     */
+    init {
+        viewModelScope.launch {
+            entitlement.collect { ent ->
+                val paid = ent.hasProAccessAt(System.currentTimeMillis())
+                if (!paid && _period.value == Period.MONTH) {
+                    _period.value = Period.ALL
+                }
+            }
+        }
+    }
+
     fun dismissFirstLaunch() {
         viewModelScope.launch { preferences.setFirstLaunchComplete() }
     }
@@ -150,10 +167,12 @@ class SummaryViewModel @Inject constructor(
         val s = stats.value
         val sym = currencySymbol.value
         val streak = streakDays.value
+        val paid = entitlement.value.hasProAccessAt(System.currentTimeMillis())
         val periodLabel = when (_period.value) {
             Period.DAY -> "Today"
             Period.WEEK -> "This week"
-            Period.ALL -> "Last 35 days"
+            Period.MONTH -> "This month"
+            Period.ALL -> if (paid) "All time" else "Last 35 days"
         }
         val streakLine = if (streak > 0) "\nLogging streak: day $streak" else ""
         return buildString {

@@ -73,6 +73,10 @@ fun SummaryScreen(
     val insights by viewModel.insights.collectAsStateWithLifecycle()
     val hasHistory by viewModel.hasHistory.collectAsStateWithLifecycle()
     val isFirstLaunch by viewModel.isFirstLaunch.collectAsStateWithLifecycle()
+    val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
+    val now = System.currentTimeMillis()
+    val paid = entitlement.hasProAccessAt(now)
+    val isMax = entitlement.hasMaxAccessAt(now)
     var showInstructions by remember { mutableStateOf(false) }
     var showSplitPortal by remember { mutableStateOf(false) }
     var currentMilestone by remember { mutableStateOf<StreakMilestone?>(null) }
@@ -102,6 +106,7 @@ fun SummaryScreen(
 
     if (showInstructions) {
         InstructionsOverlay(
+            paid = paid,
             onDismiss = {
                 showInstructions = false
                 if (isFirstLaunch) viewModel.dismissFirstLaunch()
@@ -126,7 +131,19 @@ fun SummaryScreen(
             verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Eyebrow("A 35-Day Trainer", color = palette.crimson, maxLines = 1)
+                Eyebrow(
+                    when {
+                        isMax -> "Max desk"
+                        paid -> "Pro diary"
+                        else -> "A 35-Day Trainer"
+                    },
+                    color = when {
+                        isMax -> palette.gilt
+                        paid -> palette.gold
+                        else -> palette.crimson
+                    },
+                    maxLines = 1
+                )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "NEEDS\nvs WANTS",
@@ -195,12 +212,14 @@ fun SummaryScreen(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Period.entries.forEach { p ->
+                val pillPeriods = if (paid) paidPeriods else freePeriods
+                pillPeriods.forEach { p ->
                     val selected = p == period
                     val label = when (p) {
                         Period.DAY -> "Day"
                         Period.WEEK -> "Week"
-                        Period.ALL -> "All (35d)"
+                        Period.MONTH -> "Month"
+                        Period.ALL -> if (paid) "Lifetime" else "All (35d)"
                     }
                     val pillColor by animateColorAsState(
                         targetValue = if (selected) palette.crimson else Color.Transparent,
@@ -259,13 +278,13 @@ fun SummaryScreen(
         ) { animatedPeriod ->
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    getPeriodLabel(animatedPeriod),
+                    getPeriodLabel(animatedPeriod, paid),
                     color = palette.crimson,
                     style = AppType.meta.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1
                 )
                 Text(
-                    getPeriodRange(animatedPeriod),
+                    getPeriodRange(animatedPeriod, paid),
                     color = palette.textMuted,
                     style = AppType.caption,
                     maxLines = 2
@@ -432,7 +451,7 @@ fun SummaryScreen(
                 wantsCents = stats.wantsTotalCents,
                 totalCents = stats.totalCents,
                 symbol = symbol,
-                periodLabel = getPeriodLabel(period),
+                periodLabel = getPeriodLabel(period, paid),
                 onDismiss = { showSplitPortal = false }
             )
         }
@@ -793,18 +812,18 @@ private fun StatCard(
 }
 
 @Composable
-fun InstructionsOverlay(onDismiss: () -> Unit) {
+fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
     var currentPage by remember { mutableIntStateOf(0) }
     val palette = AppTheme.colors
     val titles = listOf(
         "Every purchase is a Need or a Want",
-        "Your diary keeps 35 days",
+        if (paid) "Your diary keeps every day" else "Your diary keeps 35 days",
         "Rows seal themselves",
         "Optional daily budget on Log"
     )
     val bodies = listOf(
         "Each entry forces a binary choice. There is no middle ground. That is the lesson.",
-        "Older entries are removed automatically. The window is always 35 days.",
+        if (paid) "Your history stays for life. Pro keeps the whole diary — no auto-removal." else "Older entries are removed automatically. The window is always 35 days.",
         "When item, cost, and type are filled, the row seals. Delete any row you sealed by mistake.",
         "Set a limit on Log. Watch spent vs remaining. Sealing past the line asks \"Log anyway?\" first."
     )
@@ -897,13 +916,20 @@ fun InstructionsOverlay(onDismiss: () -> Unit) {
     }
 }
 
-private fun getPeriodLabel(period: Period): String = when (period) {
+/** Period pills shown to free users (35-day trainer scope). */
+private val freePeriods = listOf(Period.DAY, Period.WEEK, Period.ALL)
+
+/** Period pills shown to Pro/Max (adds Month + Lifetime). */
+private val paidPeriods = listOf(Period.DAY, Period.WEEK, Period.MONTH, Period.ALL)
+
+private fun getPeriodLabel(period: Period, paid: Boolean): String = when (period) {
     Period.DAY -> "TODAY"
     Period.WEEK -> "THIS WEEK"
-    Period.ALL -> "ALL 35 DAYS"
+    Period.MONTH -> "THIS MONTH"
+    Period.ALL -> if (paid) "ALL TIME" else "ALL 35 DAYS"
 }
 
-private fun getPeriodRange(period: Period): String {
+private fun getPeriodRange(period: Period, paid: Boolean): String {
     val fmt = SimpleDateFormat("MMM d", Locale.getDefault())
     val today = Calendar.getInstance()
     return when (period) {
@@ -913,7 +939,14 @@ private fun getPeriodRange(period: Period): String {
             val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
             "${fmt.format(start.time)} - ${fmt.format(today.time)}"
         }
-        Period.ALL -> {
+        Period.MONTH -> {
+            // Inclusive 30 calendar days — matches PeriodWindow.MONTH (today − 29).
+            val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -29) }
+            "${fmt.format(start.time)} - ${fmt.format(today.time)}"
+        }
+        Period.ALL -> if (paid) {
+            "Since your first entry"
+        } else {
             val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -34) }
             "${fmt.format(start.time)} - ${fmt.format(today.time)}"
         }
@@ -932,6 +965,7 @@ private fun emptyPeriodCopy(
     return when (period) {
         Period.DAY -> "NOTHING TODAY" to "Seal a purchase to fill\ntoday's Need / Want split."
         Period.WEEK -> "QUIET WEEK" to "No spend in this week window yet.\nLog a purchase to start the split."
+        Period.MONTH -> "QUIET MONTH" to "No spend in this month window yet.\nLog a purchase to fill the chart."
         Period.ALL -> "NO ENTRIES" to "Nothing in the active window.\nLog a purchase to fill the chart."
     }
 }

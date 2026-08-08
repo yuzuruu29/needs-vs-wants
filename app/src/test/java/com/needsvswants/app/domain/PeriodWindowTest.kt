@@ -50,6 +50,15 @@ class PeriodWindowTest {
     }
 
     @Test
+    fun month_is_inclusive_thirty_calendar_days() {
+        // Label: Jul 8 – Aug 6 → start midnight Jul 8 (today − 29).
+        val since = PeriodWindow.sinceEpochMs(Period.MONTH, nowMs)
+        assertEquals(startOf(2026, Calendar.JULY, 8), since)
+        val spanDays = (PeriodWindow.startOfDay(nowMs) - since) / (24L * 60 * 60 * 1000)
+        assertEquals(29L, spanDays)
+    }
+
+    @Test
     fun filterToPeriod_week_excludes_day_before_window() {
         val inWindow = Entry(
             id = 1,

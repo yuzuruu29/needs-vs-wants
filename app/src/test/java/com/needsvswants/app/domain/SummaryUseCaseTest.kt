@@ -54,6 +54,20 @@ class SummaryUseCaseTest {
         assertEquals(2, stats.needsCount + stats.wantsCount)
     }
 
+    @Test
+    fun monthPeriod_includesLastWhenWithin30Days_butNotOlder() = runTest {
+        val withinMonth = entry("within", cost = 100, dateUtc = now - 20 * millisPerDay)
+        val olderThanMonth = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
+        val dao = FakeEntryDao(listOf(withinMonth, olderThanMonth))
+        val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
+        val useCase = SummaryUseCase(dao, repo)
+
+        val stats = useCase.getStats(Period.MONTH).first()
+
+        assertEquals(100, stats.totalCents)
+        assertEquals(1, stats.needsCount + stats.wantsCount)
+    }
+
     private fun entry(item: String, cost: Long, dateUtc: Long): Entry = Entry(
         dateUtc = dateUtc,
         date = "d",

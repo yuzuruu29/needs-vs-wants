@@ -18,7 +18,7 @@ data class SummaryStats(
     val wantsPct: Int = 0
 )
 
-enum class Period { DAY, WEEK, ALL }
+enum class Period { DAY, WEEK, MONTH, ALL }
 
 class SummaryUseCase(
     private val dao: EntryDao,
