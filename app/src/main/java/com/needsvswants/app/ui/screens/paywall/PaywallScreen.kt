@@ -203,7 +203,7 @@ fun PaywallScreen(
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
         MembershipPlan.Pro, MembershipPlan.Max ->
-            "One-time payment via GCash or card. You pay each month when ready — access ends on your expiry date. No auto-charge."
+            "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
     }
 
     Box(
