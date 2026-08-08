@@ -153,12 +153,18 @@ class DefaultCheckoutProviderTest {
 
     private class FakeLocal : EntitlementLocalStore {
         private val state = MutableStateFlow(Entitlement())
+        private val synced = MutableStateFlow(0L)
         override val entitlement: Flow<Entitlement> = state
+        override val entitlementSyncedAtMillis: Flow<Long> = synced
         override suspend fun setEntitlement(entitlement: Entitlement) {
             state.value = entitlement
         }
+        override suspend fun markEntitlementSynced(atMillis: Long) {
+            synced.value = atMillis
+        }
         override suspend fun clearEntitlement() {
             state.value = Entitlement()
+            synced.value = 0L
         }
     }
 

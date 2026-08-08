@@ -62,5 +62,5 @@ docs/**/__pycache__/
 # Local-only release signing (keystore + passwords) — never commit
 .local/
 
-# Cross-session heartbeat (overwritten every poll) — not tracked
-.claude/sessions/status.md
+# Cursor debug-session NDJSON logs
+debug-*.log

@@ -54,13 +54,15 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val ENTITLEMENT_PROVIDER = stringPreferencesKey("entitlement_provider")
         private val ENTITLEMENT_SOURCE = stringPreferencesKey("entitlement_source")
         private val ENTITLEMENT_STATUS = stringPreferencesKey("entitlement_status")
+        private val ENTITLEMENT_SYNCED_AT = longPreferencesKey("entitlement_synced_at")
         private val ENTITLEMENT_KEYS = listOf(
             ENTITLEMENT_TIER,
             ENTITLEMENT_TYPE,
             ENTITLEMENT_EXPIRES_AT,
             ENTITLEMENT_PROVIDER,
             ENTITLEMENT_SOURCE,
-            ENTITLEMENT_STATUS
+            ENTITLEMENT_STATUS,
+            ENTITLEMENT_SYNCED_AT
         )
         private val AUTH_ACCESS_TOKEN = stringPreferencesKey("auth_access_token")
         private val AUTH_REFRESH_TOKEN = stringPreferencesKey("auth_refresh_token")
@@ -163,6 +165,9 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         EntitlementSnapshot.orFree(lookup)
     }
 
+    override val entitlementSyncedAtMillis: Flow<Long> =
+        context.dataStore.data.map { it[ENTITLEMENT_SYNCED_AT] ?: 0L }
+
     override suspend fun setEntitlement(entitlement: Entitlement) {
         val snapshot = EntitlementSnapshot.fromEntitlement(entitlement)
         context.dataStore.edit {
@@ -177,6 +182,10 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
             snapshot.source?.let { s -> it[ENTITLEMENT_SOURCE] = s } ?: it.remove(ENTITLEMENT_SOURCE)
             snapshot.status?.let { s -> it[ENTITLEMENT_STATUS] = s } ?: it.remove(ENTITLEMENT_STATUS)
         }
+    }
+
+    override suspend fun markEntitlementSynced(atMillis: Long) {
+        context.dataStore.edit { it[ENTITLEMENT_SYNCED_AT] = atMillis }
     }
 
     override suspend fun clearEntitlement() {

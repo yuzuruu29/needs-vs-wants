@@ -172,11 +172,17 @@ private class RecordingRemote : EntitlementRemote {
 
 private class FakeEntitlementLocal : EntitlementLocalStore {
     private val state = MutableStateFlow(Entitlement.Free)
+    private val synced = MutableStateFlow(0L)
     override val entitlement: Flow<Entitlement> = state
+    override val entitlementSyncedAtMillis: Flow<Long> = synced
     override suspend fun setEntitlement(entitlement: Entitlement) {
         state.value = entitlement
     }
+    override suspend fun markEntitlementSynced(atMillis: Long) {
+        synced.value = atMillis
+    }
     override suspend fun clearEntitlement() {
         state.value = Entitlement.Free
+        synced.value = 0L
     }
 }
