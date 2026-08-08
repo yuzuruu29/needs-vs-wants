@@ -1,5 +1,6 @@
 package com.needsvswants.app.data.entitlement
 
+import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
@@ -70,6 +71,32 @@ class EntitlementRepositoryTest {
         repo.refreshFromRemote(accessToken = "tok")
         assertEquals(fresh, repo.entitlement.first())
         assertTrue(repo.hasMaxAccess.first())
+    }
+
+    @Test
+    fun stalePaidSnapshot_respectsFlavor() = runTest {
+        // BuildConfig.PLAIN_FREE is compiled per flavor, so this one test source
+        // asserts the correct contract under both:
+        //  - full flavor (PLAIN_FREE=false): a stale paid local snapshot stays paid.
+        //  - plain flavor (PLAIN_FREE=true): it is forced back to Free.
+        val local = FakeLocalStore()
+        val paid = Entitlement(
+            tier = EntitlementTier.MAX,
+            type = EntitlementType.PAID,
+            expiresAtEpochMillis = null
+        )
+        local.setEntitlement(paid)
+        val repo = EntitlementRepository(local, FakeRemote(null))
+
+        val exposed = repo.entitlement.first()
+        if (BuildConfig.PLAIN_FREE) {
+            // Plain must never unlock Pro/Max from a stale DataStore snapshot.
+            assertEquals(Entitlement.Free, exposed)
+            assertFalse(repo.hasMaxAccess.first())
+        } else {
+            assertEquals(paid, exposed)
+            assertTrue(repo.hasProAccess.first())
+        }
     }
 
     private class FakeLocalStore : EntitlementLocalStore {

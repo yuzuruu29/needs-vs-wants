@@ -54,8 +54,32 @@ android {
         // Web OAuth client ID — serverClientId for Credential Manager Google Sign-In.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
         // ---------------------------------------------------------------------
+        // Plain-free test flavor: the deep-link scheme is overridden per flavor so
+        // a plain APK installed next to production never steals its checkout return URLs.
+        manifestPlaceholders["deepLinkScheme"] = "needsvswants"
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    // `experience` flavor: `full` is the current production app (unchanged);
+    // `plain` is a Free-only side-by-side test APK (FORCED Free, no Advisor /
+    // paywall / membership UI). Gate flag is BuildConfig.PLAIN_FREE.
+    flavorDimensions += "experience"
+    productFlavors {
+        create("full") {
+            dimension = "experience"
+            buildConfigField("boolean", "PLAIN_FREE", "false")
+        }
+        create("plain") {
+            dimension = "experience"
+            applicationIdSuffix = ".plain"
+            versionNameSuffix = "-plain"
+            buildConfigField("boolean", "PLAIN_FREE", "true")
+            // Distinct launcher label + deep-link scheme so a plain install sits
+            // clearly beside production and never collides with its checkout URLs.
+            resValue("string", "app_name", "Needs vs Wants (Free Test)")
+            manifestPlaceholders["deepLinkScheme"] = "needsvswantsplain"
         }
     }
 

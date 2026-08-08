@@ -1,5 +1,7 @@
 package com.needsvswants.app.ui.navigation
 
+import com.needsvswants.app.BuildConfig
+
 /**
  * Ordered set of swipeable main tabs hosted by the [HorizontalPager].
  *
@@ -20,6 +22,15 @@ enum class MainTab(val route: String) {
     companion object {
         /** Number of swipeable main tabs (excludes paywall). */
         const val COUNT = 5
+
+        /**
+         * Tabs actually shown. The `plain` test flavor (BuildConfig.PLAIN_FREE)
+         * drops [Advisor], leaving Home -> Log -> History -> Settings (4 tabs).
+         * The plain flag is parameterized (defaults to the build config) so the
+         * plain path is unit-testable without a flavor switch.
+         */
+        fun visibleEntries(plainFree: Boolean = BuildConfig.PLAIN_FREE): List<MainTab> =
+            entries.filter { !(plainFree && it == Advisor) }
 
         /** Resolve a [MainTab] from a route string, defaulting to [Home]. */
         fun fromRoute(route: String?): MainTab =

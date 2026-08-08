@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.ui.screens.advisor.FinancialAdvisorScreen
 import com.needsvswants.app.ui.screens.history.HistoryScreen
 import com.needsvswants.app.ui.screens.input.InputScreen
@@ -80,16 +81,26 @@ fun AppNavigation(
     launchVm: LaunchPaywallViewModel = hiltViewModel()
 ) {
     val initialPage = MainTab.indexOf(startDestination)
-    val pagerState = rememberPagerState(initialPage = initialPage) { MainTab.COUNT }
+    val pagerState = rememberPagerState(initialPage = initialPage) { MainTab.visibleEntries().size }
     val scope = rememberCoroutineScope()
     val shouldOfferSoftPaywall by launchVm.shouldOfferSoftPaywall.collectAsStateWithLifecycle()
     var softPaywallLaunched by remember { mutableStateOf(false) }
     var paywallOpen by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()
+    val navEntitlement by launchVm.entitlement.collectAsStateWithLifecycle()
+    // One-shot: after a fresh Pro/Max grant, dismiss the paywall into the Settings
+    // Membership Desk once so the upgrade destination is obvious. Only fires when
+    // the paywall actually closes (was open → now closed) while paid — a plain
+    // cold start by an already-paid user must not re-seek to Settings.
+    var grantJustClosedPaywall by remember { mutableStateOf(false) }
+    var landedOnDesk by remember { mutableStateOf(false) }
+    var lastTappedPage by remember { mutableIntStateOf(initialPage) }
 
     // Soft paywall only on normal cold start — not when deep-linking to Log from a reminder.
+    // The `plain` test flavor never offers it, regardless of entitlement state.
     LaunchedEffect(shouldOfferSoftPaywall, startDestination) {
+        if (BuildConfig.PLAIN_FREE) return@LaunchedEffect
         if (startDestination != "summary") return@LaunchedEffect
         if (shouldOfferSoftPaywall && !softPaywallLaunched) {
             softPaywallLaunched = true
@@ -97,9 +108,31 @@ fun AppNavigation(
         }
     }
 
+    // Post-checkout land-on-Desk: when the paywall closes (was open → now closed),
+    // the user is now paid, and we have not yet landed, hop to Settings once so the
+    // upgrade destination is obvious. `grantJustClosedPaywall` is set on the open→closed
+    // edge and consumed on the first paid landing, so a plain cold start by an
+    // already-paid user never re-seeks to Settings.
+    LaunchedEffect(paywallOpen, navEntitlement) {
+        val paid = navEntitlement.hasProAccessAt(System.currentTimeMillis())
+        if (!paid) {
+            // Access dropped — re-arm so a future genuine re-purchase re-lands on the Desk.
+            landedOnDesk = false
+        } else if (!paywallOpen && grantJustClosedPaywall && !landedOnDesk) {
+            landedOnDesk = true
+            grantJustClosedPaywall = false
+            lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Settings)
+            scope.launch {
+                pagerState.animateScrollToPage(
+                    page = MainTab.visibleEntries().indexOf(MainTab.Settings),
+                    animationSpec = Motion.pageFlip()
+                )
+            }
+        }
+    }
+
     // Light tick when a swipe settles on a new page. Skip the settle that follows
     // a pill tap so we don't double-tick (the tap already ticks).
-    var lastTappedPage by remember { mutableIntStateOf(initialPage) }
     LaunchedEffect(Unit) {
         snapshotFlow { pagerState.settledPage }
             .collect { page ->
@@ -144,10 +177,12 @@ fun AppNavigation(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                bottomNavItems.forEachIndexed { index, item ->
+                                MainTab.visibleEntries().forEachIndexed { index, tab ->
+                                    val item = bottomNavItems.firstOrNull { it.route == tab.route } ?: return@forEachIndexed
                                     NavPill(
                                         item = item,
                                         selected = pagerState.currentPage == index,
+                                        entitlement = navEntitlement,
                                         onClick = {
                                             haptics.tick()
                                             sfx.tap()
@@ -198,12 +233,12 @@ fun AppNavigation(
                         // Child-side axis lock (swallows residual X during vertical scroll).
                         .verticalScrollFirst()
                 ) {
-                    when (MainTab.entries[page]) {
+                    when (MainTab.visibleEntries()[page]) {
                         MainTab.Home -> SummaryScreen(onNavigateToInput = {
-                            lastTappedPage = MainTab.Log.ordinal
+                            lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
                             scope.launch {
                                 pagerState.animateScrollToPage(
-                                    page = MainTab.Log.ordinal,
+                                    page = MainTab.visibleEntries().indexOf(MainTab.Log),
                                     animationSpec = Motion.pageFlip()
                                 )
                             }
@@ -213,10 +248,10 @@ fun AppNavigation(
                             paywallOpen = true
                         })
                         MainTab.History -> HistoryScreen(onNavigateToInput = {
-                            lastTappedPage = MainTab.Log.ordinal
+                            lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
                             scope.launch {
                                 pagerState.animateScrollToPage(
-                                    page = MainTab.Log.ordinal,
+                                    page = MainTab.visibleEntries().indexOf(MainTab.Log),
                                     animationSpec = Motion.pageFlip()
                                 )
                             }
@@ -230,9 +265,11 @@ fun AppNavigation(
         }
 
         // Paywall is a full-screen overlay — never a swipeable pager page.
-        if (paywallOpen) {
+        // The `plain` test flavor never composes it.
+        if (paywallOpen && !BuildConfig.PLAIN_FREE) {
             PaywallScreen(onClose = {
                 paywallOpen = false
+                grantJustClosedPaywall = true
                 launchVm.dismissSoftPaywallForSession()
             })
         }
@@ -243,17 +280,26 @@ fun AppNavigation(
 private fun NavPill(
     item: BottomNavItem,
     selected: Boolean,
+    entitlement: com.needsvswants.app.domain.Entitlement,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val palette = AppTheme.colors
+    val isMax = entitlement.hasMaxAccessAt(System.currentTimeMillis())
+    val isPaid = entitlement.hasProAccessAt(System.currentTimeMillis())
+    // Paid tiers tint the selected pill gold (Pro) / crimson+gold (Max).
+    val selectedColor = when {
+        isMax -> palette.crimson
+        isPaid -> palette.gilt
+        else -> palette.crimson
+    }
     val tintProgress by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
         animationSpec = Motion.selectionSpring(),
         label = "navPill"
     )
-    val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, palette.crimson, tintProgress)
-    val bg = palette.crimson.copy(alpha = 0.10f * tintProgress)
+    val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, selectedColor, tintProgress)
+    val bg = selectedColor.copy(alpha = 0.10f * tintProgress)
     val iconScale by animateFloatAsState(
         targetValue = if (selected) 1.04f else 1f,
         animationSpec = Motion.selectionSpring(),

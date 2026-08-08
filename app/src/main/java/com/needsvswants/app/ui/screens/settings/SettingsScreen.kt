@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
@@ -55,6 +56,7 @@ fun SettingsScreen(
     val refreshBusy by viewModel.refreshBusy.collectAsStateWithLifecycle()
     val refreshFeedback by viewModel.refreshFeedback.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val paid = membership.hasProAccessAt(System.currentTimeMillis())
     var showWipeConfirm by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
@@ -94,52 +96,46 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        // Account: free users cannot sign in here — Google is only on the Pro/Max paywall.
-        SectionLabel("ACCOUNT")
-        Spacer(Modifier.height(10.dp))
-        PremiumSurface(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (authState.signedIn) {
-                    Text(
-                        authState.email ?: "Signed in",
-                        style = AppType.bodyMd,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Linked for Pro / Max purchases and entitlement sync.",
-                        style = AppType.bodySm,
-                        color = palette.textMuted
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    GhostTextAction(
-                        text = if (authState.busy) "Signing out…" else "Sign out",
-                        onClick = { authViewModel.signOut() },
-                        enabled = !authState.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    Text(
-                        "No account on free plan",
-                        style = AppType.bodyMd,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Google sign-in only appears when you start Pro or Max. Free logging stays private on this device.",
-                        style = AppType.bodySm,
-                        color = palette.textMuted
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    GiltButton(
-                        onClick = onOpenPaywall,
-                        text = "View Pro & Max plans",
-                        modifier = Modifier.fillMaxWidth(),
-                        height = 48.dp
-                    )
+        // Membership Desk for Pro/Max; compact free invite otherwise. The `plain`
+        // test flavor strips all Pro/Max surfaces — no plan invite, no desk.
+        if (!BuildConfig.PLAIN_FREE) {
+            SectionLabel(if (paid) "MEMBERSHIP" else "ACCOUNT")
+            Spacer(Modifier.height(10.dp))
+            if (paid) {
+                MembershipDesk(
+                    entitlement = membership,
+                    authState = authState,
+                    refreshBusy = refreshBusy,
+                    refreshFeedback = refreshFeedback,
+                    onRenew = onOpenPaywall,
+                    onUpgradeToMax = onOpenPaywall,
+                    onRefresh = { viewModel.refreshMembership() },
+                    onSignOut = { authViewModel.signOut() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                PremiumSurface(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "No account on free plan",
+                            style = AppType.bodyMd,
+                            color = palette.textPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Google sign-in only appears when you start Pro or Max. Free logging stays private on this device.",
+                            style = AppType.bodySm,
+                            color = palette.textMuted
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        GiltButton(
+                            onClick = onOpenPaywall,
+                            text = "View Pro & Max plans",
+                            modifier = Modifier.fillMaxWidth(),
+                            height = 48.dp
+                        )
+                    }
                 }
             }
         }
@@ -260,92 +256,38 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("SUBSCRIPTION")
-        Spacer(Modifier.height(10.dp))
-        PremiumSurface(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onOpenPaywall)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Pro & Max plans",
-                        style = AppType.bodyMd,
-                        color = palette.textPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "Sign in with Google only when you upgrade. Unlimited log, full history, Max AI Advisor.",
-                        style = AppType.bodySm,
-                        color = palette.textMuted
-                    )
-                }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    "upgrade to pro",
-                    tint = palette.gold.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(10.dp))
-        // Membership snapshot: plan + expiry, with a manual refresh affordance
-        // for the "webhook granted but local app still FREE" case.
-        SettingsPanel {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                val now = System.currentTimeMillis()
-                val pro = membership.hasProAccessAt(now)
-                val max = membership.hasMaxAccessAt(now)
-                val planName = when {
-                    max -> "Max"
-                    pro -> "Pro"
-                    else -> "Free"
-                }
+        // Manage plan — opens the paywall for renew/upgrade (redundant actions live on
+// the Membership Desk for paid users; kept for free users to discover plans).
+        // The `plain` test flavor strips it entirely.
+        if (!BuildConfig.PLAIN_FREE) {
+            SectionLabel("PLAN")
+            Spacer(Modifier.height(10.dp))
+            SettingsPanel {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenPaywall)
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Membership",
+                            if (paid) "Manage membership" else "Go Pro & Max",
                             style = AppType.bodyMd,
                             color = palette.textPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            "Plan · $planName",
+                            if (paid) "Renew, upgrade to Max, or review plans." else "Unlimited log, lifetime history, Max AI Advisor.",
                             style = AppType.bodySm,
-                            color = if (pro) palette.gilt else palette.textMuted
+                            color = palette.textMuted
                         )
-                        val expiry = membership.expiresAtEpochMillis
-                        if (expiry != null && pro) {
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                "Access until ${java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault()).format(java.util.Date(expiry))}",
-                                style = AppType.caption,
-                                color = palette.textMuted
-                            )
-                        }
                     }
-                    GhostTextAction(
-                        text = if (refreshBusy) "Refreshing…" else "Refresh membership",
-                        onClick = { viewModel.refreshMembership() },
-                        enabled = !refreshBusy
-                    )
-                }
-                refreshFeedback?.let { msg ->
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        msg,
-                        style = AppType.caption,
-                        color = palette.textSecondary
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        if (paid) "manage membership" else "upgrade to pro",
+                        tint = palette.gold.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -517,7 +459,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            "35-day spending trainer",
+                            if (paid) "Pro / Max spending diary" else "35-day spending trainer",
                             style = AppType.caption,
                             color = palette.textMuted
                         )
@@ -538,7 +480,7 @@ fun SettingsScreen(
                     emphasize = true
                 )
                 ReceiptFeatureLine(
-                    text = "20 entries per sheet, 35-day diary window",
+                    text = if (paid) "Unlimited sheets, lifetime diary history" else "20 entries per sheet, 35-day diary window",
                     accent = palette.gold
                 )
                 ReceiptFeatureLine(

@@ -2,6 +2,7 @@ package com.needsvswants.app.ui.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.prefs.AppPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +28,10 @@ class LaunchPaywallViewModel @Inject constructor(
 
     private val dismissedThisSession = MutableStateFlow(false)
 
+    /** Live entitlement — drives tier-aware nav chrome (gold Pro / crimson Max tint). */
+    val entitlement: StateFlow<com.needsvswants.app.domain.Entitlement> = repository.entitlement
+        .stateIn(viewModelScope, SharingStarted.Eagerly, com.needsvswants.app.domain.Entitlement.Free)
+
     /**
      * True when the user is free, has finished first-launch instructions, and has not
      * dismissed the launch paywall this session.
@@ -36,7 +41,7 @@ class LaunchPaywallViewModel @Inject constructor(
         dismissedThisSession,
         preferences.isFirstLaunch
     ) { hasPro, dismissed, firstLaunch ->
-        !hasPro && !dismissed && !firstLaunch
+        !BuildConfig.PLAIN_FREE && !hasPro && !dismissed && !firstLaunch
     }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun dismissSoftPaywallForSession() {

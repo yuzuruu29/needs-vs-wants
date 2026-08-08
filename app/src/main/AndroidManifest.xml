@@ -27,7 +27,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="needsvswants"
+                    android:scheme="${deepLinkScheme}"
                     android:host="paypal" />
                 <data android:path="/return" />
                 <data android:path="/cancel" />
@@ -38,7 +38,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="needsvswants"
+                    android:scheme="${deepLinkScheme}"
                     android:host="paymongo" />
                 <data android:path="/return" />
                 <data android:path="/cancel" />

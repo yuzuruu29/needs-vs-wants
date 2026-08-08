@@ -60,6 +60,25 @@ class MainTabTest {
     }
 
     @Test
+    fun visibleEntries_fullFlavor_keepsAllFiveTabs() {
+        // Production `full` flavor: all five tabs are shown, in swipe order.
+        val expected = listOf(MainTab.Home, MainTab.Log, MainTab.Advisor, MainTab.History, MainTab.Settings)
+        assertEquals(expected, MainTab.visibleEntries(plainFree = false))
+    }
+
+    @Test
+    fun visibleEntries_plainFlavor_dropsAdvisor() {
+        // Plain test flavor: Advisor is stripped, leaving Home -> Log -> History -> Settings.
+        val expected = listOf(MainTab.Home, MainTab.Log, MainTab.History, MainTab.Settings)
+        assertEquals(expected, MainTab.visibleEntries(plainFree = true))
+    }
+
+    @Test
+    fun visibleEntries_plainFlavor_hasFourTabs() {
+        assertEquals(4, MainTab.visibleEntries(plainFree = true).size)
+    }
+
+    @Test
     fun routes_matchLegacyNavHostStrings() {
         // Routes must stay aligned with the legacy NavHost route strings so
         // deep links and intent extras keep working.
