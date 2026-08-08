@@ -1,7 +1,9 @@
 package com.needsvswants.app.di
 
+import com.needsvswants.app.ads.AdMobRewardedAdGateway
 import com.needsvswants.app.ads.NoOpRewardedAdGateway
 import com.needsvswants.app.ads.RewardedAdGateway
+import com.needsvswants.app.domain.AdsConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -9,17 +11,12 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Ads wiring — SDK STRIPPED from the build (D87, lean 1.5.0-sized APK).
- * The NoOp gateway is always bound; nothing ad-related can run or initialize.
+ * Ads wiring — rewarded AdMob live for Free users (D119).
  *
- * Re-enable when an AdMob account exists:
- * 1. Restore `ads/AdMobRewardedAdGateway.kt` + `ads/ConsentHelper.kt` from
- *    git commit `5622b7e` (or `8969364` for the QA-fixed versions).
- * 2. Uncomment the play-services-ads + UMP entries in
- *    `gradle/libs.versions.toml` and `app/build.gradle.kts`.
- * 3. Set `AdsConfig.ENABLED = true` and replace the test IDs
- *    (AndroidManifest.xml APPLICATION_ID + REWARDED_AD_UNIT_ID).
- * 4. Restore the conditional binding: `if (AdsConfig.ENABLED) adMob else noOp`.
+ * Binds the real [AdMobRewardedAdGateway] when [AdsConfig.ENABLED] is true,
+ * otherwise the [NoOpRewardedAdGateway] (kill switch). The "Watch Ad" button
+ * and Settings panel additionally gate on `AdsConfig.ENABLED`, so a disabled
+ * config means no SDK init, no network, no test ads — the lean build.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,5 +24,8 @@ object AdsModule {
 
     @Provides
     @Singleton
-    fun provideRewardedAdGateway(noOp: NoOpRewardedAdGateway): RewardedAdGateway = noOp
+    fun provideRewardedAdGateway(
+        adMob: AdMobRewardedAdGateway,
+        noOp: NoOpRewardedAdGateway
+    ): RewardedAdGateway = if (AdsConfig.ENABLED) adMob else noOp
 }

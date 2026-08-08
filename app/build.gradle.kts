@@ -172,14 +172,11 @@ dependencies {
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
 
-    // --- Phase 3: Rewarded ads (AdMob + UMP) — SDK STRIPPED (D87) ---
-    // No AdMob account yet; the deps added ~1.5 MB to the release APK.
-    // To restore: uncomment these two lines + the version/library entries in
-    // gradle/libs.versions.toml, restore ads/AdMobRewardedAdGateway.kt +
-    // ads/ConsentHelper.kt from git commit 5622b7e, set AdsConfig.ENABLED =
-    // true and replace the test IDs with production values.
-    // implementation(libs.google.play.services.ads)
-    // implementation(libs.google.ump)
+    // --- Phase 3: Rewarded ads (AdMob + UMP) — restored 2026-08-09 (D119) ---
+    // Bundled for the Free quota (5 logs/day + rewarded ads). Test IDs active
+    // until the AdMob account exists; swap before a real release.
+    implementation(libs.google.play.services.ads)
+    implementation(libs.google.ump)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

@@ -295,10 +295,13 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("DAILY FREE LOGS")
-        Spacer(Modifier.height(10.dp))
         val freeLogs = dailyFreeLogs
+        // Only render the section (title + panel) when the quota applies —
+        // i.e. AdsConfig.ENABLED and the user is Free. Pro/Max (and the ad
+        // kill switch being off) get no DAILY FREE LOGS header at all.
         if (freeLogs != null) {
+            SectionLabel("DAILY FREE LOGS")
+            Spacer(Modifier.height(10.dp))
             SettingsPanel {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                     QuotaStatRow(

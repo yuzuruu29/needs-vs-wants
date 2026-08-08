@@ -453,9 +453,9 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                         if (AdsConfig.ENABLED) {
                             Text(
                                 if (canWatchAdToday) {
-                                    "Watch a short ad to unlock +8 more logs today?"
+                                    "Watch a short ad to unlock +${AdsConfig.EXTRA_LOGS_PER_REWARD} more logs today?"
                                 } else {
-                                    "You've reached the 3-ads-per-day limit."
+                                    "You've reached the ${AdsConfig.MAX_REWARDED_ADS_PER_DAY}-ads-per-day limit."
                                 },
                                 color = palette.textSecondary,
                                 style = AppType.body

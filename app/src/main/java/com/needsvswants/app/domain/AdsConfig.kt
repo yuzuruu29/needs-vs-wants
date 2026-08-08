@@ -2,21 +2,24 @@ package com.needsvswants.app.domain
 
 object AdsConfig {
     /**
-     * Master kill switch.
+     * Master kill switch. TRUE (2026-08-09, D119): rewarded AdMob is live for
+     * Free users only — the AdMob/UMP SDK is bundled, the real gateway is bound,
+     * and the "Watch Ad" button + Settings panel are visible. Pro / Max stay
+     * ad-less (the caller enforces that via `Entitlement.hasProAccessAt` before
+     * the quota gate ever runs).
      *
-     * FALSE (2026-08-07, D85 + D87): AdMob is on hold — no AdMob account yet
-     * and the app is not deployed to the Play Store. Since D87 the AdMob/UMP
-     * SDK is STRIPPED from the build (lean 1.5.0-sized APK): the NoOp gateway
-     * is bound, the "Watch Ad" button is hidden, the Settings panel is hidden,
-     * and there is no SDK to initialize (no network, no test ads).
-     * To re-enable: restore ads/AdMobRewardedAdGateway.kt + ConsentHelper.kt
-     * from git commit 5622b7e, uncomment the ads deps in libs.versions.toml +
-     * app/build.gradle.kts, set this to TRUE, and replace the test IDs
-     * (AndroidManifest.xml APPLICATION_ID + REWARDED_AD_UNIT_ID).
+     * Ad IDs are still Google TEST values (manifest APPLICATION_ID +
+     * AdMobRewardedAdGateway.REWARDED_AD_UNIT_ID). Swap to production IDs when
+     * the AdMob account exists — same two places as the D85 checklist.
      */
-    const val ENABLED = false
+    const val ENABLED = true
 
-    const val FREE_DAILY_LOGS = 10
+    /** Free seals per local calendar day. Changed 10 → 5 (D119). */
+    const val FREE_DAILY_LOGS = 5
+
+    /** Bonus logs granted per rewarded ad. */
     const val EXTRA_LOGS_PER_REWARD = 8
+
+    /** Max rewarded ads a Free user can watch per day (~+24 bonus). */
     const val MAX_REWARDED_ADS_PER_DAY = 3
 }
