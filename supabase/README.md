@@ -20,6 +20,11 @@ monorepo root.
   calls this with the user's access token).
 - `functions/paypal_webhook/` - verifies PayPal webhook signatures
   (mandatory, locked decision) and upserts grants.
+- `functions/paymongo_create_checkout/` - creates a PayMongo Hosted Checkout
+  Session (one-time, manual-renewal Pro/Max) and returns the checkout URL.
+- `functions/paymongo_webhook/` - verifies the PayMongo `Paymongo-Signature`
+  header over the raw body and grants entitlement (idempotent via the
+  `payment_events` ledger).
 - `functions/google_play_verify/` - verifies Play purchases/subscriptions on
   the Play Developer API and grants Pro.
 - `functions/apple_verify/` - verifies App Store receipts via verifyReceipt
@@ -73,6 +78,46 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
   Supabase user id, or sign the `custom_id` value. The current scaffold trusts
   the webhook signature (which authenticates PayPal, not the buyer).
 
+### paymongo_create_checkout
+
+- Auth: `Authorization: Bearer <supabase access token>` (JWT verified by the
+  gateway; `verify_jwt = true`). Also decodes `sub` and re-validates via
+  `supabase.auth.getUser()` (same pattern as `paypal_create_subscription`).
+- Body: `{ "tier": "pro" | "max" }`. Amounts are **server-authoritative**
+  only: Pro `19900` / Max `39900` centavos. Client-supplied amounts are
+  ignored.
+- Returns `{ success, data: { checkout_url, checkout_session_id, tier,
+  amount_centavos } }`. `checkout_url` is the PayMongo Hosted Checkout page to
+  open in a browser; `success_url` / `cancel_url` default to
+  `needsvswants://paymongo/return` / `needsvswants://paymongo/cancel`.
+- Fail-closed: missing `PAYMONGO_SECRET_KEY` → 500 "Server not configured";
+  PayMongo non-2xx → actionable error from `data.message` / `errors[].detail`,
+  502.
+
+### paymongo_webhook
+
+- Deployed with `--no-verify-jwt` (PayMongo is not a Supabase client).
+- Auth gate: HMAC-SHA256 signature verification of the `Paymongo-Signature`
+  header against the **raw request body** using `PAYMONGO_WEBHOOK_SECRET`.
+  Rejects 401 on failure.
+- Accepts the `checkout_session.payment.paid` event. Unknown/malformed events
+  are acked (`{ success, ignored: true }`) so PayMongo stops retrying.
+- Idempotency: the `payment_events` ledger is keyed on the PayMongo payment id
+  (`pay_xxx`). The webhook SELECTs the ledger first; if the payment was already
+  recorded it acks `{ success, already_applied: true }` WITHOUT re-granting
+  (this is the guard against webhook retries double-granting +30 days). A
+  unique violation on a racing insert is treated the same way.
+- Grant (one-time, manual renewal):
+  - `is_pro = true`, `tier = <final tier>`,
+    `paid_until = max(now, existing.paid_until) + 30 days` (stacks when
+    renewing early).
+  - `provider = 'paymongo'`, `source = 'checkout_session'`, `status = 'paid'`,
+    `trial_started_at = null`, `trial_ends_at = null`.
+  - Tier rule: paying Max always upgrades to max. Paying Pro while Max is
+    still active keeps max tier and extends `paid_until` (no downgrade).
+- User id / tier come from `metadata.user_id` / `metadata.tier` set at
+  checkout-creation time from the verified JWT — never from client-only fields.
+
 ### google_play_verify
 - Auth: user access token (JWT). Body:
   `{ package_name, product_id, purchase_token, kind: "subscription"|"one_time" }`.
@@ -109,6 +154,11 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
 | PAYPAL_PLAN_MAX                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Max       |
 | PAYPAL_RETURN_URL                     | no       | create_subscription | default `needsvswants://paypal/return`   |
 | PAYPAL_CANCEL_URL                     | no       | create_subscription | default `needsvswants://paypal/cancel`   |
+| PAYMONGO_SECRET_KEY                   | yes*     | paymongo_create_checkout | PayMongo secret key `sk_test_…` / `sk_live_…` |
+| PAYMONGO_WEBHOOK_SECRET               | yes*     | paymongo_webhook    | PayMongo webhook signing secret `whsk_…` |
+| PAYMONGO_SUCCESS_URL                  | no       | paymongo_create_checkout | default `needsvswants://paymongo/return` |
+| PAYMONGO_CANCEL_URL                   | no       | paymongo_create_checkout | default `needsvswants://paymongo/cancel` |
+| PAYMONGO_PAYMENT_METHODS              | no       | paymongo_create_checkout | optional CSV override, e.g. `gcash,card,paymaya,grab_pay,qrph` |
 | GOOGLE_PLAY_SERVICE_ACCOUNT_JSON      | yes      | google_play_verify  | full service-account JSON                |
 | APPLE_SHARED_SECRET                   | yes      | apple_verify        | App Store shared secret                  |
 | APPLE_BUNDLE_ID                       | yes      | apple_verify        | app bundle id the receipt must match     |
@@ -125,11 +175,29 @@ supabase secrets set PAYPAL_WEBHOOK_ID=...
 supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
 supabase secrets set APPLE_SHARED_SECRET=...
 supabase secrets set APPLE_BUNDLE_ID=com.example.needsvswants
+supabase secrets set PAYMONGO_SECRET_KEY=sk_test_...
+supabase secrets set PAYMONGO_WEBHOOK_SECRET=whsk_test_...
 supabase functions deploy get_entitlement
 supabase functions deploy google_play_verify
 supabase functions deploy apple_verify
 supabase functions deploy paypal_webhook --no-verify-jwt
+supabase functions deploy paymongo_create_checkout
+supabase functions deploy paymongo_webhook --no-verify-jwt
 ```
+
+## PayMongo dashboard webhook setup (manual)
+
+In the [PayMongo dashboard](https://dashboard.paymongo.com) → Developers →
+Webhooks, add a webhook for **test mode** with:
+
+- URL: `https://xpwcrloarciomikfudln.supabase.co/functions/v1/paymongo_webhook`
+- Events: `checkout_session.payment.paid`
+- The signing secret shown there is `PAYMONGO_WEBHOOK_SECRET`.
+
+The `PAYMONGO_SECRET_KEY` used by `paymongo_create_checkout` must share the
+same account/mode as the webhook (test ↔ test, live ↔ live). Every checkout is
+a **one-time** Hosted Checkout Session; there is no auto-subscription, renewal
+is user-initiated.
 
 Never hardcode or log secrets. Keep `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` and all
 credentials out of git.
