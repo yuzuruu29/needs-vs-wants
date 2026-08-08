@@ -194,7 +194,14 @@ class PaywallViewModel @Inject constructor(
 
     fun restore() {
         viewModelScope.launch {
-            _lastResult.value = billing.restorePurchases()
+            val result = billing.restorePurchases()
+            // A successful restore proves the subscription is live: the stale
+            // "Payment recorded — tap Restore, or wait a moment." (Exhausted)
+            // state must not survive it and contradict the Welcome-to-Pro result.
+            if (result is BillingResult.Success) {
+                _checkoutSyncState.value = CheckoutSyncState.Idle
+            }
+            _lastResult.value = result
         }
     }
 

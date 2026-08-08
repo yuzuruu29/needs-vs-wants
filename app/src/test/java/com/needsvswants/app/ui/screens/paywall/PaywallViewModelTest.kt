@@ -985,6 +985,40 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun restore_success_resetsExhaustedCheckoutSyncState() = runTest(dispatcher) {
+        // P2: the exhausted "Payment recorded — tap Restore…" state must not
+        // survive a successful restore — the paywall would show it next to
+        // "Welcome to Pro." A Success restore resets the sync state to Idle.
+        val gate = CompletableDeferred<Unit>()
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val sync = FakeEntitlementSync(outcome = false, gate = gate)
+        val billing = FakeBilling(BillingResult.Success)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            sync
+        )
+
+        // Retry schedule exhausts: surface the payment-recorded message.
+        vm.onReturnFromCheckout()
+        runCurrent()
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(CheckoutSyncState.Exhausted, vm.checkoutSyncState.first())
+
+        // User taps Restore purchases and the restore reports Success.
+        vm.restore()
+        advanceUntilIdle()
+
+        assertEquals(1, billing.restoreCalls)
+        assertEquals(BillingResult.Success, vm.lastResult.first())
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+    }
+
+    @Test
     fun failedReason_roundTrips() {
         val withReason: BillingResult = BillingResult.Failed("paypal declined: 10486")
         assertTrue(withReason is BillingResult.Failed)
