@@ -139,6 +139,7 @@ Deno.test("activated event grants paid pro with paid_until", () => {
     user_id: "user-abc",
     grant: {
       mode: "paid",
+      tier: "pro",
       paid_until: "2026-09-01T00:00:00Z",
       provider: "paypal",
       source: "paypal",
@@ -273,6 +274,7 @@ Deno.test("clear grant resets row to free defaults", () => {
   const fields = grantToRowFields({ mode: "clear" });
   assertEquals(fields, {
     is_pro: false,
+    tier: "free",
     trial_started_at: null,
     trial_ends_at: null,
     paid_until: null,
