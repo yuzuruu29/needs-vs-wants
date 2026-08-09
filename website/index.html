@@ -1214,6 +1214,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .sideload-steps li{margin-bottom:6px}
 .sideload-steps strong{font-weight:600}
 .trust-note{font-size:12.5px;color:var(--green-soft);margin-top:8px}
+.upgrade-note{font-size:12.5px;color:var(--ink);margin-top:8px;line-height:1.5}
+.upgrade-note strong{color:var(--crimson);font-weight:600}
 
 /* ============ EMAIL CAPTURE ============ */
 .notify-form{max-width:420px;margin:48px auto 0;text-align:center}
@@ -1902,6 +1904,10 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <li><strong>If asked</strong>, allow "Install unknown apps" for your browser, then tap Install again</li>
             </ol>
             <p class="trust-note">✓ Verified safe: no ads, no tracking, no network calls. 100% offline.</p>
+          </details>
+          <details class="sideload-guide">
+            <summary>Upgrading from an older version? ▾</summary>
+            <p class="upgrade-note">Versions 1.0.0&ndash;1.5.0 were signed with a different key. If you have one of those installed, Android will refuse to install 2.0.5 over it. <strong>Export/back up your data, then uninstall the old version first</strong>, then install 2.0.5.</p>
           </details>
           <p class="cta-note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
