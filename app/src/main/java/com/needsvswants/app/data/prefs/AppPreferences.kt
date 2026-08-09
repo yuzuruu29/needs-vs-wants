@@ -33,7 +33,11 @@ fun paypalReturnPendingActive(
     ttlMillis: Long = 24 * 60 * 60 * 1000L
 ): Boolean = storedAt > 0L && nowMillis - storedAt < ttlMillis
 
-class AppPreferences(private val context: Context) : EntitlementLocalStore, AuthSessionStore, PayPalReturnStore {
+class AppPreferences internal constructor(private val dataStore: DataStore<Preferences>) :
+    EntitlementLocalStore, AuthSessionStore, PayPalReturnStore {
+
+    /** Production path: the app-wide singleton DataStore behind [context]. */
+    constructor(context: Context) : this(context.dataStore)
     companion object {
         private val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
         private val CURRENCY_CODE = stringPreferencesKey("currency_code")
@@ -83,73 +87,73 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
         private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
     }
 
-    val currencySymbol: Flow<String> = context.dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
-    val currencyCode: Flow<String> = context.dataStore.data.map { it[CURRENCY_CODE] ?: "PHP" }
-    val isFirstLaunch: Flow<Boolean> = context.dataStore.data.map { it[FIRST_LAUNCH] ?: true }
+    val currencySymbol: Flow<String> = dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
+    val currencyCode: Flow<String> = dataStore.data.map { it[CURRENCY_CODE] ?: "PHP" }
+    val isFirstLaunch: Flow<Boolean> = dataStore.data.map { it[FIRST_LAUNCH] ?: true }
 
-    val bestStreakEver: Flow<Int> = context.dataStore.data.map { it[BEST_STREAK_EVER] ?: 0 }
-    val lastMilestoneShown: Flow<Int> = context.dataStore.data.map { it[LAST_MILESTONE_SHOWN] ?: 0 }
-    val reminderEnabled: Flow<Boolean> = context.dataStore.data.map { it[REMINDER_ENABLED] ?: false }
-    val reminderHour: Flow<Int> = context.dataStore.data.map { it[REMINDER_HOUR] ?: 20 }
+    val bestStreakEver: Flow<Int> = dataStore.data.map { it[BEST_STREAK_EVER] ?: 0 }
+    val lastMilestoneShown: Flow<Int> = dataStore.data.map { it[LAST_MILESTONE_SHOWN] ?: 0 }
+    val reminderEnabled: Flow<Boolean> = dataStore.data.map { it[REMINDER_ENABLED] ?: false }
+    val reminderHour: Flow<Int> = dataStore.data.map { it[REMINDER_HOUR] ?: 20 }
     /** Interaction sounds (tap / long-press / orb). Default on. */
-    val sfxEnabled: Flow<Boolean> = context.dataStore.data.map { it[SFX_ENABLED] ?: true }
+    val sfxEnabled: Flow<Boolean> = dataStore.data.map { it[SFX_ENABLED] ?: true }
     /** Vibration / haptic feedback. Default on. */
-    val hapticsEnabled: Flow<Boolean> = context.dataStore.data.map { it[HAPTICS_ENABLED] ?: true }
+    val hapticsEnabled: Flow<Boolean> = dataStore.data.map { it[HAPTICS_ENABLED] ?: true }
     /** In-app reduced motion (also collapses when system animator scale is 0). Default off. */
-    val reducedMotion: Flow<Boolean> = context.dataStore.data.map { it[REDUCED_MOTION] ?: false }
+    val reducedMotion: Flow<Boolean> = dataStore.data.map { it[REDUCED_MOTION] ?: false }
 
     suspend fun setReminderEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[REMINDER_ENABLED] = enabled }
+        dataStore.edit { it[REMINDER_ENABLED] = enabled }
     }
 
     suspend fun setReminderHour(hour: Int) {
-        context.dataStore.edit { it[REMINDER_HOUR] = hour }
+        dataStore.edit { it[REMINDER_HOUR] = hour }
     }
 
     suspend fun setSfxEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[SFX_ENABLED] = enabled }
+        dataStore.edit { it[SFX_ENABLED] = enabled }
     }
 
     suspend fun setHapticsEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[HAPTICS_ENABLED] = enabled }
+        dataStore.edit { it[HAPTICS_ENABLED] = enabled }
     }
 
     suspend fun setReducedMotion(enabled: Boolean) {
-        context.dataStore.edit { it[REDUCED_MOTION] = enabled }
+        dataStore.edit { it[REDUCED_MOTION] = enabled }
     }
 
-    val themeId: Flow<ThemeId> = context.dataStore.data.map {
+    val themeId: Flow<ThemeId> = dataStore.data.map {
         ThemeId.fromStorage(it[THEME_ID])
     }
-    val fontScaleStep: Flow<FontScaleStep> = context.dataStore.data.map {
+    val fontScaleStep: Flow<FontScaleStep> = dataStore.data.map {
         FontScaleStep.fromStorage(it[FONT_SCALE_STEP])
     }
 
     /** null means budget is off (missing or ≤ 0). */
-    val dailyBudgetCents: Flow<Long?> = context.dataStore.data.map { prefs ->
+    val dailyBudgetCents: Flow<Long?> = dataStore.data.map { prefs ->
         val v = prefs[DAILY_BUDGET_CENTS] ?: return@map null
         if (v <= 0L) null else v
     }
 
     suspend fun setDailyBudgetCents(cents: Long) {
         require(cents > 0L) { "daily budget must be positive cents" }
-        context.dataStore.edit { it[DAILY_BUDGET_CENTS] = cents }
+        dataStore.edit { it[DAILY_BUDGET_CENTS] = cents }
     }
 
     suspend fun clearDailyBudget() {
-        context.dataStore.edit { it.remove(DAILY_BUDGET_CENTS) }
+        dataStore.edit { it.remove(DAILY_BUDGET_CENTS) }
     }
 
     suspend fun setThemeId(id: ThemeId) {
-        context.dataStore.edit { it[THEME_ID] = id.storageKey }
+        dataStore.edit { it[THEME_ID] = id.storageKey }
     }
 
     suspend fun setFontScaleStep(step: FontScaleStep) {
-        context.dataStore.edit { it[FONT_SCALE_STEP] = step.storageKey }
+        dataStore.edit { it[FONT_SCALE_STEP] = step.storageKey }
     }
 
     /** Locally persisted entitlement snapshot. Absent entry resolves to FREE. */
-    override val entitlement: Flow<Entitlement> = context.dataStore.data.map { prefs ->
+    override val entitlement: Flow<Entitlement> = dataStore.data.map { prefs ->
         val lookup = EntitlementSnapshot(
             tier = prefs[ENTITLEMENT_TIER]
                 ?.let { runCatching { com.needsvswants.app.domain.EntitlementTier.valueOf(it) }.getOrDefault(com.needsvswants.app.domain.EntitlementTier.FREE) }
@@ -166,11 +170,11 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     override val entitlementSyncedAtMillis: Flow<Long> =
-        context.dataStore.data.map { it[ENTITLEMENT_SYNCED_AT] ?: 0L }
+        dataStore.data.map { it[ENTITLEMENT_SYNCED_AT] ?: 0L }
 
     override suspend fun setEntitlement(entitlement: Entitlement) {
         val snapshot = EntitlementSnapshot.fromEntitlement(entitlement)
-        context.dataStore.edit {
+        dataStore.edit {
             it[ENTITLEMENT_TIER] = snapshot.tier.name
             it[ENTITLEMENT_TYPE] = snapshot.type.name
             if (snapshot.expiresAtEpochMillis != null) {
@@ -185,16 +189,16 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     override suspend fun markEntitlementSynced(atMillis: Long) {
-        context.dataStore.edit { it[ENTITLEMENT_SYNCED_AT] = atMillis }
+        dataStore.edit { it[ENTITLEMENT_SYNCED_AT] = atMillis }
     }
 
     override suspend fun clearEntitlement() {
-        context.dataStore.edit { prefs -> ENTITLEMENT_KEYS.forEach { prefs.remove(it) } }
+        dataStore.edit { prefs -> ENTITLEMENT_KEYS.forEach { prefs.remove(it) } }
     }
 
     // --- Auth session (Google / Supabase) ------------------------------------
 
-    override val session: Flow<AuthSession?> = context.dataStore.data.map { prefs ->
+    override val session: Flow<AuthSession?> = dataStore.data.map { prefs ->
         val access = prefs[AUTH_ACCESS_TOKEN]?.takeIf { it.isNotBlank() } ?: return@map null
         AuthSession(
             accessToken = access,
@@ -206,7 +210,7 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     override suspend fun save(session: AuthSession) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[AUTH_ACCESS_TOKEN] = session.accessToken
             session.refreshToken?.let { rt -> it[AUTH_REFRESH_TOKEN] = rt }
                 ?: it.remove(AUTH_REFRESH_TOKEN)
@@ -218,7 +222,7 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     override suspend fun clear() {
-        context.dataStore.edit { prefs -> AUTH_KEYS.forEach { prefs.remove(it) } }
+        dataStore.edit { prefs -> AUTH_KEYS.forEach { prefs.remove(it) } }
     }
 
     // --- PayPal checkout return (durable across process death) --------------
@@ -228,33 +232,33 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
      * A flag older than the 24h TTL is treated as stale (webhook never landed,
      * return missed) and reports inactive, so a cold start never retries forever.
      */
-    override val paypalReturnPending: Flow<Boolean> = context.dataStore.data.map {
+    override val paypalReturnPending: Flow<Boolean> = dataStore.data.map {
         paypalReturnPendingActive(it[PAYPAL_RETURN_PENDING_AT] ?: 0L, System.currentTimeMillis())
     }
 
     override suspend fun setPaypalReturnPending(pending: Boolean) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[PAYPAL_RETURN_PENDING_AT] = if (pending) System.currentTimeMillis() else 0L
         }
     }
 
     override suspend fun clearPaypalReturnPending() {
-        context.dataStore.edit { it[PAYPAL_RETURN_PENDING_AT] = 0L }
+        dataStore.edit { it[PAYPAL_RETURN_PENDING_AT] = 0L }
     }
 
     suspend fun setCurrency(symbol: String, code: String) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[CURRENCY_SYMBOL] = symbol
             it[CURRENCY_CODE] = code
         }
     }
 
     suspend fun setFirstLaunchComplete() {
-        context.dataStore.edit { it[FIRST_LAUNCH] = false }
+        dataStore.edit { it[FIRST_LAUNCH] = false }
     }
 
     suspend fun updateBestStreak(streak: Int) {
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val currentBest = prefs[BEST_STREAK_EVER] ?: 0
             if (streak > currentBest) {
                 prefs[BEST_STREAK_EVER] = streak
@@ -263,10 +267,10 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     suspend fun setLastMilestoneShown(milestoneDays: Int) {
-        context.dataStore.edit { it[LAST_MILESTONE_SHOWN] = milestoneDays }
+        dataStore.edit { it[LAST_MILESTONE_SHOWN] = milestoneDays }
     }
 
-    val quotaState: Flow<QuotaState> = context.dataStore.data.map { prefs ->
+    val quotaState: Flow<QuotaState> = dataStore.data.map { prefs ->
         QuotaState(
             day = prefs[QUOTA_DAY] ?: "",
             logsCreated = prefs[QUOTA_LOGS_CREATED] ?: 0,
@@ -276,7 +280,7 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     suspend fun setQuotaState(state: QuotaState) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[QUOTA_DAY] = state.day
             it[QUOTA_LOGS_CREATED] = state.logsCreated
             it[QUOTA_BONUS_LOGS] = state.bonusLogs
@@ -289,6 +293,6 @@ class AppPreferences(private val context: Context) : EntitlementLocalStore, Auth
     }
 
     suspend fun wipeAll() {
-        context.dataStore.edit { it.clear() }
+        dataStore.edit { it.clear() }
     }
 }

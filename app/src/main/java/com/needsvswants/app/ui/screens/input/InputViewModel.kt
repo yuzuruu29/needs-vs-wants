@@ -46,20 +46,28 @@ class InputViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val dailyBudgetUseCase: DailyBudgetUseCase,
     private val rewardedAdGateway: RewardedAdGateway,
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context?
 ) : ViewModel() {
+    // Same rationale as entitlement/quotaState: isSheetFull and sealNow read
+    // .value, and an uncollected WhileSubscribed StateFlow would freeze it.
     val sheetEntries: StateFlow<List<Entry>> = entries.observeAll()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
 
     val entitlement = preferences.entitlement
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.needsvswants.app.domain.Entitlement.Free)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, com.needsvswants.app.domain.Entitlement.Free)
 
+    /**
+     * Daily free quota for today's logs. Eagerly subscribed (not WhileSubscribed):
+     * [trySeal] reads `.value` with no collector attached, and an uncollected
+     * WhileSubscribed StateFlow never starts its upstream — `.value` would stay
+     * frozen at the initial state and the quota gate would silently pass forever.
+     */
     val quotaState: StateFlow<QuotaState> = preferences.quotaState
         .map { DailyLogQuota.rollDayIfNeeded(it, todayString()) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), QuotaState("", 0, 0, 0))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, QuotaState("", 0, 0, 0))
 
     val isSheetFull: Boolean get() {
         val now = System.currentTimeMillis()
@@ -238,21 +246,21 @@ class InputViewModel @Inject constructor(
             activeType.value = null
             isSealing = false
             _sealEvents.tryEmit(SealEvent.Sealed(sheetComplete = willComplete))
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
 
     fun deleteEntry(entry: Entry) {
         viewModelScope.launch {
             entries.delete(entry)
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
 
     fun startNewSheet() {
         viewModelScope.launch {
             entries.deleteAll()
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
 }
