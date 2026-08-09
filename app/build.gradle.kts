@@ -139,7 +139,8 @@ android {
             excludes += "/DebugProbesKt.bin"
         }
     }
-}
+
+    }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -171,12 +172,6 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
-
-    // --- Phase 3: Rewarded ads (AdMob + UMP) — restored 2026-08-09 (D119) ---
-    // Bundled for the Free quota (5 logs/day + rewarded ads). Test IDs active
-    // until the AdMob account exists; swap before a real release.
-    implementation(libs.google.play.services.ads)
-    implementation(libs.google.ump)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

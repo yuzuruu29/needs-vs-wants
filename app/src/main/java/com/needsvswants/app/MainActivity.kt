@@ -75,16 +75,22 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Routes `needsvswants://paypal/return|cancel` and
-     * `needsvswants://paymongo/return|cancel` into [PayPalReturnHandler].
+     * Routes a checkout deep link (`{scheme}://paypal/return|cancel` and
+     * `{scheme}://paymongo/return|cancel`) into [PayPalReturnHandler].
      *
      * The handler / sync machinery is provider-agnostic: both hosts persist the
      * durable pending-return flag and run the retried entitlement refresh, which
      * the PayPal or PayMongo webhook has already granted server-side.
+     *
+     * The scheme is flavor-dependent: the production `full` flavor declares
+     * `needsvswants://` while the Free-only QA `plain` flavor declares
+     * `needsvswantsplain://` (so a plain install never steals the production
+     * checkout return URLs). Accept both so QA builds receive their returns.
      */
     private fun handleCheckoutDeepLink(uri: Uri?) {
         if (uri == null) return
-        if (uri.scheme?.equals("needsvswants", ignoreCase = true) != true) return
+        val scheme = uri.scheme?.lowercase()
+        if (scheme != "needsvswants" && scheme != "needsvswantsplain") return
         if (uri.host != "paypal" && uri.host != "paymongo") return
         when (uri.path?.trimEnd('/')) {
             "/return" -> payPalReturnHandler.onCheckoutReturned()

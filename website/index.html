@@ -9,7 +9,7 @@
 <link rel="icon" href="./favicon-48.png" sizes="48x48" type="image/png">
 <link rel="icon" href="./favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics.">
+<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 30 days. Optional daily budget. No accounts. No analytics.">
 <link rel="preload" href="./fonts/source-sans3-regular.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="preload" href="./fonts/caveat-bold.ttf" as="font" type="font/ttf" crossorigin>
 <style>
@@ -761,7 +761,7 @@ section{padding:clamp(64px,8vw,104px) 0}
 .rule-steps li b{color:var(--ink);font-weight:600}
 @media (max-width:700px){.rule-row{grid-template-columns:1fr;gap:14px}.rule-num{font-size:34px}.rule-row>div:first-child{display:flex;align-items:center;gap:16px}}
 
-/* ---- 35-day window ---- */
+/* ---- 30-day window ---- */
 .window-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,5vw,64px);align-items:center}
 @media (max-width:880px){.window-grid{grid-template-columns:1fr}}
 .window-copy p{font-size:15.5px;color:var(--sub);line-height:1.75;margin-top:18px;max-width:52ch}
@@ -1259,7 +1259,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <nav class="nav-links" aria-label="Primary">
       <a href="#rule">The Rule</a>
       <a href="#how">How It Works</a>
-      <a href="#window">35 Days</a>
+      <a href="#window">30 Days</a>
       <a href="#screens">The Screens</a>
     </nav>
     <a class="btn btn--primary btn--sm" href="#get">Get the app</a>
@@ -1271,7 +1271,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 <section class="hero" id="top">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow hero-in hero-in-1">A 35-Day Trainer · Offline-First</p>
+      <p class="eyebrow hero-in hero-in-1">A 30-Day Trainer · Offline-First</p>
       <h1 class="display hero-in hero-in-2">Needs <span class="vs">vs</span><br>Wants</h1>
       <p class="kicker hero-in hero-in-3">A Spending Trainer</p>
       <div class="rule-sweep hero-in" aria-hidden="true"></div>
@@ -1418,8 +1418,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
       </div>
       <div>
-        <h3>The diary keeps 35 days</h3>
-        <p>Entries older than 35 days are automatically removed. This is a trainer, not an archive.</p>
+        <h3>The diary keeps 30 days</h3>
+        <p>Entries older than 30 days are automatically removed. This is a trainer, not an archive.</p>
       </div>
     </div>
 
@@ -1465,12 +1465,12 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
   </div>
 </section>
 
-<!-- ================= 35-DAY WINDOW ================= -->
+<!-- ================= 30-DAY WINDOW ================= -->
 <section id="window">
   <div class="wrap window-grid">
     <div class="window-copy reveal">
-      <h2 class="title">The diary keeps 35 days.</h2>
-      <p>Entries older than 35 days are automatically removed. <b>This is a trainer, not an archive.</b></p>
+      <h2 class="title">The diary keeps 30 days.</h2>
+      <p>Entries older than 30 days are automatically removed. <b>This is a trainer, not an archive.</b></p>
       <p>Once per launch, the diary quietly lets go of anything behind the window, no cleanup chore, no ever-growing ledger, no old guilt. The lessons stay recent; the page stays light.</p>
       <div class="mini-stats">
         <div class="mini-stat"><div class="n">35<i>&nbsp;/</i></div><div class="l">Days retained</div></div>
@@ -1480,7 +1480,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <div class="mini-stat"><div class="n"><i style="font-size:26px">₱</i></div><div class="l">Optional daily budget</div></div>
       </div>
     </div>
-    <div class="dial reveal" role="img" aria-label="A dial of 35 day-ticks with a slow gold sweep, representing the rolling 35-day window">
+    <div class="dial reveal" role="img" aria-label="A dial of 30 day-ticks with a slow gold sweep, representing the rolling 30-day window">
       <svg viewBox="0 0 220 220" aria-hidden="true">
         <circle cx="110" cy="110" r="104" fill="none" stroke="var(--divider)" stroke-width="1"/>
         <g id="ticks"></g>
@@ -1574,13 +1574,13 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
             <div class="phone-body app-inner">
               <span class="app-tag">Summary</span>
-              <p class="eyebrow">A 35-Day Trainer</p>
+              <p class="eyebrow">A 30-Day Trainer</p>
               <h3 style="margin-top:8px">Needs vs Wants</h3>
-              <div class="period-line"><span class="pl" id="periodLabel">All 35 Days</span><span class="rl" id="rangeLabel">, </span></div>
+              <div class="period-line"><span class="pl" id="periodLabel">All 30 Days</span><span class="rl" id="rangeLabel">, </span></div>
               <div class="rotor" role="group" aria-label="Summary period">
                 <button type="button" data-period="day" aria-pressed="false">Day</button>
                 <button type="button" data-period="week" aria-pressed="false">Week</button>
-                <button type="button" data-period="all" aria-pressed="true">All (35d)</button>
+                <button type="button" data-period="all" aria-pressed="true">All (30d)</button>
               </div>
               <div class="budget-meter" id="budgetMeter" hidden>
                 <p class="eyebrow">Daily Budget</p>
@@ -1609,7 +1609,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Summary</b> Your 35-day diary at a glance: Need / Want split, period rotor, totals, a Day streak when you log consecutively, one quiet insight, plus a live daily-budget meter on the Day view.</p>
+        <p class="phone-cap"><b>Summary</b> Your 30-day diary at a glance: Need / Want split, period rotor, totals, a Day streak when you log consecutively, one quiet insight, plus a live daily-budget meter on the Day view.</p>
       </div>
 
       <!-- LOG -->
@@ -1674,7 +1674,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>History</b> 35-day ledger, grouped by day, with Need and Want totals and CSV export.</p>
+        <p class="phone-cap"><b>History</b> 30-day ledger, grouped by day, with Need and Want totals and CSV export.</p>
       </div>
 
       <!-- SETTINGS -->
@@ -1777,7 +1777,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <p class="pro-note">Free now · Pro &amp; Max next</p>
         <h2 class="title">Start free. Grow when you are ready.</h2>
       </div>
-      <p>This soft launch is a free Android download. Pro removes the 20-sheet and 35-day limits. Max adds the AI Advisor. Paid checkout opens later via this site (PayPal or PayMongo), not on a store yet.</p>
+      <p>This soft launch is a free Android download. Pro removes the 20-entry and 30-day limits. Max adds the AI Advisor. Paid checkout opens later via this site (PayPal or PayMongo), not on a store yet.</p>
     </div>
     <div class="pri-grid reveal">
 
@@ -1793,7 +1793,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>20 entries per sheet</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>35-day retention window</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>30-day retention window</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Daily budget meter</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>4 theme appearances</li>
             </ul>
@@ -1890,7 +1890,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div class="cta-inner">
         <div class="cta-copy">
           <h2>Start tracking today.</h2>
-          <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 35 days, with an optional daily budget on today.</p>
+          <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 30 days, with an optional daily budget on today.</p>
           <div class="cta-btns">
             <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.6.apk" download="needs-vs-wants-2.0.6.apk">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
@@ -1972,14 +1972,14 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <div class="foot-grid">
       <div>
         <span class="wordmark">Needs <b>vs</b> Wants</span>
-        <p class="foot-tag">A 35-day spending trainer for honest spenders. Official launch · v2.0.6.</p>
+        <p class="foot-tag">A 30-day spending trainer for honest spenders. Official launch · v2.0.6.</p>
       </div>
       <div>
         <p class="foot-h">Explore</p>
         <ul class="foot-links">
           <li><a href="#rule">The Rule</a></li>
           <li><a href="#how">How It Works</a></li>
-          <li><a href="#window">The 35-Day Window</a></li>
+          <li><a href="#window">The 30-Day Window</a></li>
           <li><a href="#get">Get the app</a></li>
         </ul>
       </div>
@@ -2717,7 +2717,7 @@ const STATS = {
   week: {n:284500, nc:12, w:193000, wc:8},
   all:  {n:1124000,nc:46, w:861000, wc:31}
 };
-const PNAME = {day:'Today', week:'This Week', all:'All 35 Days'};
+const PNAME = {day:'Today', week:'This Week', all:'All 30 Days'};
 const dOff = n => { const d = new Date(); d.setDate(d.getDate()+n); return d; };
 const dStr = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
 const CAPTIONS = {
@@ -2823,7 +2823,7 @@ new IntersectionObserver((ents, io) => {
   });
 },{threshold:.35}).observe($('#window'));
 
-/* ---------- 35-day dial ticks ---------- */
+/* ---------- 30-day dial ticks ---------- */
 (function buildDial(){
   const g = $('#ticks'); const NS = 'http://www.w3.org/2000/svg';
   for (let i = 0; i < 35; i++){

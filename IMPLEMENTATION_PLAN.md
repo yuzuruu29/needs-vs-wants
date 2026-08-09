@@ -3,6 +3,13 @@
 > Android APK. Single-purpose trainer that forces every purchase into **Need** or **Want**.
 > Target: looks intentional, premium, and period-evocative — never AI-generated, never generic.
 
+> **Historical note (2026-08-09):** This document is a stale early plan. Trust
+> `Decisions.md` + the source for ground truth. In particular, the Free-tier
+> retention below was **35 days** at writing but is now **30 days**
+> (`Entitlement.FREE_RETENTION_MILLIS`), and the Free tier is a **5 logs/day
+> local allowance with streak carry-forward** (no ads). The paywall/entitlement
+> model has evolved substantially since this plan (see Decisions D45–D122).
+
 ---
 
 ## 0. Non-Negotiables
@@ -10,7 +17,7 @@
 1. **Kotlin + Jetpack Compose + Material 3.** No React Native, no Flutter.
 2. **Offline first.** No backend, no accounts, no analytics phoning home.
 3. **Currency-immune storage.** All costs stored as `Long` cents; the UI formats.
-4. **35-day hard cap.** Auto-purge older entries on launch.
+4. **Retention hard cap.** Auto-purge older entries on launch (Free 30 days; Pro/Max keep all).
 5. **20-item input cap per sheet** with a confirm-first "Start new sheet" handoff — the grid is **never cleared silently**.
 6. **Hand-rolled charts** (Canvas `PieChart` / `BarChart`). No chart libraries.
 7. **Friendster 2003 premium palette** (see §1). No gradient meshes, no purple-to-pink SaaS look.
@@ -120,7 +127,7 @@ Summary (intro) ─┐
 Input ───────────┤
                  ├─[View History]→ History
 History ─────────┤
-                 └─35-day ledger, swipe-delete
+                 └─30-day ledger, swipe-delete
 Settings ─ currency switch, data wipe, about
 ```
 
@@ -132,11 +139,11 @@ Settings ─ currency switch, data wipe, about
 
 **Header**
 - Embossed title `NEEDS vs WANTS` in Playfair Display SC, gold underline.
-- Subtitle: current period label ("Today" / "This Week" / "All 35 Days"). Date/Time auto-stamped.
+- Subtitle: current period label ("Today" / "This Week" / "All 30 Days"). Date/Time auto-stamped.
 
 **Body — Period Rotor**
-- Pill row: `Day | Week | All (35d)`. Default: **Day**.
-- **Honest labels:** the third pill is *not* called "Month" — the retained window is 35 days and users read "Month" as a calendar month. `All (35d)` says exactly what it shows.
+- Pill row: `Day | Week | All (30d)`. Default: **Day**.
+- **Honest labels:** the third pill is *not* called "Month" — the retained window is 30 days and users read "Month" as a calendar month. `All (30d)` says exactly what it shows.
 - Directly under the rotor, a 12sp `text_secondary` caption shows the resolved range, e.g. `Jul 27` / `Jul 21 – Jul 27` / `Jun 23 – Jul 27`. The numbers always explain themselves.
 - The rotor slices the same dataset; no new fetches.
 
@@ -211,7 +218,7 @@ Settings ─ currency switch, data wipe, about
 
 - Currency selection (radio): `₱ PHP (default)`, `$ USD`, `€ EUR`, `¥ JPY`, `S$ SGD`, `Custom symbol`.
 - Data controls: `Wipe diary` (double confirm).
-- About: app version, single line: *"A 35-day trainer to help you tell needs from wants."*
+- About: app version, single line: *"A 30-day trainer to help you tell needs from wants."*
 
 ### 4.5 Instructions Overlay
 
@@ -220,7 +227,7 @@ Three cards, swipeable, dismissible. **Auto-shows on first launch**; afterwards 
 it crowded the bottom bar and read as a fifth tab.)
 
 1. **"Every purchase is either a Need or a Want."** — explanation of the binary force, with two example rows shown.
-2. **"Your diary keeps 35 days."** — auto-purge explained, with a tiny timeline graphic.
+2. **"Your diary keeps 30 days."** — auto-purge explained, with a tiny timeline graphic.
 3. **"Rows seal themselves — hold one to unseal."** — explains the auto-stamp, that sealing = saving, and demonstrates the long-press-to-edit gesture explicitly.
 
 Type-spec: 16sp body, generous leading, Playfair SC card titles, Material Symbols outlined illustrations (not emoji), real contrast on `surface_card`.
@@ -261,8 +268,8 @@ interface EntryDao {
 }
 ```
 
-### 5.3 35-day cap
-On `Application.onCreate`, fire `dao.purgeBefore(now - 35 days)`. No user prompt.
+### 5.3 30-day cap
+On `Application.onCreate`, fire `dao.purgeBefore(now - 30 days)`. No user prompt.
 
 ### 5.4 20-item cap
 Counted in-memory on the Input VM. Storage has no such cap.
@@ -284,13 +291,13 @@ data class SummaryStats(
   val wantsPct: Int
 )
 
-enum class Period { DAY, WEEK, ALL }   // UI labels: Day / Week / All (35d)
+enum class Period { DAY, WEEK, ALL }   // UI labels: Day / Week / All (30d)
 ```
 
 - **DAY**: today's date only.
 - **WEEK**: last 7 days including today.
-- **ALL**: the full 35-day retained window. (Formerly labelled "Month" — renamed because users read
-  "Month" as a calendar month and would distrust totals that silently span 35 days. The resolved
+- **ALL**: the full 30-day retained window. (Formerly labelled "Month" — renamed because users read
+  "Month" as a calendar month and would distrust totals that silently span 30 days. The resolved
   date range is always captioned under the rotor, §4.1.)
 
 ### Charts (hand-rolled)
@@ -337,7 +344,7 @@ Per `tdd-workflow` skill: write failing test → minimal impl → refactor → c
 - `SummaryUseCaseTest` — DAY/WEEK/ALL ranges, totals, percentages, empty case.
 - `CurrencyFormatterTest` — PHP, USD, negative, zero, custom symbol.
 - `InputValidatorTest` — item filter strips control chars but keeps any-script letters, cost decimal filter, row-completion logic.
-- `PurgeOnLaunchTest` — entries older than 35 days are removed at app start.
+- `PurgeOnLaunchTest` — entries older than 30 days are removed at app start.
 
 ### 9.2 Compose UI tests
 - `InputScreenTest` — disallowed chars silently stripped, seal auto-stamps **and persists to Room**, 20th seal shows Start-new-sheet prompt before a 21st entry is possible, tap-on-sealed-row shows one-shot "Hold to unseal" tooltip, long-press unseals into the active card.
@@ -349,7 +356,7 @@ Per `tdd-workflow` skill: write failing test → minimal impl → refactor → c
 - Install, tap Instructions, dismiss.
 - Log 3 purchases (2 Needs, 1 Want).
 - Kill the app mid-sheet, relaunch → sealed rows are still there (seal = save).
-- Open Summary, tap **Day** → 3 entries; tap **All (35d)** → caption shows the 35-day range.
+- Open Summary, tap **Day** → 3 entries; tap **All (30d)** → caption shows the 30-day range.
 - Change currency → Summary totals reformat.
 - Wait (or fake clock) → 36th day entry auto-purges on next launch.
 
@@ -363,7 +370,7 @@ Per `tdd-workflow` skill: write failing test → minimal impl → refactor → c
 | P1 | Room + DAO (TDD) | `feat: add entry DAO with retention tests` |
 | P2 | Input screen (TDD) | `feat: add 20-cap input ledger with auto-stamp` |
 | P3 | Summary engine + charts (TDD) | `feat: add summary engine and hand-rolled pie chart` |
-| P4 | History screen | `feat: add 35-day ledger view` |
+| P4 | History screen | `feat: add 30-day ledger view` |
 | P5 | Settings + currency | `feat: add currency switching and data controls` |
 | P6 | Instructions overlay | `feat: add first-time-user instructions overlay` |
 | P7 | Polish pass (motion, hairlines, splash) | `polish: friendster-2003-premium chrome` |

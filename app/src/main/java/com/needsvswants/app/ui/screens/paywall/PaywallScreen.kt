@@ -234,7 +234,7 @@ fun PaywallScreen(
         MembershipPlan.Max -> ctaEnabled && !hasMaxAccess
     }
     val footerNote = when (selected) {
-        MembershipPlan.Free -> "No account. No network. 20-sheet · 35-day trainer."
+        MembershipPlan.Free -> "No account. No network. 20 entries per sheet · 30-day trainer."
         MembershipPlan.Pro -> when (effectiveProvider) {
             PaymentProvider.PAYPAL ->
                 "3-day free trial on PayPal if enabled on the plan, then ₱199/mo. Cancel anytime in PayPal."
@@ -296,7 +296,7 @@ fun PaywallScreen(
                 GiltRule(width = 40.dp)
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "Free is the 20-sheet, 35-day trainer. Pro lifts the caps. Max adds the AI Advisor with cited notebooks.",
+                    text = "Free keeps 20 entries per sheet over a 30-day window. Pro lifts the caps. Max adds the AI Advisor with cited notebooks.",
                     style = PaywallType.screenLede,
                     color = palette.textSecondary,
                     softWrap = true
@@ -317,7 +317,7 @@ fun PaywallScreen(
                     subtitle = "Honest daily training. No account required.",
                     features = listOf(
                         "20 entries per sheet" to false,
-                        "35-day retention window" to false,
+                        "30-day retention window" to false,
                         "Daily budget meter" to false,
                         "Four appearance themes" to false
                     ),

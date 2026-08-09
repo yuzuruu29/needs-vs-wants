@@ -10,13 +10,13 @@ import org.junit.Test
 class EntitlementIntegrationTest {
 
     @Test
-    fun `free plan restricts retention to 35 days`() {
+    fun `free plan restricts retention to 30 days`() {
         val now = InstantMillis
         val free = Entitlement()
 
         val cutoff = free.retentionCutoffAt(now)
         assertNotNull(cutoff)
-        assertEquals(now - 35L * MILLIS_PER_DAY, cutoff)
+        assertEquals(now - 30L * MILLIS_PER_DAY, cutoff)
         assertEquals(20, free.sheetLimitAt(now))
     }
 

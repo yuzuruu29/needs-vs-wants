@@ -1,44 +1,50 @@
 # Plan: Daily free log quota + optional rewarded ads
 
-**Status:** Approved and implemented (Phases 1-4, D80-D84). **AdMob on hold + SDK STRIPPED from the build (D85, D87, 2026-08-07):** no AdMob account yet, app not on Play Store — deps commented out, ads/ AdMob impl removed (restore from git 5622b7e), `AdsConfig.ENABLED = false`, version stays 1.5.0, lean 5.34 MB release APK. Enable when the AdMob account + production App ID/unit exist.
+> **REWARDS CANCELLED (2026-08-09).** The AdMob/UMP rewarded-ad path has been
+> **removed from the build entirely** — deps, `ads/` package, `AdsModule`,
+> `ConsentHelper`, `AdMobRewardedAdGateway`, the rewarded-quota fields
+> (`bonusLogs` / `adsWatched`), and the manifest App ID. The Free tier is now a
+> **simple local quota**: `FreeQuotaConfig.FREE_DAILY_LOGS = 5` per local day,
+> with **unused logs carrying to the next consecutive active day** (reset on a
+> missed day). Implemented in `DailyLogQuota.rollDayIfNeeded` (API-24-safe
+> Calendar). see Decisions D122.
 
+**Status:** Rewards cancelled; simple local quota + streak carry-forward implemented.
 **Related product:** Needs vs Wants expense trainer  
-**Scope (recommended):** Android native APK only (`app/`)  
+**Scope:** Android native APK only (`app/`)  
 **Date:** 2026-08-07
 
 ---
 
-## Verdict on the idea
+## Verdict on the idea (superseded)
 
-**Solid fit** for an offline-first free trainer, *if* it is layered cleanly on top of the existing Free / Pro / Max model and never touches the seal path with network code.
-
-What works well:
-
-- Rewarded-only, opt-in, after free logs → respects privacy and frictionless first seals
-- Local daily quota → offline free experience stays real
-- Lazy AdMob init → matches non-negotiable rules
-
-What needs sharpening (below) is mainly product vocabulary, interaction with the **existing** free caps, and Pro bypass.
-
----
+The rewarded-ad idea was **superseded** by a simpler product direction: monetization
+is withdrawn from the Free tier, and the daily allowance is made generous via
+streak carry-forward instead of ads. The sections below describe the original
+ad-backed plan and are retained for history.
 
 ## Product context
 
-Needs vs Wants is an offline-first, privacy-focused 35-day expense trainer. Core philosophy must be protected:
+Needs vs Wants is an offline-first, privacy-focused 30-day expense trainer. Core philosophy must be protected:
 
 - Frictionless logging at the moment of spending
 - Offline-first (no network required for the free experience)
 - Minimal, honest UI
 - Data stays on device
 
-### Monetization model (v1)
+### Monetization model (v1 — superseded by simple local quota)
 
-- Free users get a daily free allowance of logs (default: **10** logs per calendar day)
-- When the daily free quota is reached, the user can watch a rewarded ad to unlock extra logs for that same day only (**+8** extra logs recommended)
-- The limit resets every new calendar day (based on local device date)
+> **Live model (2026-08-09):** Free users get **5 logs per local calendar day**.
+> Unused logs carry into the next day **only when the prior day logged at least
+> once** (streak carry-forward); a missed day resets the carry. No ads, no bonus
+> logs, no UMP. Pro/Max have no daily quota.
+
+- ~~Free users get a daily free allowance of logs (default: **10** logs per calendar day)~~ → **5**
+- ~~When the daily free quota is reached, the user can watch a rewarded ad to unlock extra logs for that same day only (**+8** extra logs recommended)~~ → **removed**
+- The limit resets every new calendar day (based on local device date); unused allowance carries to the next consecutive active day
 - No lifetime hard limit
-- Ads are never forced on the first logs of the day
-- Core logging flow must remain clean and fast
+- ~~Ads are never forced on the first logs of the day~~ → **N/A**
+- Core logging flow remains clean and fast
 
 ### Non-negotiable rules
 
@@ -125,16 +131,20 @@ On day change → reset all.
 **Why not Room `countForDate` alone?**  
 Delete entry / “start new sheet” wipe would re-open free slots and invite gaming. “Logs **created** today” matches the product wording and stays independent of 35-day data.
 
-### 5. Frequency safety (concrete defaults)
+### 5. Frequency safety (concrete defaults — superseded)
+
+> **Live constants (`FreeQuotaConfig`):** `FREE_DAILY_LOGS = 5`. The ad
+> constants (`EXTRA_LOGS_PER_REWARD`, `MAX_REWARDED_ADS_PER_DAY`) and the
+> `AdsConfig.ENABLED` kill switch were removed with the AdMob call-off.
 
 | Constant | Default | Notes |
 |----------|---------|--------|
-| `FREE_DAILY_LOGS` | 10 | Free only |
-| `EXTRA_LOGS_PER_REWARD` | 8 | Per successful reward |
-| `MAX_REWARDED_ADS_PER_DAY` | **3** | Cap = +24 bonus logs/day max |
-| Master kill switch | `AdsConfig.ENABLED = true` | One-line disable |
+| `FREE_DAILY_LOGS` | **5** | Free only |
+| ~~`EXTRA_LOGS_PER_REWARD`~~ | ~~8~~ | **removed** |
+| ~~`MAX_REWARDED_ADS_PER_DAY`~~ | ~~3~~ | **removed** |
+| ~~Master kill switch~~ | ~~`AdsConfig.ENABLED`~~ | **removed** |
 
-When ads/day cap is hit: dialog offers only “Come back tomorrow” (or soft Pro CTA — optional).
+When the carry-forward allowance is exhausted: the dialog offers “Come back tomorrow” (or soft Pro CTA).
 
 ### 6. Optional soft Pro CTA (suggested, not required)
 
@@ -167,34 +177,29 @@ Keeps honesty and uses existing paywall. Skip if zero subscription pressure is p
 
 ---
 
-## Architecture (minimal, removable)
+## Architecture (live — simple local quota, no ads)
 
 ```
 domain/
-  AdsConfig.kt              // ENABLED, FREE_DAILY_LOGS, EXTRA_PER_AD, MAX_ADS_PER_DAY
-  DailyLogQuota.kt          // pure: remaining, canLog, grantBonus, rollDayIfNeeded
+  FreeQuotaConfig.kt        // FREE_DAILY_LOGS = 5
+  DailyLogQuota.kt          // pure: remaining, canLog, incrementCreated, rollDayIfNeeded (carry-forward)
   DailyLogQuotaTest.kt
 
 data/prefs/
-  AppPreferences.kt         // + quota keys / flows / mutators
-
-ads/                        // entire package deletable
-  RewardedAdGateway.kt      // interface: ensureReady / show / results
-  AdMobRewardedAdGateway.kt // UMP → lazy MobileAds.initialize → load → show
-  NoOpRewardedAdGateway.kt  // ENABLED=false or missing Activity
-  ConsentHelper.kt          // UMP wrapper (first request only)
-
-di/
-  AdsModule.kt              // bind gateway by build/flag
+  AppPreferences.kt         // quota keys: quota_day / quota_logs_created / quota_carried_logs
 
 ui/screens/input/
-  InputViewModel.kt         // free-tier gate before sealNow; grant + retry
-  InputScreen.kt            // PremiumDialog for quota / ad failure
+  InputViewModel.kt         // free-tier gate before sealNow; increment on seal
+  InputScreen.kt            // PremiumDialog for quota (carry-forward copy)
 
 ui/screens/settings/
-  SettingsViewModel.kt      // expose remaining / allowance
+  SettingsViewModel.kt      // expose allowance / remaining / carried
   SettingsScreen.kt         // read-only “Daily free logs” panel
 ```
+
+> The `ads/` package, `di/AdsModule.kt`, and the rewarded-quota fields were
+> deleted with the AdMob call-off. `QuotaState` now carries only `day`,
+> `logsCreated`, and `carriedLogs`.
 
 ### Seal path contract (non-negotiable)
 
@@ -286,14 +291,14 @@ No ad SDK here — read-only local state.
 
 ---
 
-## Done when
+## Done when (live — no ads)
 
 - Daily free quota works completely offline
-- User can log freely until the daily limit, then optionally watch one rewarded ad for more logs that day
+- User can log 5/day, plus unused logs carried from a consecutive active prior day
 - Core Log / sealing experience is unchanged for free logs
-- Ads code is isolated and only runs on explicit user action
+- No AdMob/UMP SDK, no ad UI, no rewarded-quota fields anywhere in the build or docs
 - Every file changed is listed with a reason (at implementation closeout)
-- The daily limit and extra-logs amount are easy to tweak (`AdsConfig`)
+- The daily allowance is easy to tweak (`FreeQuotaConfig.FREE_DAILY_LOGS`)
 
 ---
 

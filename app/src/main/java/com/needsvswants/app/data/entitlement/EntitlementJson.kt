@@ -4,7 +4,9 @@ import com.needsvswants.app.data.remote.SupabaseJson
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
-import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Maps `get_entitlement` Edge Function JSON into [Entitlement].
@@ -82,6 +84,14 @@ object EntitlementJson {
 
     private fun parseIsoToEpochMillis(iso: String?): Long? {
         if (iso.isNullOrBlank()) return null
-        return runCatching { Instant.parse(iso).toEpochMilli() }.getOrNull()
+        // The Edge Functions emit new Date().toISOString() → "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'".
+        // java.time.Instant is API 26+; minSdk is 24, so parse with a UTC SimpleDateFormat.
+        return runCatching {
+            iso.let {
+                val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                fmt.timeZone = TimeZone.getTimeZone("UTC")
+                fmt.parse(it)?.time
+            }
+        }.getOrNull()
     }
 }

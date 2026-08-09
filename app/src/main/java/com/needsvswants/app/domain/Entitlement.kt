@@ -40,6 +40,6 @@ data class Entitlement(
         val Free = Entitlement()
         const val FREE_SHEET_LIMIT = 20
         const val MILLIS_PER_DAY = 24L * 60L * 60L * 1_000L
-        const val FREE_RETENTION_MILLIS = 35L * MILLIS_PER_DAY
+        const val FREE_RETENTION_MILLIS = 30L * MILLIS_PER_DAY
     }
 }

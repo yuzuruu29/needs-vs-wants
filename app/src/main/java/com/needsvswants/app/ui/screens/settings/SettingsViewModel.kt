@@ -7,9 +7,9 @@ import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
-import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.Entitlement
+import com.needsvswants.app.domain.FreeQuotaConfig
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.QuotaState
 import com.needsvswants.app.domain.ThemeId
@@ -50,14 +50,11 @@ val themeOptions = listOf(
     ThemeOption(ThemeId.HIGH_CONTRAST, "High contrast")
 )
 
-/** Read-only daily free quota snapshot for the Settings panel. Null = quota does not apply (Pro/Max or kill switch). */
+/** Read-only daily free quota snapshot for the Settings panel. Null = quota does not apply (Pro/Max). */
 data class DailyFreeLogsInfo(
     val allowancePerDay: Int,
     val remainingToday: Int,
-    val bonusLogsToday: Int,
-    val extraLogsPerReward: Int,
-    val adsWatchedToday: Int,
-    val maxAdsPerDay: Int
+    val carriedLogs: Int
 )
 
 @HiltViewModel
@@ -134,23 +131,20 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Read-only daily free logs state for Settings.
-     * Null for Pro/Max (quota does not apply) or when the ads kill switch is off.
-     * Uses the day-rolled quota flow — never the raw prefs read (see Phase 1 plan risk note).
+     * Null for Pro/Max (quota does not apply). Uses the day-rolled quota flow —
+     * never the raw prefs read (see Phase 1 plan risk note).
      */
     val dailyFreeLogs: StateFlow<DailyFreeLogsInfo?> = combine(
         membership,
         preferences.quotaState.map { DailyLogQuota.rollDayIfNeeded(it, todayString()) }
     ) { ent, quota ->
-        if (!AdsConfig.ENABLED || ent.hasProAccessAt(System.currentTimeMillis())) {
+        if (ent.hasProAccessAt(System.currentTimeMillis())) {
             null
         } else {
             DailyFreeLogsInfo(
-                allowancePerDay = AdsConfig.FREE_DAILY_LOGS,
+                allowancePerDay = FreeQuotaConfig.FREE_DAILY_LOGS,
                 remainingToday = DailyLogQuota.remaining(quota, todayString()),
-                bonusLogsToday = quota.bonusLogs,
-                extraLogsPerReward = AdsConfig.EXTRA_LOGS_PER_REWARD,
-                adsWatchedToday = quota.adsWatched,
-                maxAdsPerDay = AdsConfig.MAX_REWARDED_ADS_PER_DAY
+                carriedLogs = quota.carriedLogs
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)

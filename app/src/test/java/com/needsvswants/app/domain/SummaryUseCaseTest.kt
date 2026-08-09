@@ -22,10 +22,28 @@ class SummaryUseCaseTest {
     private val millisPerDay = 24L * 60 * 60 * 1000
 
     @Test
-    fun allPeriod_freeEntitlement_filtersEntriesOlderThan35Days() = runTest {
+    fun allPeriod_freeEntitlement_filtersEntriesOlderThan30Days() = runTest {
         val recent = entry("recent", cost = 100, dateUtc = now - 10 * millisPerDay)
         val old = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
         val dao = FakeEntryDao(listOf(recent, old))
+        val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
+        val useCase = SummaryUseCase(dao, repo)
+
+        val stats = useCase.getStats(Period.ALL).first()
+
+        assertEquals(100, stats.totalCents)
+        assertEquals(1, stats.needsCount + stats.wantsCount)
+    }
+
+    @Test
+    fun allPeriod_freeEntitlement_thirtyDayWindowKeepsWithinDropsPast() = runTest {
+        // Free retention is a 30-day window. An entry well within (29 days ago)
+        // is kept; one clearly past (31 days ago) is dropped. Clear margins on
+        // both sides avoid a flaky exact-boundary race against the useCase's
+        // own System.currentTimeMillis().
+        val within = entry("within", cost = 100, dateUtc = now - 29 * millisPerDay)
+        val past = entry("past", cost = 200, dateUtc = now - 31 * millisPerDay)
+        val dao = FakeEntryDao(listOf(within, past))
         val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
         val useCase = SummaryUseCase(dao, repo)
 

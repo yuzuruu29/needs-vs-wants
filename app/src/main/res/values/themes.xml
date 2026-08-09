@@ -11,6 +11,6 @@
         <item name="android:statusBarColor">#FAFAF7</item>
         <item name="android:navigationBarColor">#FAFAF7</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <!-- android:windowLightNavigationBar requires API 27+; set in values-v27/themes.xml -->
     </style>
 </resources>

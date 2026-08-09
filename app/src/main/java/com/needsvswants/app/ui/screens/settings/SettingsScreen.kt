@@ -297,8 +297,7 @@ fun SettingsScreen(
 
         val freeLogs = dailyFreeLogs
         // Only render the section (title + panel) when the quota applies —
-        // i.e. AdsConfig.ENABLED and the user is Free. Pro/Max (and the ad
-        // kill switch being off) get no DAILY FREE LOGS header at all.
+        // i.e. the user is Free. Pro/Max get no DAILY FREE LOGS header at all.
         if (freeLogs != null) {
             SectionLabel("DAILY FREE LOGS")
             Spacer(Modifier.height(10.dp))
@@ -315,21 +314,17 @@ fun SettingsScreen(
                         value = "${freeLogs.remainingToday}",
                         valueColor = if (freeLogs.remainingToday > 0) palette.marketGreen else palette.crimson
                     )
-                    HorizontalDivider(color = palette.inkDivider)
-                    QuotaStatRow(
-                        label = "Bonus from ads",
-                        value = "+${freeLogs.bonusLogsToday}",
-                        valueColor = if (freeLogs.bonusLogsToday > 0) palette.gilt else palette.textSecondary
-                    )
-                    HorizontalDivider(color = palette.inkDivider)
-                    QuotaStatRow(
-                        label = "Ads watched",
-                        value = "${freeLogs.adsWatchedToday} of ${freeLogs.maxAdsPerDay}",
-                        valueColor = palette.textSecondary
-                    )
+                    if (freeLogs.carriedLogs > 0) {
+                        HorizontalDivider(color = palette.inkDivider)
+                        QuotaStatRow(
+                            label = "Carried in",
+                            value = "+${freeLogs.carriedLogs}",
+                            valueColor = palette.gilt
+                        )
+                    }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Free logs reset every local day. +${freeLogs.extraLogsPerReward} per rewarded ad. Pro & Max have no daily limit.",
+                        "Unused Free logs carry to the next day while your logging streak stays active. Pro & Max have no daily limit.",
                         style = AppType.caption,
                         color = palette.textMuted
                     )
@@ -462,7 +457,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            if (paid) "Pro / Max spending diary" else "35-day spending trainer",
+                            if (paid) "Pro / Max spending diary" else "30-day spending trainer",
                             style = AppType.caption,
                             color = palette.textMuted
                         )
@@ -483,7 +478,7 @@ fun SettingsScreen(
                     emphasize = true
                 )
                 ReceiptFeatureLine(
-                    text = if (paid) "Unlimited sheets, lifetime diary history" else "20 entries per sheet, 35-day diary window",
+                    text = if (paid) "Unlimited sheets, lifetime diary history" else "20 entries per sheet, 30-day diary window",
                     accent = palette.gold
                 )
                 ReceiptFeatureLine(

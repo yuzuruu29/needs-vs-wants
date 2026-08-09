@@ -2,6 +2,7 @@ package com.needsvswants.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -94,13 +95,16 @@ private data class WidgetSnapshot(
 
 @Composable
 private fun WidgetContent(snapshot: WidgetSnapshot) {
-    // Light supermarket tokens (D7) as ARGB ints for Glance ColorProvider
-    val bg = ColorProvider(android.graphics.Color.parseColor("#FAFAF7"))
-    val textPrimary = ColorProvider(android.graphics.Color.parseColor("#1A1714"))
-    val textMuted = ColorProvider(android.graphics.Color.parseColor("#6B6560"))
-    val crimson = ColorProvider(android.graphics.Color.parseColor("#C8102E"))
-    val green = ColorProvider(android.graphics.Color.parseColor("#0B6B3A"))
-    val gold = ColorProvider(android.graphics.Color.parseColor("#E8A92A"))
+    // Light supermarket tokens (D7) as compose Colors for Glance ColorProvider.
+    // Glance's ColorProvider(Color) overload takes androidx.compose.ui.graphics.Color
+    // (a Long-backed value); passing an android.graphics.Color.parseColor Int would
+    // resolve to the @RestrictedApi resource-id overload (lint ResourceType error).
+    val bg = ColorProvider(Color(0xFFFAFAF7))
+    val textPrimary = ColorProvider(Color(0xFF1A1714))
+    val textMuted = ColorProvider(Color(0xFF6B6560))
+    val crimson = ColorProvider(Color(0xFFC8102E))
+    val green = ColorProvider(Color(0xFF0B6B3A))
+    val gold = ColorProvider(Color(0xFFE8A92A))
 
     Column(
         modifier = GlanceModifier

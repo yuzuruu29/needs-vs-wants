@@ -92,10 +92,10 @@ class EntitlementTest {
     }
 
     @Test
-    fun freeRetentionCutoff_usesExactThirtyFiveDayWindow() {
+    fun freeRetentionCutoff_usesExactThirtyDayWindow() {
         val entitlement = Entitlement()
 
-        assertEquals(NOW - 35L * MILLIS_PER_DAY, entitlement.retentionCutoffAt(NOW))
+        assertEquals(NOW - 30L * MILLIS_PER_DAY, entitlement.retentionCutoffAt(NOW))
     }
 
     private fun activePaidEntitlement(): Entitlement = Entitlement(
@@ -108,7 +108,7 @@ class EntitlementTest {
         const val MILLIS_PER_DAY = 24L * 60L * 60L * 1_000L
         const val ONE_DAY_MILLIS = MILLIS_PER_DAY
         const val THREE_DAYS_MILLIS = 3L * MILLIS_PER_DAY
-        const val FREE_RETENTION_MILLIS = 35L * MILLIS_PER_DAY
+        const val FREE_RETENTION_MILLIS = 30L * MILLIS_PER_DAY
         const val FREE_SHEET_LIMIT = 20
     }
 }

@@ -135,7 +135,7 @@ fun SummaryScreen(
                     when {
                         isMax -> "Max desk"
                         paid -> "Pro diary"
-                        else -> "A 35-Day Trainer"
+                        else -> "A 30-Day Trainer"
                     },
                     color = when {
                         isMax -> palette.gilt
@@ -219,7 +219,7 @@ fun SummaryScreen(
                         Period.DAY -> "Day"
                         Period.WEEK -> "Week"
                         Period.MONTH -> "Month"
-                        Period.ALL -> if (paid) "Lifetime" else "All (35d)"
+                        Period.ALL -> if (paid) "Lifetime" else "All (30d)"
                     }
                     val pillColor by animateColorAsState(
                         targetValue = if (selected) palette.crimson else Color.Transparent,
@@ -817,13 +817,13 @@ fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
     val palette = AppTheme.colors
     val titles = listOf(
         "Every purchase is a Need or a Want",
-        if (paid) "Your diary keeps every day" else "Your diary keeps 35 days",
+        if (paid) "Your diary keeps every day" else "Your diary keeps 30 days",
         "Rows seal themselves",
         "Optional daily budget on Log"
     )
     val bodies = listOf(
         "Each entry forces a binary choice. There is no middle ground. That is the lesson.",
-        if (paid) "Your history stays for life. Pro keeps the whole diary — no auto-removal." else "Older entries are removed automatically. The window is always 35 days.",
+        if (paid) "Your history stays for life. Pro keeps the whole diary — no auto-removal." else "Older entries are removed automatically. The window is always 30 days.",
         "When item, cost, and type are filled, the row seals. Delete any row you sealed by mistake.",
         "Set a limit on Log. Watch spent vs remaining. Sealing past the line asks \"Log anyway?\" first."
     )
@@ -916,7 +916,7 @@ fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
     }
 }
 
-/** Period pills shown to free users (35-day trainer scope). */
+/** Period pills shown to free users (30-day trainer scope). */
 private val freePeriods = listOf(Period.DAY, Period.WEEK, Period.ALL)
 
 /** Period pills shown to Pro/Max (adds Month + Lifetime). */
@@ -926,7 +926,7 @@ private fun getPeriodLabel(period: Period, paid: Boolean): String = when (period
     Period.DAY -> "TODAY"
     Period.WEEK -> "THIS WEEK"
     Period.MONTH -> "THIS MONTH"
-    Period.ALL -> if (paid) "ALL TIME" else "ALL 35 DAYS"
+    Period.ALL -> if (paid) "ALL TIME" else "ALL 30 DAYS"
 }
 
 private fun getPeriodRange(period: Period, paid: Boolean): String {

@@ -172,7 +172,7 @@ class SummaryViewModel @Inject constructor(
             Period.DAY -> "Today"
             Period.WEEK -> "This week"
             Period.MONTH -> "This month"
-            Period.ALL -> if (paid) "All time" else "Last 35 days"
+            Period.ALL -> if (paid) "All time" else "Last 30 days"
         }
         val streakLine = if (streak > 0) "\nLogging streak: day $streak" else ""
         return buildString {

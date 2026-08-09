@@ -1,6 +1,5 @@
 package com.needsvswants.app.ui.screens.input
 
-import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -45,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
@@ -59,7 +57,6 @@ import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
-import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -94,15 +91,15 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     val type by viewModel.activeType.collectAsStateWithLifecycle()
     val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
     val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
-    val adState by viewModel.adState.collectAsStateWithLifecycle()
-    val canWatchAdToday by viewModel.canWatchAdToday.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
+    val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
+    val now = System.currentTimeMillis()
     // Pro/Max: sheets are unlimited — the counter shows just the count, no "/ 20".
-    val hasProAccess = viewModel.entitlement.value.hasProAccessAt(System.currentTimeMillis())
+    val hasProAccess = entitlement.hasProAccessAt(now)
     var deleteTarget by remember { mutableStateOf<Entry?>(null) }
     var budgetAmount by remember { mutableStateOf("") }
     var budgetError by remember { mutableStateOf(false) }
@@ -112,7 +109,6 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
     var showSealStamp by remember { mutableStateOf(false) }
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()
-    val context = LocalContext.current
     val listState = rememberLazyListState()
     val palette = AppTheme.colors
 
@@ -199,8 +195,8 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                     Spacer(Modifier.height(10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         TierTag(
-                            text = if (viewModel.entitlement.value.hasMaxAccessAt(System.currentTimeMillis())) "MAX" else "PRO",
-                            color = if (viewModel.entitlement.value.hasMaxAccessAt(System.currentTimeMillis())) palette.crimson else palette.gold
+                            text = if (entitlement.hasMaxAccessAt(now)) "MAX" else "PRO",
+                            color = if (entitlement.hasMaxAccessAt(now)) palette.crimson else palette.gold
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
@@ -442,7 +438,7 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
             }
         }
 
-        quotaBlocked?.let { blocked ->
+        quotaBlocked?.let {
             PremiumDialog(
                 onDismissRequest = { viewModel.dismissQuotaBlocked() },
                 eyebrow = "DAILY QUOTA",
@@ -450,50 +446,21 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                 title = "You've used your free logs for today.",
                 bodyContent = {
                     Column {
-                        if (AdsConfig.ENABLED) {
-                            Text(
-                                if (canWatchAdToday) {
-                                    "Watch a short ad to unlock +${AdsConfig.EXTRA_LOGS_PER_REWARD} more logs today?"
-                                } else {
-                                    "You've reached the ${AdsConfig.MAX_REWARDED_ADS_PER_DAY}-ads-per-day limit."
-                                },
-                                color = palette.textSecondary,
-                                style = AppType.body
-                            )
-                        }
-                        (adState as? AdState.Failed)?.let { failed ->
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                failed.message,
-                                style = AppType.bodySm,
-                                color = palette.danger
-                            )
-                        }
+                        Text(
+                            "Come back tomorrow. Unused Free logs carry to the next day while your logging streak stays active.",
+                            color = palette.textSecondary,
+                            style = AppType.body
+                        )
                         Spacer(Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        TextButton(
+                            onClick = { viewModel.dismissQuotaBlocked() },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (AdsConfig.ENABLED && canWatchAdToday) {
-                                val activity = context as? Activity
-                                GiltButton(
-                                    onClick = { activity?.let { viewModel.onWatchAd(it) } },
-                                    text = if (adState is AdState.Loading) "Loading ad…" else "Watch Ad",
-                                    modifier = Modifier.weight(1f),
-                                    height = 48.dp,
-                                    enabled = adState !is AdState.Loading
-                                )
-                            }
-                            TextButton(
-                                onClick = { viewModel.dismissQuotaBlocked() },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Come back tomorrow", color = palette.textMuted)
-                            }
+                            Text("Come back tomorrow", color = palette.textMuted)
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            "Or go Pro — unlimited logs, no ads",
+                            "Or go Pro — unlimited logs, lifetime history",
                             style = AppType.bodySm,
                             color = palette.textMuted
                         )

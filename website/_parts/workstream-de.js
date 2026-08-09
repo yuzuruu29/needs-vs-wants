@@ -152,8 +152,8 @@ html = html.replace(
 
 // #get desc
 html = html.replace(
-  '<p class="desc">Take control of your finances. Every expense counts — seal it as a Need or a Want, keep a 35-day window of honest habits, and let an optional daily budget keep today in check.</p>',
-  '<p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 35 days, with an optional daily budget on today.</p>'
+  '<p class="desc">Take control of your finances. Every expense counts — seal it as a Need or a Want, keep a 30-day window of honest habits, and let an optional daily budget keep today in check.</p>',
+  '<p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 30 days, with an optional daily budget on today.</p>'
 );
 
 // Visible em-dash / en-dash purge in body (HTML + inline script strings)
@@ -179,8 +179,8 @@ html = html.replace(
   '<title>Needs vs Wants: Expense Tracker, Official Launch</title>'
 );
 html = html.replace(
-  'content="An offline-first expense trainer. Every purchase is a Need or a Want — decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics."',
-  'content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 35 days. Optional daily budget. No accounts. No analytics."'
+  'content="An offline-first expense trainer. Every purchase is a Need or a Want — decided in the moment, sealed instantly, kept for 30 days. Optional daily budget. No accounts. No analytics."',
+  'content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 30 days. Optional daily budget. No accounts. No analytics."'
 );
 
 // JS: count-up + window dial + magnetic + header shrink class

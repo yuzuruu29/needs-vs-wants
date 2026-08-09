@@ -1,33 +1,36 @@
-# Phase 1 Plan — Daily free log quota + rewarded ads (offline slice)
+# Phase 1 Plan — Daily free log quota (historical; rewarded ads CANCELLED)
 
-**Status:** Approved. Ready for implementation.  
+> **Status update (2026-08-09):** The rewarded-ad (AdMob/UMP) path has been
+> **cancelled and removed** from the build. This document is retained for
+> history. The live Free-tier policy is the **simple local quota** described
+> below: **5 base logs/day with streak carry-forward** (`FreeQuotaConfig`),
+> no ads, no bonus logs, no UMP. See `docs/PLAN_DAILY_QUOTA_REWARDED_ADS.md`
+> for the same call-off and the implemented `DailyLogQuota` carry semantics.
+
+**Status:** Historical (AdMob phases cancelled).  
 **Scope:** Android native APK only (`app/`)  
 **Date:** 2026-08-07  
 **Source plan:** `docs/PLAN_DAILY_QUOTA_REWARDED_ADS.md`
 
 ---
 
-## Locked product decisions (from brief)
+## Locked product decisions (from brief — superseded)
 
-- Free daily logs: **10**
-- Extra logs per successful reward: **+8**
-- Max rewarded ads per day: **3**
+- ~~Free daily logs: **10**~~ → **5** (FreeQuotaConfig)
+- ~~Extra logs per successful reward: **+8**~~ → **removed** (no ads)
+- ~~Max rewarded ads per day: **3**~~ → **removed** (no ads)
 - Soft Pro CTA (ghost line) in the quota dialog: **Yes**
 - Stack with existing 20-entry sheet limit: **Yes**
 - Scope: **Android only**
-- Use Google test AdMob IDs until a real AdMob app exists
+- ~~Use Google test AdMob IDs until a real AdMob app exists~~ → **N/A, AdMob removed**
 
 ## AdMob + UMP policy requirements (non-negotiable — Phase 3)
 
-- Reward is non-monetary and usable only inside the app
-- Clear, conspicuous disclosure before every ad using exact copy (see B3 below)
-- Explicit user opt-in only (button tap)
-- Grant extra logs ONLY on the official `onUserEarnedReward` callback
-- Never encourage users to click the ad
-- UMP consent triggered only on the first "Watch ad" action (never on cold start)
-- Force test ad unit ID in all debug builds: `ca-app-pub-3940256099942544/5224354917`
-- No AdMob initialization or network calls inside the seal path
-- Max 3 rewarded ads per day enforced
+> **Cancelled.** All AdMob/UMP dependencies, the `ads/` package, the
+> `AdsModule` binding, and the rewarded-ad quota fields have been removed.
+> The Free tier now uses a plain daily allowance with unused logs carrying to
+> the next consecutive active day (resets on a missed day). No ads SDK, no
+> UMP consent, no test ad IDs remain in the build or manifest.
 
 ---
 

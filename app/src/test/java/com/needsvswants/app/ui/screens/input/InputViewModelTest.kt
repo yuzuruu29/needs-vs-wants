@@ -3,7 +3,6 @@ package com.needsvswants.app.ui.screens.input
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import com.needsvswants.app.ads.NoOpRewardedAdGateway
 import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
@@ -94,7 +93,6 @@ class InputViewModelTest {
         entries = repository,
         preferences = prefs,
         dailyBudgetUseCase = DailyBudgetUseCase(dao, prefs),
-        rewardedAdGateway = NoOpRewardedAdGateway(),
         appContext = null
     )
 
@@ -123,7 +121,7 @@ class InputViewModelTest {
 
     @Test
     fun quotaBlocked_at5Used_doesNotInsert() = runTest(dispatcher) {
-        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, bonusLogs = 0, adsWatched = 0))
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, carriedLogs = 0))
         val vm = buildViewModel()
         advanceUntilIdle()
 
@@ -137,7 +135,7 @@ class InputViewModelTest {
 
     @Test
     fun seals_andIncrements_at4Used() = runTest(dispatcher) {
-        prefs.setQuotaState(QuotaState(today(), logsCreated = 4, bonusLogs = 0, adsWatched = 0))
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 4, carriedLogs = 0))
         val vm = buildViewModel()
         advanceUntilIdle()
 
@@ -155,7 +153,7 @@ class InputViewModelTest {
 
     @Test
     fun pro_bypassesQuota_andSheetLimit() = runTest(dispatcher) {
-        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, bonusLogs = 0, adsWatched = 0))
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, carriedLogs = 0))
         prefs.setEntitlement(
             Entitlement(
                 tier = EntitlementTier.PRO,
@@ -204,7 +202,7 @@ class InputViewModelTest {
         // Never collect vm.quotaState — the exact regression this bug class
         // represents: an uncollected WhileSubscribed StateFlow stays frozen at
         // the initial value and never reflects DataStore writes.
-        prefs.setQuotaState(QuotaState(today(), logsCreated = 2, bonusLogs = 0, adsWatched = 0))
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 2, carriedLogs = 0))
         advanceUntilIdle()
 
         assertEquals(2, vm.quotaState.value.logsCreated)
