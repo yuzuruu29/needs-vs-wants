@@ -22,6 +22,11 @@ class EntryRepository @Inject constructor(
 
     suspend fun delete(entry: Entry) = dao.delete(entry)
 
+    suspend fun update(entry: Entry) = dao.update(entry)
+
+    /** Re-insert a deleted entry, preserving its id (delete-undo). */
+    suspend fun restore(entry: Entry): Long = dao.restore(entry)
+
     suspend fun deleteAll() = dao.deleteAll()
 
     suspend fun purgeBefore(before: Long): Int = dao.purgeBefore(before)

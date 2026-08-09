@@ -86,6 +86,8 @@ class SummaryUseCaseTest {
         override suspend fun countForDate(date: String): Int = 0
         override suspend fun deleteAll() {}
         override suspend fun delete(entry: Entry) {}
+        override suspend fun update(entry: Entry) {}
+        override suspend fun restore(entry: Entry): Long = 0L
     }
 
     private class FakeLocal(initial: Entitlement) : EntitlementLocalStore {

@@ -43,11 +43,41 @@ class HistoryViewModel @Inject constructor(
     val isPro: StateFlow<Boolean> = entitlementRepository.isPro
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun deleteEntry(entry: Entry) {
+    fun deleteEntry(entry: Entry): Entry {
         viewModelScope.launch {
             entryRepository.delete(entry)
             runCatching { NvwWidget.refreshAll(appContext) }
         }
+        // Return the caller's copy so the UI can offer an undo that restores it by id.
+        return entry
+    }
+
+    /** Undo a delete: re-inserts the entry, preserving its original id. */
+    fun restoreEntry(entry: Entry) {
+        viewModelScope.launch {
+            entryRepository.restore(entry)
+            runCatching { NvwWidget.refreshAll(appContext) }
+        }
+    }
+
+    /** Persist edits to a sealed entry (same id, new fields). */
+    fun updateEntry(entry: Entry) {
+        viewModelScope.launch {
+            entryRepository.update(entry)
+            runCatching { NvwWidget.refreshAll(appContext) }
+        }
+    }
+
+    /** Import parsed entries as fresh rows. Returns the count queued for insertion. */
+    fun importEntries(entries: List<Entry>): Int {
+        if (entries.isEmpty()) return 0
+        viewModelScope.launch {
+            for (entry in entries) {
+                entryRepository.insert(entry)
+            }
+            runCatching { NvwWidget.refreshAll(appContext) }
+        }
+        return entries.size
     }
 
     fun exportCsvText(): String {

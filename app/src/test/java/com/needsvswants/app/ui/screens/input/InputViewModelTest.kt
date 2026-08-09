@@ -239,5 +239,14 @@ class InputViewModelTest {
         override suspend fun delete(entry: Entry) {
             entries.value = entries.value.filterNot { it == entry }
         }
+
+        override suspend fun update(entry: Entry) {
+            entries.value = entries.value.map { if (it.id == entry.id) entry else it }
+        }
+
+        override suspend fun restore(entry: Entry): Long {
+            entries.value = entries.value + entry
+            return entry.id
+        }
     }
 }

@@ -26,4 +26,14 @@ interface EntryDao {
 
     @Delete
     suspend fun delete(entry: Entry)
+
+    @Update
+    suspend fun update(entry: Entry)
+
+    /**
+     * Re-insert a previously deleted entry, preserving its original [Entry.id].
+     * Used to undo a delete (delete + restore round-trip). No new schema.
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun restore(entry: Entry): Long
 }

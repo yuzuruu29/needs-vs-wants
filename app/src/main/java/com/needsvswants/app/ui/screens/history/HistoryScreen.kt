@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.history
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,10 +29,22 @@ import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.Dialog
+import com.needsvswants.app.domain.ImportUseCase
+import com.needsvswants.app.domain.filterAmountInput
+import com.needsvswants.app.domain.parseCents
+import com.needsvswants.app.domain.toInputAmount
 import android.content.Intent
+import kotlinx.coroutines.launch
 
 @Composable
 fun HistoryScreen(
@@ -41,9 +54,35 @@ fun HistoryScreen(
     val entries by viewModel.entries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
-    var deleteTarget by remember { mutableStateOf<Entry?>(null) }
+    var editTarget by remember { mutableStateOf<Entry?>(null) }
+    var actionTarget by remember { mutableStateOf<Entry?>(null) }
+    var importPending by remember { mutableStateOf<ImportUseCase.Result?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val haptics = rememberAppHaptics()
     val context = LocalContext.current
+
+    // Opens the system document picker (SAF) for a CSV file to import.
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val text = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.bufferedReader().readText()
+            }
+        }.getOrNull()
+        if (text == null) {
+            scope.launch { snackbarHostState.showSnackbar("Couldn't read that file.") }
+        } else {
+            val result = ImportUseCase.parseCsv(text)
+            if (result.entries.isEmpty()) {
+                scope.launch { snackbarHostState.showSnackbar("No valid entries found in that CSV.") }
+            } else {
+                importPending = result
+            }
+        }
+    }
 
     val grouped = entries.groupBy { it.date }.toList()
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -63,21 +102,37 @@ fun HistoryScreen(
                 Spacer(Modifier.height(6.dp))
                 Text("LEDGER", style = AppType.screenTitle, color = AppTheme.colors.textPrimary)
             }
-            if (entries.isNotEmpty()) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterVertically),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (entries.isNotEmpty()) {
+                    HeaderIconWell(
+                        onClick = {
+                            val csv = viewModel.exportCsvText()
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(Intent.EXTRA_TEXT, csv)
+                                putExtra(Intent.EXTRA_SUBJECT, "Needs vs Wants - Spending History CSV")
+                            }
+                            context.startActivity(Intent.createChooser(send, "Export CSV"))
+                        },
+                        contentDescription = "Export CSV"
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = null,
+                            tint = AppTheme.colors.crimson,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
                 HeaderIconWell(
-                    onClick = {
-                        val csv = viewModel.exportCsvText()
-                        val send = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/csv"
-                            putExtra(Intent.EXTRA_TEXT, csv)
-                            putExtra(Intent.EXTRA_SUBJECT, "Needs vs Wants - Spending History CSV")
-                        }
-                        context.startActivity(Intent.createChooser(send, "Export CSV"))
-                    },
-                    contentDescription = "Export CSV"
+                    onClick = { importLauncher.launch(arrayOf("text/csv", "text/plain", "application/octet-stream")) },
+                    contentDescription = "Import CSV"
                 ) {
                     Icon(
-                        Icons.Default.Share,
+                        Icons.Default.FileUpload,
                         contentDescription = null,
                         tint = AppTheme.colors.crimson,
                         modifier = Modifier.size(20.dp)
@@ -202,7 +257,7 @@ fun HistoryScreen(
                                     EntryLedgerRow(
                                         entry = entry,
                                         symbol = symbol,
-                                        onDelete = { deleteTarget = entry }
+                                        onDelete = { actionTarget = entry }
                                     )
                                 }
                             }
@@ -211,21 +266,80 @@ fun HistoryScreen(
             }
         }
 
-        deleteTarget?.let { entry ->
-            PremiumDialog(
-                onDismissRequest = { deleteTarget = null },
-                eyebrow = "CONFIRM",
-                eyebrowColor = AppTheme.colors.danger,
-                title = "Delete entry?",
-                body = "${entry.item} · ${entry.costCents.toMoney(symbol)}",
-                confirmLabel = "Delete",
-                onConfirm = {
+        actionTarget?.let { entry ->
+            EntryActionDialog(
+                entry = entry,
+                symbol = symbol,
+                onDismiss = { actionTarget = null },
+                onEdit = {
+                    actionTarget = null
+                    editTarget = entry
+                },
+                onDelete = {
+                    actionTarget = null
                     haptics.warn()
                     viewModel.deleteEntry(entry)
-                    deleteTarget = null
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Deleted \"${entry.item}\"",
+                            actionLabel = "Undo",
+                            duration = SnackbarDuration.Long
+                        ).let { result ->
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.restoreEntry(entry)
+                            }
+                        }
+                    }
+                }
+            )
+        }
+
+        editTarget?.let { entry ->
+            EditEntryDialog(
+                entry = entry,
+                symbol = symbol,
+                onDismiss = { editTarget = null },
+                onSave = { updated ->
+                    haptics.success()
+                    viewModel.updateEntry(updated)
+                    editTarget = null
+                }
+            )
+        }
+
+        importPending?.let { result ->
+            val skipped = result.skippedCount
+            PremiumDialog(
+                onDismissRequest = { importPending = null },
+                eyebrow = "RESTORE",
+                eyebrowColor = AppTheme.colors.need,
+                title = "Import ${result.entries.size} ${if (result.entries.size == 1) "entry" else "entries"}?",
+                body = if (skipped > 0) {
+                    "$skipped ${if (skipped == 1) "row was" else "rows were"} skipped."
+                } else {
+                    "They'll land in your diary as new lines."
                 },
-                dismissLabel = "Cancel",
-                confirmDanger = true
+                confirmLabel = "Import",
+                onConfirm = {
+                    haptics.success()
+                    viewModel.importEntries(result.entries)
+                    importPending = null
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Imported ${result.entries.size} ${if (result.entries.size == 1) "entry" else "entries"}.")
+                    }
+                },
+                dismissLabel = "Cancel"
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp)
+        ) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
 
@@ -270,5 +384,228 @@ private fun DaySplitChip(
             maxLines = 1,
             softWrap = false
         )
+    }
+}
+/**
+ * Branded action sheet for a sealed entry: Edit (primary) / Delete (danger) / Cancel.
+ * Delete-undo happens in the caller via an Undo snackbar, so no confirm dialog is needed.
+ */
+@Composable
+private fun EntryActionDialog(
+    entry: Entry,
+    symbol: String,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val c = AppTheme.colors
+    val typeColor = if (entry.type == EntryType.NEED) c.need else c.want
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent,
+            modifier = Modifier.paperSurface(
+                rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                RoundedCornerShape(20.dp)
+            )
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                Eyebrow(entry.type.name, color = typeColor)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = entry.item,
+                    style = AppType.dialogTitle,
+                    color = c.textPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "${entry.time} · ${entry.costCents.toMoney(symbol)}",
+                    style = AppType.body,
+                    color = c.textSecondary
+                )
+                Spacer(Modifier.height(8.dp))
+                GiltRule(width = 32.dp)
+                Spacer(Modifier.height(18.dp))
+
+                GiltButton(
+                    onClick = onEdit,
+                    text = "Edit entry",
+                    height = 48.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = onDelete,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = c.danger.copy(alpha = 0.14f),
+                        contentColor = c.danger
+                    ),
+                    border = BorderStroke(1.dp, c.danger.copy(alpha = 0.7f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Delete entry", fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    Text("Cancel", color = c.textMuted)
+                }
+            }
+        }
+    }
+}
+/**
+ * In-place edit of a sealed entry. Reuses the ledger-field + type-chip language from Log
+ * and the same amount parsing (filterAmountInput / parseCents / toInputAmount).
+ */
+@Composable
+private fun EditEntryDialog(
+    entry: Entry,
+    symbol: String,
+    onDismiss: () -> Unit,
+    onSave: (Entry) -> Unit
+) {
+    val c = AppTheme.colors
+    var item by remember { mutableStateOf(entry.item) }
+    var amount by remember { mutableStateOf(entry.costCents.toInputAmount()) }
+    var type by remember { mutableStateOf(entry.type) }
+    var error by remember { mutableStateOf(false) }
+
+    fun trySave() {
+        val trimmed = item.trim()
+        val cents = parseCents(amount)
+        if (trimmed.isEmpty() || cents == null || cents < 0) {
+            error = true
+            return
+        }
+        onSave(
+            entry.copy(
+                item = trimmed,
+                costCents = cents,
+                type = type
+            )
+        )
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent,
+            modifier = Modifier.paperSurface(
+                rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                RoundedCornerShape(20.dp)
+            )
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                Eyebrow("EDIT ENTRY", color = c.crimson)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = entry.item,
+                    style = AppType.dialogTitle,
+                    color = c.textPrimary
+                )
+                Spacer(Modifier.height(8.dp))
+                GiltRule(width = 32.dp)
+                Spacer(Modifier.height(16.dp))
+
+                LedgerField(
+                    value = item,
+                    onValueChange = { item = it; error = false },
+                    label = "Item",
+                    isError = error && item.isBlank()
+                )
+                Spacer(Modifier.height(14.dp))
+                LedgerField(
+                    value = amount,
+                    onValueChange = { amount = filterAmountInput(it); error = false },
+                    label = "Amount ($symbol)",
+                    isError = error && parseCents(amount) == null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    EditTypeChip(
+                        label = "Need",
+                        selected = type == EntryType.NEED,
+                        color = c.need,
+                        onClick = { type = EntryType.NEED; error = false },
+                        modifier = Modifier.weight(1f)
+                    )
+                    EditTypeChip(
+                        label = "Want",
+                        selected = type == EntryType.WANT,
+                        color = c.want,
+                        onClick = { type = EntryType.WANT; error = false },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (error) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Enter an item and a valid amount.",
+                        style = AppType.caption,
+                        color = c.danger
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Cancel", color = c.textMuted)
+                    }
+                    GiltButton(
+                        onClick = { trySave() },
+                        text = "Save",
+                        height = 46.dp,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditTypeChip(
+    label: String,
+    selected: Boolean,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
+        label = "editChipBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) color else AppTheme.colors.dividerStrong,
+        label = "editChipBorder"
+    )
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = bgColor,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        modifier = modifier.heightIn(min = 48.dp)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                label,
+                color = if (selected) color else AppTheme.colors.textSecondary,
+                style = AppType.button.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                )
+            )
+        }
     }
 }
