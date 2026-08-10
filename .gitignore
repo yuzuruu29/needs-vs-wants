@@ -54,6 +54,8 @@ video/*.log
 
 # Generated graph caches
 website/graphify-out/
+.graphify/cache/
+
 
 # Python caches
 docs/**/__pycache__/
