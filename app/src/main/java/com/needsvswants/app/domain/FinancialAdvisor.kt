@@ -125,7 +125,6 @@ object FinancialAdvisorEngine {
 
     const val SOURCE_OF_TRUTH_TITLE = "Google NotebookLM — Economic Studies"
     const val DEFAULT_NOTEBOOK_URL = "https://notebook.google.com/"
-    const val DEFAULT_SPENDING_GOAL = AdvisorContextPack.DEFAULT_SPENDING_GOAL
 
     private fun pct(value: Double): Int = value.roundToInt()
 

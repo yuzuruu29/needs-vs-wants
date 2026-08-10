@@ -12,6 +12,8 @@ import java.util.Locale
 
 class AdvisorChatSessionTest {
 
+    private val sectionCitation = Regex("Section \\d+\\.\\d+")
+
     private fun todayEntry(item: String, costCents: Long, type: EntryType): Entry {
         val now = System.currentTimeMillis()
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(now))
@@ -67,7 +69,7 @@ class AdvisorChatSessionTest {
         val advisor = updated.last()
         assertTrue(advisor.isWarning)
         assertTrue(advisor.text.contains("over budget", ignoreCase = true))
-        assertTrue(advisor.citation!!.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(advisor.citation!!.section))
     }
 
     @Test
@@ -84,8 +86,8 @@ class AdvisorChatSessionTest {
             spendingGoal = "analyze"
         )!!
         val advisor = updated.last()
-        assertTrue(advisor.text.contains("analyze", ignoreCase = true))
-        assertTrue(advisor.citation!!.section.contains("Section"))
+        assertTrue(advisor.text.contains("spending goal is analyze", ignoreCase = true))
+        assertTrue(sectionCitation.containsMatchIn(advisor.citation!!.section))
     }
 
     @Test
@@ -101,6 +103,6 @@ class AdvisorChatSessionTest {
             dailyBudgetCents = null
         )!!
         val advisor = updated.last()
-        assertTrue(advisor.text.contains("track", ignoreCase = true))
+        assertTrue(advisor.text.contains("spending goal is track", ignoreCase = true))
     }
 }

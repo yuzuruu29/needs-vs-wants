@@ -17,6 +17,9 @@ class FinancialAdvisorTest {
 
     private val dayMs = TimeUnit.DAYS.toMillis(1)
 
+    /** Citation format pin per spec: every coach answer cites "Section X.Y". */
+    private val sectionCitation = Regex("Section \\d+\\.\\d+")
+
     /** Fixed reference "now" (any epoch; day windows are resolved in the local time zone). */
     private val NOW = 1786320000000L
 
@@ -171,7 +174,7 @@ class FinancialAdvisorTest {
         assertEquals("Compensatory Budget Recovery Active", insight.headline)
         assertTrue(insight.advice.contains("exceeded today's budget limit"))
         assertEquals("Notebook #3: Impulse Recovery", insight.citation.title)
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -189,7 +192,7 @@ class FinancialAdvisorTest {
         assertTrue(insight.isWarning)
         assertEquals("Discretionary Spending Exceeds Baseline Needs", insight.headline)
         assertEquals("Notebook #1: Budgetary Equilibrium", insight.citation.title)
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -203,7 +206,7 @@ class FinancialAdvisorTest {
         assertFalse(insight.isWarning)
         assertEquals("Weekend Streak Plan", insight.headline)
         assertTrue(insight.advice.contains("5-day"))
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -217,7 +220,7 @@ class FinancialAdvisorTest {
         assertFalse(insight.isWarning)
         assertEquals("Streak Momentum", insight.headline)
         assertTrue(insight.advice.contains("3-day"))
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -232,7 +235,7 @@ class FinancialAdvisorTest {
         assertFalse(insight.isWarning)
         assertEquals("Analyze Goal: Weekly Comparison", insight.headline)
         assertTrue(insight.advice.contains("100"))
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -250,7 +253,7 @@ class FinancialAdvisorTest {
         assertFalse(insight.isWarning)
         assertEquals("Budget Health: Within Daily Limit", insight.headline)
         assertTrue(insight.advice.contains("remaining"))
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -267,7 +270,7 @@ class FinancialAdvisorTest {
         assertFalse(insight.isWarning)
         assertEquals("Spending Within Economic Study Targets", insight.headline)
         assertEquals("Notebook #2: Behavioral Friction", insight.citation.title)
-        assertTrue(insight.citation.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(insight.citation.section))
     }
 
     @Test
@@ -313,8 +316,8 @@ class FinancialAdvisorTest {
             val insight = FinancialAdvisorEngine.generateInsight(ctx)
             assertTrue("rule $index returned a blank citation", insight.citation.section.isNotBlank())
             assertTrue(
-                "rule $index citation must reference a Section, was: ${insight.citation.section}",
-                insight.citation.section.contains("Section")
+                "rule $index citation must match Section X.Y, was: ${insight.citation.section}",
+                sectionCitation.containsMatchIn(insight.citation.section)
             )
         }
     }
@@ -334,7 +337,7 @@ class FinancialAdvisorTest {
         assertTrue(chatMsg.isWarning)
         assertTrue(chatMsg.text.contains("over budget"))
         assertNotNull(chatMsg.citation)
-        assertTrue(chatMsg.citation!!.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(chatMsg.citation!!.section))
     }
 
     @Test
@@ -349,7 +352,7 @@ class FinancialAdvisorTest {
         assertEquals(ChatSender.ADVISOR, chatMsg.sender)
         assertFalse(chatMsg.isWarning)
         assertTrue(chatMsg.text.contains("capacity for a deliberate Want"))
-        assertTrue(chatMsg.citation!!.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(chatMsg.citation!!.section))
     }
 
     @Test
@@ -365,7 +368,7 @@ class FinancialAdvisorTest {
 
         assertTrue(chatMsg.isWarning)
         assertTrue(chatMsg.text.contains("24 hours"))
-        assertTrue(chatMsg.citation!!.section.contains("Section"))
+        assertTrue(sectionCitation.containsMatchIn(chatMsg.citation!!.section))
     }
 
     @Test
@@ -391,8 +394,8 @@ class FinancialAdvisorTest {
             assertNotNull("query [$query] must return a citation", citation)
             assertTrue("query [$query] returned a blank citation", citation!!.section.isNotBlank())
             assertTrue(
-                "query [$query] citation must reference a Section, was: ${citation.section}",
-                citation.section.contains("Section")
+                "query [$query] citation must match Section X.Y, was: ${citation.section}",
+                sectionCitation.containsMatchIn(citation.section)
             )
         }
     }
