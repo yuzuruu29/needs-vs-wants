@@ -134,6 +134,33 @@ class EntitlementSyncTest {
         assertTrue(store.paypalReturnPending.first())
     }
 
+    @Test
+    fun refreshOnce_signedOutMidFetch_clearsStaleSnapshot() = runTest {
+        // The retry loop fetched with the old token; the user signs out while
+        // the fetch is in flight. The Pro result must not survive sign-out —
+        // otherwise the stale write would resurrect Pro on a signed-out device.
+        val session = FakeSessionStore(AuthSession("at", "rt", "u1", "user@example.com", null))
+        val gate = CompletableDeferred<Unit>()
+        val remote = SignOutMidFetchRemote(session, gate, proEntitlement)
+        val local = FakeLocal()
+        val entitlements = EntitlementRepository(local, remote)
+        val store = FakePayPalReturnStore()
+        val sync = EntitlementSync(
+            AuthRepository(NoopSupabaseAuth, session, NoopGoogle, entitlements, store, ENABLED_CONFIG),
+            entitlements,
+            store,
+            ENABLED_CONFIG
+        )
+
+        val result = async { sync.refreshOnce() }
+        runCurrent()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertFalse(result.await())
+        assertEquals(Entitlement(), entitlements.entitlement.first())
+    }
+
     // --- fakes -----------------------------------------------------------
 
     private fun buildSync(remote: EntitlementRemote, store: PayPalReturnStore): EntitlementSync {
@@ -187,6 +214,23 @@ class EntitlementSyncTest {
             fetchCalls++
             gate.await()
             return null
+        }
+    }
+
+    /**
+     * Suspends the fetch on [gate], then clears the session store before
+     * returning a Pro grant — simulates the user signing out while a checkout
+     * return sync's fetch is in flight.
+     */
+    private class SignOutMidFetchRemote(
+        private val session: FakeSessionStore,
+        private val gate: CompletableDeferred<Unit>,
+        private val result: Entitlement?
+    ) : EntitlementRemote {
+        override suspend fun fetchEntitlement(accessToken: String?): Entitlement? {
+            gate.await()
+            session.clear()
+            return result
         }
     }
 

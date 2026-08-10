@@ -84,6 +84,28 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun signOut_clearsLocalEntitlement() = runTest {
+        // Pre-condition: a trusted paid snapshot (recent sync stamp), so the
+        // app genuinely shows Pro before sign-out.
+        val store = FakeSessionStore(AuthSession("at", "rt", "u1", "a@b.com", null))
+        val auth = FakeSupabaseAuth(session = null)
+        val local = FakeEntitlementLocal(
+            initial = Entitlement(tier = EntitlementTier.PRO, type = EntitlementType.PAID, expiresAtEpochMillis = null),
+            syncedAt = System.currentTimeMillis()
+        )
+        val entitlements = EntitlementRepository(local, RecordingRemote())
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, FakePayPalReturnStore(), configEnabled())
+        assertTrue(entitlements.entitlement.first().hasProAccessAt(System.currentTimeMillis()))
+
+        repo.signOut()
+
+        // Membership is account-scoped: a signed-out (or different) account
+        // must never see the previous user's Pro on this device.
+        assertNull(store.session.first())
+        assertEquals(Entitlement.Free, entitlements.entitlement.first())
+    }
+
+    @Test
     fun ensureFreshAccessToken_refreshesWhenExpired() = runTest {
         val expired = AuthSession("old", "rt", "u1", "a@b.com", expiresAtEpochMillis = 1_000L)
         val store = FakeSessionStore(expired)
@@ -170,9 +192,12 @@ private class RecordingRemote : EntitlementRemote {
     }
 }
 
-private class FakeEntitlementLocal : EntitlementLocalStore {
-    private val state = MutableStateFlow(Entitlement.Free)
-    private val synced = MutableStateFlow(0L)
+private class FakeEntitlementLocal(
+    initial: Entitlement = Entitlement.Free,
+    syncedAt: Long = 0L
+) : EntitlementLocalStore {
+    private val state = MutableStateFlow(initial)
+    private val synced = MutableStateFlow(syncedAt)
     override val entitlement: Flow<Entitlement> = state
     override val entitlementSyncedAtMillis: Flow<Long> = synced
     override suspend fun setEntitlement(entitlement: Entitlement) {

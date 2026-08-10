@@ -96,6 +96,14 @@ class EntitlementSync @Inject constructor(
         return try {
             val token = auth.ensureFreshAccessToken() ?: return false
             entitlements.refreshFromRemote(token)
+            // Guard: if the user signed out while this fetch was in flight, the
+            // snapshot written above belongs to an account that is no longer on
+            // this device — clear it again so a stale Pro write can never
+            // survive sign-out (see AuthRepository.signOut).
+            if (!auth.isSignedIn.first()) {
+                entitlements.clearLocal()
+                return false
+            }
             entitlements.entitlement.first().hasProAccessAt(System.currentTimeMillis())
         } catch (t: CancellationException) {
             throw t

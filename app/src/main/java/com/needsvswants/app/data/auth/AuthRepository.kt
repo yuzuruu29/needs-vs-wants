@@ -69,7 +69,10 @@ class AuthRepository @Inject constructor(
      * Signs out remotely (best-effort) and always clears the local session.
      * Also drops any pending PayPal checkout return — a signed-out (or
      * different) account must never inherit the retry churn of the previous
-     * user's late/never-landed webhook. Does not wipe diary data.
+     * user's late/never-landed webhook. Pro/Max membership is account-scoped,
+     * so the local entitlement snapshot is cleared too: a signed-out (or
+     * different) account must never see the previous user's Pro on this
+     * device. Does not wipe diary data.
      */
     suspend fun signOut() {
         val token = store.session.first()?.accessToken
@@ -78,5 +81,6 @@ class AuthRepository @Inject constructor(
         }
         store.clear()
         payPalReturn.clearPaypalReturnPending()
+        entitlements.clearLocal()
     }
 }
