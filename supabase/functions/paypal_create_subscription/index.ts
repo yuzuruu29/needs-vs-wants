@@ -138,9 +138,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const returnUrl = Deno.env.get("PAYPAL_RETURN_URL") ??
-      "needsvswants://paypal/return";
+      "https://needs-vs-wants.vercel.app/paypal-return.html";
     const cancelUrl = Deno.env.get("PAYPAL_CANCEL_URL") ??
-      "needsvswants://paypal/cancel";
+      "https://needs-vs-wants.vercel.app/paypal-cancel.html";
 
     const accessToken = await getOAuthToken(clientId, clientSecret);
     const createRes = await fetch(`${apiBase()}/v1/billing/subscriptions`, {

@@ -59,9 +59,3 @@ fun HistorySkeletonGroup(modifier: Modifier = Modifier) {
         PaperShimmer(Modifier.fillMaxWidth().height(40.dp), RoundedCornerShape(14.dp))
     }
 }
-
-/** Matches a Paywall PlanTierCard (reserved; paywall data is local-fast). */
-@Composable
-fun PaywallSkeletonCard(modifier: Modifier = Modifier) {
-    PaperShimmer(modifier.fillMaxWidth().height(150.dp), RoundedCornerShape(20.dp))
-}

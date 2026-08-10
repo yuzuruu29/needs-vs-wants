@@ -100,9 +100,9 @@ Deno.serve(async (req: Request) => {
     const amountCentavos = expectedAmountCentavos(tier);
 
     const successUrl = Deno.env.get("PAYMONGO_SUCCESS_URL") ??
-      "needsvswants://paymongo/return";
+      "https://needs-vs-wants.vercel.app/paymongo-return.html";
     const cancelUrl = Deno.env.get("PAYMONGO_CANCEL_URL") ??
-      "needsvswants://paymongo/cancel";
+      "https://needs-vs-wants.vercel.app/paymongo-cancel.html";
 
     const paymentMethods = (
       Deno.env.get("PAYMONGO_PAYMENT_METHODS") ??

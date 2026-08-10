@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -69,17 +68,6 @@ class PaywallViewModel @Inject constructor(
 
     val hasMaxAccess: StateFlow<Boolean> = repository.hasMaxAccess
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    /** True until the first real entitlement emission lands (skeleton on plan cards, D132 follow-up). */
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            repository.entitlement.drop(1).first()
-            _loading.value = false
-        }
-    }
 
     val isSignedIn: StateFlow<Boolean> = authRepository.isSignedIn
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)

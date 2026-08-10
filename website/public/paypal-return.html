@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Returning to Needs vs Wants</title>
+  <style>
+    :root { color-scheme: light; }
+    * { margin: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FAFAF7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1A1A1A;
+    }
+    .card {
+      text-align: center;
+      padding: 32px 28px;
+      max-width: 340px;
+      width: 90%;
+      background: #FFFFFF;
+      border: 1px solid rgba(232, 169, 42, 0.4);
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(26, 26, 26, 0.08);
+    }
+    .mark { font-size: 28px; letter-spacing: 1px; color: #0B6B3A; font-weight: 700; }
+    .mark span { color: #C8102E; }
+    h1 { font-size: 17px; margin: 14px 0 6px; color: #1A1A1A; }
+    p { font-size: 14px; color: #5A5A5A; margin-bottom: 18px; }
+    a {
+      display: inline-block;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: #C8102E;
+      color: #FFFFFF;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  </style>
+  <script>
+    // PayPal approval page cannot route a custom scheme directly; this page
+    // forwards the approval query params (token, PayerID, ...) into the app.
+    window.location.replace("needsvswants://paypal/return" + window.location.search);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">NEED<span>|</span>WANT</div>
+    <h1>Payment approved.</h1>
+    <p>Returning you to the app...</p>
+    <a id="fallback-link" href="needsvswants://paypal/return">Open Needs vs Wants</a>
+  </div>
+</body>
+</html>

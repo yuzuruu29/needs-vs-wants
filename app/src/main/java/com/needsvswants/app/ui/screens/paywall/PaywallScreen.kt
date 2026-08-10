@@ -55,7 +55,6 @@ import com.needsvswants.app.ui.theme.MembershipPlan
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
 import com.needsvswants.app.ui.theme.PaywallNoticeSurface
-import com.needsvswants.app.ui.theme.PaywallSkeletonCard
 import com.needsvswants.app.ui.theme.PaywallType
 import com.needsvswants.app.ui.theme.PlanTierCard
 import com.needsvswants.app.ui.theme.TrialTimelineCard
@@ -84,7 +83,6 @@ fun PaywallScreen(
     val haptics = rememberAppHaptics()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     val hasMaxAccess by viewModel.hasMaxAccess.collectAsStateWithLifecycle()
-    val paywallLoading by viewModel.loading.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val lastResult by viewModel.lastResult.collectAsStateWithLifecycle()
     val checkoutSync by viewModel.checkoutSyncState.collectAsStateWithLifecycle()
@@ -326,17 +324,6 @@ fun PaywallScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                if (paywallLoading) {
-                    // Entitlement/price still resolving — shimmer in place of the
-                    // plan cards (same heights, zero CLS when the real cards land).
-                    PaywallSkeletonCard()
-                    Spacer(Modifier.height(12.dp))
-                    PaywallSkeletonCard()
-                    Spacer(Modifier.height(12.dp))
-                    PaywallSkeletonCard()
-                    Spacer(Modifier.height(12.dp))
-                } else {
-
                 // Free
                 PlanTierCard(
                     plan = MembershipPlan.Free,
@@ -402,8 +389,6 @@ fun PaywallScreen(
                 )
 
                 Spacer(Modifier.height(12.dp))
-
-                } // end else (plan cards loaded)
 
                 if (showProviderSelector) {
                     PaymentMethodSelector(
