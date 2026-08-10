@@ -26,8 +26,8 @@ android {
         applicationId = "com.needsvswants.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 20
-        versionName = "2.0.12"
+        versionCode = 21
+        versionName = "2.0.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // --- Task 3: Pro / Supabase seams -----------------------------------
