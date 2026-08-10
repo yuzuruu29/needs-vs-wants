@@ -118,6 +118,10 @@ fun PaywallScreen(
         )
     }
 
+    // One-shot activation seal (D136): owns the Success moment for a real grant.
+    var showActivation by remember { mutableStateOf(false) }
+    var activationCopy by remember { mutableStateOf<ActivationCopy?>(null) }
+
     LaunchedEffect(lastResult) {
         when (val r = lastResult) {
             is BillingResult.OpenCheckout -> {
@@ -133,9 +137,9 @@ fun PaywallScreen(
                 viewModel.consumeResult()
             }
             BillingResult.Success -> {
-                haptics.success()
-                delay(3000)
-                viewModel.consumeResult()
+                // Owned by the activation seal (D136): a granted Success must NOT
+                // auto-clear while the celebration can show. Free restore (no
+                // grant) clears quietly via the effect below.
             }
             BillingResult.Pending -> {
                 delay(3000)
@@ -145,6 +149,31 @@ fun PaywallScreen(
             is BillingResult.Failed, BillingResult.Unavailable -> Unit
             null -> Unit
         }
+    }
+
+    // Activation seal (D136). Keyed on entitlement state too: a Success can
+    // arrive a frame before isPro/hasMaxAccess updates — when they flip, this
+    // effect re-runs and the dialog shows. Re-running cancels the previous
+    // block, so a pending free-restore auto-clear never races a late grant.
+    LaunchedEffect(lastResult, isPro, hasMaxAccess) {
+        if (lastResult is BillingResult.Success) {
+            val copy = ActivationCopy.forEntitlement(isPro, hasMaxAccess)
+            if (copy != null) {
+                if (!showActivation) {
+                    activationCopy = copy
+                    showActivation = true
+                }
+            } else {
+                // Free restore — no grant. Clear quietly so the strip does not stick.
+                delay(if (Motion.enabled) 2500L else 400L)
+                viewModel.consumeResult()
+            }
+        }
+    }
+
+    // After Max activates, keep the selected plan + CTA label in sync ("You're on Max").
+    LaunchedEffect(hasMaxAccess) {
+        if (hasMaxAccess) selected = MembershipPlan.Max
     }
 
     // After Google succeeds for a pending purchase, finish trial/upgrade.
@@ -488,18 +517,16 @@ fun PaywallScreen(
                         "Opening checkout… complete it, then return here.",
                         color = palette.gilt
                     )
-                    BillingResult.Success -> when {
-                        hasMaxAccess -> StatusText(
-                            "Welcome to Max.",
-                            color = palette.marketGreen
-                        )
-                        isPro -> StatusText(
-                            "Welcome to Pro.",
-                            color = palette.marketGreen
-                        )
-                        // Free here means a plain restore with no grant; the
-                        // checkout-return states below carry the messaging.
-                        else -> Unit
+                    BillingResult.Success -> {
+                        // Quiet strip only when the activation dialog is not on
+                        // screen — the dialog carries the celebration itself.
+                        val copy = ActivationCopy.forEntitlement(isPro, hasMaxAccess)
+                        if (copy != null && !showActivation) {
+                            StatusText(
+                                ActivationCopy.quietStatusLine(copy.tier),
+                                color = palette.marketGreen
+                            )
+                        }
                     }
                     is BillingResult.Failed -> {
                         StatusText(
@@ -612,6 +639,21 @@ fun PaywallScreen(
                     }
                 }
             }
+        }
+    }
+
+    // One-shot activation seal (D136). Dismiss consumes the Success so the
+    // paywall below shows the new card state (pills + disabled CTA labels).
+    if (showActivation) {
+        activationCopy?.let { copy ->
+            ActivationSealDialog(
+                copy = copy,
+                onDismiss = {
+                    showActivation = false
+                    activationCopy = null
+                    viewModel.consumeResult()
+                }
+            )
         }
     }
 }

@@ -41,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.fillMaxSize
 import com.needsvswants.app.data.billing.PaymentProvider
 
 /**
@@ -98,28 +100,51 @@ fun PopularRibbon(modifier: Modifier = Modifier) {
 
 /** Gold circular seal stamp — website Max `.pri-success`. */
 @Composable
-fun MaxSealBadge(modifier: Modifier = Modifier, label: String = "MAX") {
+fun MaxSealBadge(modifier: Modifier = Modifier, label: String = "MAX") =
+    MembershipSealBadge(label = label, modifier = modifier)
+
+/**
+ * Gold membership seal stamp with optional crimson outer ring (Max tier).
+ * Shared by the paywall hero seal and plan-card badges (D136).
+ */
+@Composable
+fun MembershipSealBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 36.dp,
+    crimsonRing: Boolean = false
+) {
     val c = AppTheme.colors
-    Box(
-        modifier = modifier
-            .size(36.dp)
-            .background(
-                brush = Brush.radialGradient(
-                    listOf(c.goldSoft, c.gold, c.gold.copy(alpha = 0.85f))
-                ),
-                shape = CircleShape
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        if (crimsonRing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(BorderStroke(2.dp, c.crimson.copy(alpha = 0.9f)), CircleShape)
             )
-            .border(BorderStroke(1.5.dp, c.goldSoft.copy(alpha = 0.9f)), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            // Above the 11sp legibility floor used elsewhere: at Extra large this
-            // renders ≈11.2sp inside the fixed 36dp seal.
-            style = AppType.eyebrowSm.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
-            color = Color(0xFF1A1208),
-            maxLines = 1
-        )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(if (crimsonRing) 5.dp else 0.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        listOf(c.goldSoft, c.gold, c.gold.copy(alpha = 0.85f))
+                    ),
+                    shape = CircleShape
+                )
+                .border(BorderStroke(1.5.dp, c.goldSoft.copy(alpha = 0.9f)), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                // Above the 11sp legibility floor used elsewhere: at Extra large this
+                // renders ≈11.2sp inside the fixed 36dp seal.
+                style = AppType.eyebrowSm.copy(fontSize = (size.value * 0.264f).sp, fontWeight = FontWeight.Bold),
+                color = Color(0xFF1A1208),
+                maxLines = 1
+            )
+        }
     }
 }
 
@@ -391,11 +416,24 @@ fun PlanTierCard(
 
                 if (statusNote != null) {
                     Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = statusNote,
-                        style = PaywallType.meta,
-                        color = c.textMuted
-                    )
+                    // Active-membership pill (D136): soft green chip + hairline so
+                    // "You're on Pro/Max" reads as a sealed state, not muted text.
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(c.marketGreen.copy(alpha = 0.10f))
+                            .border(
+                                BorderStroke(1.dp, c.marketGreen.copy(alpha = 0.35f)),
+                                RoundedCornerShape(50)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = statusNote,
+                            style = PaywallType.meta,
+                            color = c.marketGreen
+                        )
+                    }
                 }
             }
         }
