@@ -44,6 +44,7 @@ data class AdvisorContextPack(
     val weekTotalCents: Long,
     val needsCents: Long,
     val wantsCents: Long,
+    val wantsTodayCents: Long,
     val needsPct: Double,
     val wantsPct: Double,
     val budgetOn: Boolean,
@@ -72,6 +73,7 @@ data class AdvisorContextPack(
 
             val needsCents = weekEntries.filter { it.type == EntryType.NEED }.sumOf { it.costCents }
             val wantsCents = weekEntries.filter { it.type == EntryType.WANT }.sumOf { it.costCents }
+            val wantsTodayCents = todayEntries.filter { it.type == EntryType.WANT }.sumOf { it.costCents }
             val weekTotalCents = needsCents + wantsCents
             val todayTotalCents = todayEntries.sumOf { it.costCents }
 
@@ -99,6 +101,7 @@ data class AdvisorContextPack(
                 weekTotalCents = weekTotalCents,
                 needsCents = needsCents,
                 wantsCents = wantsCents,
+                wantsTodayCents = wantsTodayCents,
                 needsPct = needsPct,
                 wantsPct = wantsPct,
                 budgetOn = budgetOn,
@@ -121,12 +124,78 @@ data class AdvisorContextPack(
     }
 }
 
+/**
+ * 3-day compensatory recovery plan (study_03, NotebookLM Section 4.5).
+ * Pure cents math, no Android types. Null when there is no budget or no
+ * overspend to recover.
+ */
+data class RecoveryPlan(
+    val overByCents: Long,
+    val dayCaps: List<Long>,
+    val needOnlyEvenings: Boolean,
+    val citation: String
+) {
+    companion object {
+        /** Existing asset citation (economic_studies_index.json study_03), verbatim. */
+        const val CITATION = "NotebookLM Section 4.5 — Compensatory Sinking Protocol"
+        const val DAY_COUNT = 3
+
+        private const val WANT_RECOVERY_D1_PERCENT = 33
+        private const val WANT_RECOVERY_D2_PERCENT = 20
+
+        /**
+         * Deterministic integer cents math:
+         * - D+1 cap = max(0, budget - wantsToday * 33 / 100)  (recover 33% of today's Want spend)
+         * - D+2 cap = max(0, budget - wantsToday * 20 / 100)
+         * - D+3 cap = budget
+         * [needOnlyEvenings] is true when the overspend exceeds 25% of the
+         * daily budget (strictly greater).
+         * @return null when the budget is off or today is not over budget.
+         */
+        fun build(
+            dailyBudgetCents: Long?,
+            todayTotalCents: Long,
+            wantsTodayCents: Long
+        ): RecoveryPlan? {
+            if (dailyBudgetCents == null || dailyBudgetCents <= 0) return null
+            val overByCents = todayTotalCents - dailyBudgetCents
+            if (overByCents <= 0) return null
+            val dayCaps = listOf(
+                (dailyBudgetCents - wantsTodayCents * WANT_RECOVERY_D1_PERCENT / 100).coerceAtLeast(0L),
+                (dailyBudgetCents - wantsTodayCents * WANT_RECOVERY_D2_PERCENT / 100).coerceAtLeast(0L),
+                dailyBudgetCents
+            )
+            val needOnlyEvenings = overByCents * 4 > dailyBudgetCents
+            return RecoveryPlan(
+                overByCents = overByCents,
+                dayCaps = dayCaps,
+                needOnlyEvenings = needOnlyEvenings,
+                citation = CITATION
+            )
+        }
+    }
+}
+
 object FinancialAdvisorEngine {
 
     const val SOURCE_OF_TRUTH_TITLE = "Google NotebookLM — Economic Studies"
     const val DEFAULT_NOTEBOOK_URL = "https://notebook.google.com/"
 
     private fun pct(value: Double): Int = value.roundToInt()
+
+    /**
+     * Recovery plan for the live [AdvisorContextPack]: null when the budget is
+     * off or today is within budget. The daily budget is recovered from the
+     * pack (budget = todayTotal + remaining), so no extra inputs are needed.
+     */
+    fun buildRecoveryPlan(context: AdvisorContextPack): RecoveryPlan? {
+        if (!context.budgetOn) return null
+        return RecoveryPlan.build(
+            dailyBudgetCents = context.todayTotalCents + context.remainingCents,
+            todayTotalCents = context.todayTotalCents,
+            wantsTodayCents = context.wantsTodayCents
+        )
+    }
 
     /**
      * Rule library for the Today's insight card. Evaluated top-down; every rule

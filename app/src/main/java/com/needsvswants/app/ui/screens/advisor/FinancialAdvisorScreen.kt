@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,7 @@ fun FinancialAdvisorScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var inputText by remember { mutableStateOf("") }
+    var recoveryDismissed by rememberSaveable { mutableStateOf(false) }
     val palette = AppTheme.colors
 
     Column(
@@ -177,6 +179,17 @@ fun FinancialAdvisorScreen(
             Spacer(Modifier.height(16.dp))
         }
 
+        uiState.recoveryPlan?.let { plan ->
+            if (!recoveryDismissed) {
+                RecoveryPlanCard(
+                    plan = plan,
+                    currencySymbol = uiState.currencySymbol,
+                    onDismiss = { recoveryDismissed = true }
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
         PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 10)
@@ -201,7 +214,11 @@ fun FinancialAdvisorScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     QuickChip("Want today?") { viewModel.sendUserQuery("Can I buy a Want item today?") }
-                    QuickChip("Overspend") { viewModel.sendUserQuery("What is my overspend status?") }
+                    QuickChip("Overspend") {
+                        // Re-surfaces the live recovery plan (rebuilt from current context in the VM) and asks the coach.
+                        recoveryDismissed = false
+                        viewModel.sendUserQuery("What is my overspend status?")
+                    }
                     QuickChip("Need ratio") { viewModel.sendUserQuery("How is my Need to Want ratio?") }
                 }
 

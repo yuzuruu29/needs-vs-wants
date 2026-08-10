@@ -11,6 +11,7 @@ import com.needsvswants.app.domain.AdvisorInsight
 import com.needsvswants.app.domain.ChatMessage
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.FinancialAdvisorEngine
+import com.needsvswants.app.domain.RecoveryPlan
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -19,6 +20,7 @@ import javax.inject.Inject
 
 data class AdvisorUiState(
     val insight: AdvisorInsight? = null,
+    val recoveryPlan: RecoveryPlan? = null,
     val chatMessages: List<ChatMessage> = emptyList(),
     val currencySymbol: String = "₱",
     val isLoading: Boolean = false,
@@ -59,16 +61,15 @@ class FinancialAdvisorViewModel @Inject constructor(
     ) { inputs, spendingGoal ->
         val now = System.currentTimeMillis()
         val hasMax = inputs.entitlement.hasMaxAccessAt(now)
-        val insight = FinancialAdvisorEngine.generateInsight(
-            AdvisorContextPack.build(
-                entries = inputs.entries,
-                dailyBudgetCents = inputs.dailyBudgetCents,
-                spendingGoal = spendingGoal,
-                nowEpochMs = now
-            )
+        val context = AdvisorContextPack.build(
+            entries = inputs.entries,
+            dailyBudgetCents = inputs.dailyBudgetCents,
+            spendingGoal = spendingGoal,
+            nowEpochMs = now
         )
         AdvisorUiState(
-            insight = insight,
+            insight = FinancialAdvisorEngine.generateInsight(context),
+            recoveryPlan = FinancialAdvisorEngine.buildRecoveryPlan(context),
             chatMessages = inputs.messages,
             currencySymbol = inputs.currencySymbol,
             hasMaxAccess = hasMax,
@@ -79,6 +80,18 @@ class FinancialAdvisorViewModel @Inject constructor(
         SharingStarted.WhileSubscribed(5000),
         AdvisorUiState(isLoading = true)
     )
+
+    /**
+     * Live 3-day recovery plan derived from the same ledger/budget context as
+     * [uiState]; null when the budget is off or today is within budget.
+     */
+    val recoveryPlan: StateFlow<RecoveryPlan?> = uiState
+        .map { it.recoveryPlan }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            null
+        )
 
     fun sendUserQuery(queryText: String) {
         if (queryText.isBlank()) return
