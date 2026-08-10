@@ -42,7 +42,30 @@
     }
   </style>
   <script>
-    window.location.replace("needsvswants://paymongo/cancel" + window.location.search);
+    // Cancelling a PayMongo checkout returns here; forward any query params
+    // into the app. Android Chrome gets an intent:// launch (package-targeted,
+    // no chooser dialog; browser_fallback_url only when the app is not
+    // installed). Other browsers keep the plain custom-scheme navigation, and
+    // the tappable fallback link below always works and carries the query
+    // params too.
+    (function () {
+      var query = window.location.search;
+      var ua = navigator.userAgent || "";
+      var androidChrome = /Android/i.test(ua) && /Chrome\//i.test(ua) &&
+        !/Edg\//i.test(ua) && !/OPR\//i.test(ua) && !/SamsungBrowser/i.test(ua);
+      if (androidChrome) {
+        var fallback = encodeURIComponent("https://needs-vs-wants.vercel.app/");
+        window.location.replace(
+          "intent://paymongo/cancel" + query +
+          "#Intent;scheme=needsvswants;package=com.needsvswants.app;S.browser_fallback_url=" +
+          fallback + ";end"
+        );
+      } else {
+        window.location.replace("needsvswants://paymongo/cancel" + query);
+      }
+      var link = document.getElementById("fallback-link");
+      if (link && query) link.href = "needsvswants://paymongo/cancel" + query;
+    })();
   </script>
 </head>
 <body>

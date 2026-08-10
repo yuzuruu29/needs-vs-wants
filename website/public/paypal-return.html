@@ -42,9 +42,30 @@
     }
   </style>
   <script>
-    // PayPal approval page cannot route a custom scheme directly; this page
+    // PayPal approval pages cannot route a custom scheme directly; this page
     // forwards the approval query params (token, PayerID, ...) into the app.
-    window.location.replace("needsvswants://paypal/return" + window.location.search);
+    // Android Chrome gets an intent:// launch (package-targeted, no chooser
+    // dialog; browser_fallback_url only when the app is not installed). Other
+    // browsers keep the plain custom-scheme navigation, and the tappable
+    // fallback link below always works and carries the query params too.
+    (function () {
+      var query = window.location.search;
+      var ua = navigator.userAgent || "";
+      var androidChrome = /Android/i.test(ua) && /Chrome\//i.test(ua) &&
+        !/Edg\//i.test(ua) && !/OPR\//i.test(ua) && !/SamsungBrowser/i.test(ua);
+      if (androidChrome) {
+        var fallback = encodeURIComponent("https://needs-vs-wants.vercel.app/");
+        window.location.replace(
+          "intent://paypal/return" + query +
+          "#Intent;scheme=needsvswants;package=com.needsvswants.app;S.browser_fallback_url=" +
+          fallback + ";end"
+        );
+      } else {
+        window.location.replace("needsvswants://paypal/return" + query);
+      }
+      var link = document.getElementById("fallback-link");
+      if (link && query) link.href = "needsvswants://paypal/return" + query;
+    })();
   </script>
 </head>
 <body>
