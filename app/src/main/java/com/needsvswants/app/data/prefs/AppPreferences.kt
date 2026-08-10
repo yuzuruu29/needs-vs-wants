@@ -84,6 +84,7 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val QUOTA_LOGS_CREATED = intPreferencesKey("quota_logs_created")
         private val QUOTA_CARRIED_LOGS = intPreferencesKey("quota_carried_logs")
         private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
+        private val SPENDING_GOAL = stringPreferencesKey("spending_goal")
     }
 
     val currencySymbol: Flow<String> = dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
@@ -254,6 +255,17 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
 
     suspend fun setFirstLaunchComplete() {
         dataStore.edit { it[FIRST_LAUNCH] = false }
+    }
+
+    /**
+     * Spending-goal selection from the progressive onboarding (design audit #9).
+     * Values: "track" (neutral default), "budget", "analyze". Stored for future
+     * personalization hooks; cleared on wipe like every other key.
+     */
+    val spendingGoal: Flow<String> = dataStore.data.map { it[SPENDING_GOAL] ?: "track" }
+
+    suspend fun setSpendingGoal(goal: String) {
+        dataStore.edit { it[SPENDING_GOAL] = goal }
     }
 
     suspend fun updateBestStreak(streak: Int) {

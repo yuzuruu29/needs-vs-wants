@@ -33,6 +33,7 @@ import com.needsvswants.app.ui.theme.GiltButton
 import com.needsvswants.app.ui.theme.GiltRule
 import com.needsvswants.app.ui.theme.HeaderIconWell
 import com.needsvswants.app.ui.theme.LedgerField
+import com.needsvswants.app.ui.theme.LockedBookIllustration
 import com.needsvswants.app.ui.theme.MaxSealBadge
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
@@ -283,6 +284,8 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
                 NeedWantSealMark()
                 MaxSealBadge(label = "MAX")
             }
+            Spacer(Modifier.height(14.dp))
+            LockedBookIllustration(modifier = Modifier.size(160.dp, 120.dp))
             Spacer(Modifier.height(14.dp))
             TierTag(text = "Max tier · Locked", color = palette.crimson)
             Spacer(Modifier.height(14.dp))

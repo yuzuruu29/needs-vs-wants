@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -162,18 +161,23 @@ fun HistoryScreen(
         Spacer(Modifier.height(20.dp))
 
         if (entries.isEmpty()) {
-            val sealBreath = rememberIdleBreathAlpha()
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    NeedWantSealMark(modifier = Modifier.alpha(sealBreath))
-                    Spacer(Modifier.height(18.dp))
+                    EmptyDiaryIllustration(modifier = Modifier.size(160.dp, 120.dp))
+                    Spacer(Modifier.height(20.dp))
                     Eyebrow("EMPTY DIARY", color = AppTheme.colors.textMuted)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         "The page waits for ink.",
                         style = AppType.bodyMd,
                         color = AppTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    GiltButton(
+                        onClick = onNavigateToInput,
+                        text = "Log your first purchase",
+                        modifier = Modifier.padding(horizontal = 24.dp)
                     )
                 }
             }

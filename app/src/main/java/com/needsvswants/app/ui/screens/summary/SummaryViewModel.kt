@@ -163,6 +163,11 @@ class SummaryViewModel @Inject constructor(
         viewModelScope.launch { preferences.setFirstLaunchComplete() }
     }
 
+    /** Persist the onboarding spending-goal selection (design audit #9). */
+    fun setSpendingGoal(goal: String) {
+        viewModelScope.launch { preferences.setSpendingGoal(goal) }
+    }
+
     /**
      * Pull-to-refresh (design audit #11): force a remote entitlement re-sync.
      * The stats chain is already reactive to [com.needsvswants.app.data.db.EntryDao]

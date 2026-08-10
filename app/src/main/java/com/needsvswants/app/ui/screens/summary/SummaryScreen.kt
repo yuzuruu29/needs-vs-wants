@@ -21,10 +21,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -116,6 +121,7 @@ fun SummaryScreen(
     if (showInstructions) {
         InstructionsOverlay(
             paid = paid,
+            onSelectGoal = { viewModel.setSpendingGoal(it) },
             onDismiss = {
                 showInstructions = false
                 if (isFirstLaunch) viewModel.dismissFirstLaunch()
@@ -342,32 +348,55 @@ fun SummaryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (stats.totalCents == 0L) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingGeminiOrb(
-                                needsSweepDegrees = 0f,
-                                empty = true,
-                                orbSize = 200.dp
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Eyebrow("READY", color = palette.textMuted, size = 10)
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        "—",
-                                        style = AppType.moneyLg,
-                                        color = palette.textSecondary
-                                    )
-                                }
+                        if (!hasHistory) {
+                            // First-launch: illustration + warm CTA invites the first log.
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                EmptyDiaryIllustration(modifier = Modifier.size(160.dp, 120.dp))
+                                Spacer(Modifier.height(16.dp))
+                                Eyebrow("EMPTY DIARY", color = palette.textMuted)
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    "Log your first purchase to start the diary.",
+                                    style = AppType.bodyMd,
+                                    color = palette.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                GiltButton(
+                                    onClick = onNavigateToInput,
+                                    text = "Log a purchase",
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
                             }
-                            Spacer(Modifier.height(16.dp))
-                            val (emptyEyebrow, emptyBody) = emptyPeriodCopy(animatedPeriod, hasHistory, streakDays)
-                            Eyebrow(emptyEyebrow, color = palette.textMuted)
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                emptyBody,
-                                style = AppType.bodyMd,
-                                color = palette.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
+                        } else {
+                            // Period empty but history exists — keep the orb + contextual copy.
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FloatingGeminiOrb(
+                                    needsSweepDegrees = 0f,
+                                    empty = true,
+                                    orbSize = 200.dp
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Eyebrow("READY", color = palette.textMuted, size = 10)
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            "—",
+                                            style = AppType.moneyLg,
+                                            color = palette.textSecondary
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(16.dp))
+                                val (emptyEyebrow, emptyBody) = emptyPeriodCopy(animatedPeriod, hasHistory, streakDays)
+                                Eyebrow(emptyEyebrow, color = palette.textMuted)
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    emptyBody,
+                                    style = AppType.bodyMd,
+                                    color = palette.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     } else {
                         val total = stats.totalCents.toFloat().coerceAtLeast(1f)
@@ -860,22 +889,31 @@ private fun StatCard(
 }
 
 @Composable
-fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
+fun InstructionsOverlay(
+    onDismiss: () -> Unit,
+    paid: Boolean = false,
+    onSelectGoal: (String) -> Unit = {}
+) {
     var currentPage by remember { mutableIntStateOf(0) }
+    var goal by remember { mutableStateOf("track") }
     val palette = AppTheme.colors
+    val totalPages = 5
+    // Steps 1..4 are the existing info cards; step 0 is the new goal selector (#9).
     val titles = listOf(
+        "",
         "Every purchase is a Need or a Want",
         if (paid) "Your diary keeps every day" else "Your diary keeps 30 days",
         "Rows seal themselves",
         "Optional daily budget on Log"
     )
     val bodies = listOf(
+        "",
         "Each entry forces a binary choice. There is no middle ground. That is the lesson.",
         if (paid) "Your history stays for life. Pro keeps the whole diary — no auto-removal." else "Older entries are removed automatically. The window is always 30 days.",
         "When item, cost, and type are filled, the row seals. Delete any row you sealed by mistake.",
         "Set a limit on Log. Watch spent vs remaining. Sealing past the line asks \"Log anyway?\" first."
     )
-    val lastPage = titles.lastIndex
+    val lastPage = totalPages - 1
 
     // Predictive back (design audit #10): scale the instructions sheet down with
     // the system back gesture, then dismiss on commit.
@@ -908,43 +946,87 @@ fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
                 modifier = Modifier.padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Progress bar — (currentPage+1)/totalPages (design audit #9).
+                LinearProgressIndicator(
+                    progress = { (currentPage + 1f) / totalPages },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = palette.gold,
+                    trackColor = palette.surfaceRaised,
+                    strokeCap = StrokeCap.Round
+                )
+                Spacer(Modifier.height(14.dp))
                 Eyebrow("HOW IT WORKS", color = palette.crimson)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Step ${currentPage + 1} of ${titles.size}",
+                    "Step ${currentPage + 1} of $totalPages",
                     style = AppType.meta,
                     color = palette.textMuted
                 )
                 Spacer(Modifier.height(8.dp))
                 GiltRule(width = 32.dp)
                 Spacer(Modifier.height(14.dp))
-                AnimatedContent(
-                    targetState = currentPage,
-                    transitionSpec = {
-                        fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
-                    },
-                    label = "instructionsPage"
-                ) { page ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            titles[page],
-                            style = AppType.dialogTitle,
-                            color = palette.textPrimary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(14.dp))
-                        Text(
-                            bodies[page],
-                            style = AppType.body,
-                            color = palette.textSecondary,
-                            textAlign = TextAlign.Center
-                        )
+
+                if (currentPage == 0) {
+                    // Goal selector — progressive profiling (design audit #9).
+                    OnboardingHandIllustration(modifier = Modifier.size(160.dp, 104.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "What's your spending goal?",
+                        style = AppType.dialogTitle,
+                        color = palette.textPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    GoalCard(
+                        icon = { Icon(Icons.Default.Edit, contentDescription = null, tint = palette.crimson, modifier = Modifier.size(20.dp)) },
+                        text = "Track every purchase",
+                        selected = goal == "track",
+                        onClick = { goal = "track" }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GoalCard(
+                        icon = { Icon(Icons.Default.Savings, contentDescription = null, tint = palette.marketGreen, modifier = Modifier.size(20.dp)) },
+                        text = "Stay under a daily budget",
+                        selected = goal == "budget",
+                        onClick = { goal = "budget" }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    GoalCard(
+                        icon = { Icon(Icons.Default.BarChart, contentDescription = null, tint = palette.gilt, modifier = Modifier.size(20.dp)) },
+                        text = "See where my money goes",
+                        selected = goal == "analyze",
+                        onClick = { goal = "analyze" }
+                    )
+                } else {
+                    AnimatedContent(
+                        targetState = currentPage,
+                        transitionSpec = {
+                            fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
+                        },
+                        label = "instructionsPage"
+                    ) { page ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                titles[page],
+                                style = AppType.dialogTitle,
+                                color = palette.textPrimary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                bodies[page],
+                                style = AppType.body,
+                                color = palette.textSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.Center) {
-                    repeat(titles.size) { i ->
+                    repeat(totalPages) { i ->
                         Box(
                             modifier = Modifier
                                 .padding(4.dp)
@@ -966,17 +1048,63 @@ fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
                     if (currentPage < lastPage) {
                         GhostTextAction(
                             text = "Next",
-                            onClick = { currentPage++ }
+                            onClick = {
+                                currentPage++
+                                // Persist the goal as soon as the user leaves the selector.
+                                if (currentPage == 1) onSelectGoal(goal)
+                            }
                         )
                     } else {
                         GiltButton(
-                            onClick = onDismiss,
+                            onClick = {
+                                onSelectGoal(goal)
+                                onDismiss()
+                            },
                             text = "Begin",
                             height = 46.dp,
                             modifier = Modifier.widthIn(min = 120.dp)
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Selectable goal card for the onboarding step-0 selector (design audit #9). */
+@Composable
+private fun GoalCard(
+    icon: @Composable () -> Unit,
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val palette = AppTheme.colors
+    val edge = if (selected) palette.crimson else palette.gold.copy(alpha = 0.28f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = selected), RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.5.dp, edge), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) { icon() }
+        Text(
+            text,
+            style = AppType.bodyMd.copy(color = if (selected) palette.textPrimary else palette.textSecondary),
+            modifier = Modifier.weight(1f)
+        )
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(palette.crimson, CircleShape)
+                    .padding(4.dp)
+            ) {
+                Box(Modifier.fillMaxSize().background(palette.surfaceCard, CircleShape))
             }
         }
     }
