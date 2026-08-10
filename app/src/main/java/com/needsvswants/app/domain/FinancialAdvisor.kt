@@ -190,15 +190,53 @@ data class WantHold(
         /** study_04 asset citation, verbatim. */
         const val CITATION_HOLD = "NotebookLM Section 1.2 — Binary Classification Dynamics"
 
-        /** study_05 asset citation, verbatim. */
-        const val CITATION_OK = "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control"
+        /** study_05 asset citation, verbatim (single source: [FinancialAdvisorEngine.CITATION_SECTION_31]). */
+        const val CITATION_OK = FinancialAdvisorEngine.CITATION_SECTION_31
     }
+}
+
+/**
+ * Quick-protocol chip labels for the Advisor dashboard (spec verbatim):
+ * Overspend · Can I buy this? · Want share · Budget health · Weekend plan.
+ * Tapping a chip sends [advisorProtocolQuery] of the label into chat.
+ */
+object AdvisorProtocols {
+    const val OVERSPEND = "Overspend"
+    const val CAN_I_BUY_THIS = "Can I buy this?"
+    const val WANT_SHARE = "Want share"
+    const val BUDGET_HEALTH = "Budget health"
+    const val WEEKEND_PLAN = "Weekend plan"
+
+    /** Dashboard chip row order, spec verbatim. */
+    val ALL: List<String> = listOf(OVERSPEND, CAN_I_BUY_THIS, WANT_SHARE, BUDGET_HEALTH, WEEKEND_PLAN)
+}
+
+/**
+ * Maps a quick-protocol chip [protocol] to the chat query sent to the coach.
+ * Each query is worded so [FinancialAdvisorEngine.evaluateConversationalQuery]
+ * routes it to the matching rule branch (overspend, buy, share, health,
+ * weekend). Unknown labels pass through as-is. Pure and unit-tested.
+ */
+fun advisorProtocolQuery(protocol: String): String = when (protocol) {
+    AdvisorProtocols.OVERSPEND -> "What is my overspend status?"
+    AdvisorProtocols.CAN_I_BUY_THIS -> "Can I buy this Want item?"
+    AdvisorProtocols.WANT_SHARE -> "What is my Want share this week?"
+    AdvisorProtocols.BUDGET_HEALTH -> "How is my budget health today?"
+    AdvisorProtocols.WEEKEND_PLAN -> "Give me a weekend plan"
+    else -> protocol
 }
 
 object FinancialAdvisorEngine {
 
     const val SOURCE_OF_TRUTH_TITLE = "Google NotebookLM — Economic Studies"
     const val DEFAULT_NOTEBOOK_URL = "https://notebook.google.com/"
+
+    /**
+     * Section 3.1 citation, verbatim from economic_studies_index.json
+     * (study_02 / study_05 / study_07 / study_08). Single source of truth so
+     * the engine and the asset index cannot drift apart again.
+     */
+    const val CITATION_SECTION_31 = "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control"
 
     private const val HOLD_SHARE_PERCENT = 15
     private const val WANTS_SHARE_HOLD_THRESHOLD = 55.0
@@ -304,7 +342,7 @@ object FinancialAdvisorEngine {
                 advice = "You are on a ${context.streakDays}-day logging streak. Protect it through the weekend: pre-plan Want purchases, keep Needs as your anchor, and log every entry at point of sale.",
                 citation = AdvisorCitation(
                     title = "Notebook #2: Behavioral Friction",
-                    section = "NotebookLM Section 3.1 — Real-Time Behavioral Control"
+                    section = CITATION_SECTION_31
                 ),
                 isWarning = false
             )
@@ -317,7 +355,7 @@ object FinancialAdvisorEngine {
                 advice = "Keep the ${context.streakDays}-day streak alive: one more day of logging strengthens the habit loop your study notebooks describe.",
                 citation = AdvisorCitation(
                     title = "Notebook #2: Behavioral Friction",
-                    section = "NotebookLM Section 3.1 — Real-Time Behavioral Control"
+                    section = CITATION_SECTION_31
                 ),
                 isWarning = false
             )
@@ -343,7 +381,7 @@ object FinancialAdvisorEngine {
                 advice = "Today's spending is within your daily budget with ${context.remainingCents} cents remaining. Keep logging every purchase to preserve the friction your study notebooks recommend.",
                 citation = AdvisorCitation(
                     title = "Notebook #2: Behavioral Friction",
-                    section = "NotebookLM Section 3.1 — Real-Time Behavioral Control"
+                    section = CITATION_SECTION_31
                 ),
                 isWarning = false
             )
@@ -355,7 +393,7 @@ object FinancialAdvisorEngine {
             advice = "Based on your Google NotebookLM economic study notebooks, your spending velocity is balanced. Essential Needs form the anchor of your daily ledger; top Wants so far: $topWantsText.",
             citation = AdvisorCitation(
                 title = "Notebook #2: Behavioral Friction",
-                section = "NotebookLM Section 3.1 — Real-Time Behavioral Control"
+                section = CITATION_SECTION_31
             ),
             isWarning = false
         )
@@ -394,7 +432,7 @@ object FinancialAdvisorEngine {
                 }
                 Triple(
                     "Plan the weekend as a ledger, not a spree: set a Want cap, keep Needs first, and log at point of sale.$streakNote",
-                    AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Real-Time Behavioral Control"),
+                    AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                     false
                 )
             }
@@ -404,13 +442,13 @@ object FinancialAdvisorEngine {
                 if (context.streakDays > 0) {
                     Triple(
                         "You are on a ${context.streakDays}-day logging streak. Consistency is the strongest habit signal in your study notebooks; keep going.",
-                        AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Real-Time Behavioral Control"),
+                        AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
                 } else {
                     Triple(
                         "You have no active streak yet. Log at least one purchase today to start the habit loop your study notebooks describe.",
-                        AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Real-Time Behavioral Control"),
+                        AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
                 }
@@ -427,13 +465,13 @@ object FinancialAdvisorEngine {
                 } else if (context.budgetOn) {
                     Triple(
                         "Your budget health is green: today is within the daily limit with ${context.remainingCents} cents remaining. Keep real-time log friction on Want items.",
-                        AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Real-Time Behavioral Control"),
+                        AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
                 } else {
                     Triple(
                         "No daily budget is set, so there is no guardrail to measure. Set one on the Log screen to give the coach a target.",
-                        AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Real-Time Behavioral Control"),
+                        AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
                 }
@@ -460,7 +498,7 @@ object FinancialAdvisorEngine {
                 } else {
                     Triple(
                         "Your daily spending is within your budget. Keep maintaining real-time log friction for non-essential Want items.",
-                        AdvisorCitation("Notebook #2: Behavioral Friction", "NotebookLM Section 3.1 — Micro-Transaction Friction"),
+                        AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
                 }
@@ -490,7 +528,7 @@ object FinancialAdvisorEngine {
             else -> {
                 Triple(
                     "Grounded in your Google NotebookLM economic studies: Always classify entries at point-of-sale to preserve behavioral friction. Needs should remain your core financial anchor.",
-                    AdvisorCitation("Notebook #2: Behavioral Control", "NotebookLM Section 3.1 — Real-Time Control"),
+                    AdvisorCitation("Notebook #2: Behavioral Control", CITATION_SECTION_31),
                     false
                 )
             }

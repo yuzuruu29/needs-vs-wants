@@ -399,4 +399,126 @@ class FinancialAdvisorTest {
             )
         }
     }
+
+    // --- Quick protocols (Task 4) -------------------------------------------------
+
+    @Test
+    fun advisorProtocols_labelsMatchSpecVerbatim() {
+        assertEquals(
+            listOf("Overspend", "Can I buy this?", "Want share", "Budget health", "Weekend plan"),
+            AdvisorProtocols.ALL
+        )
+    }
+
+    @Test
+    fun advisorProtocolQuery_mapsEveryChipToKeywordedQuery() {
+        val expectedKeyword = mapOf(
+            AdvisorProtocols.OVERSPEND to "overspend",
+            AdvisorProtocols.CAN_I_BUY_THIS to "buy",
+            AdvisorProtocols.WANT_SHARE to "share",
+            AdvisorProtocols.BUDGET_HEALTH to "health",
+            AdvisorProtocols.WEEKEND_PLAN to "weekend"
+        )
+        expectedKeyword.forEach { (label, keyword) ->
+            val query = advisorProtocolQuery(label)
+            assertTrue("chip [$label] must map to a non-blank query", query.isNotBlank())
+            assertTrue(
+                "chip [$label] query [$query] must contain keyword [$keyword]",
+                query.lowercase().contains(keyword)
+            )
+        }
+    }
+
+    @Test
+    fun advisorProtocolQuery_unknownLabelPassesThrough() {
+        assertEquals("How do I save more?", advisorProtocolQuery("How do I save more?"))
+    }
+
+    @Test
+    fun advisorProtocolQuery_routesToExpectedEngineBranch() {
+        val withinBudget = pack(
+            listOf(entry(daysAgo = 0, item = "Groceries", costCents = 100_00, type = EntryType.NEED)),
+            dailyBudgetCents = 1000_00
+        )
+        val overBudget = pack(
+            listOf(entry(daysAgo = 0, item = "Gadget", costCents = 600_00, type = EntryType.WANT)),
+            dailyBudgetCents = 500_00
+        )
+        val wantsHeavy = pack(
+            listOf(
+                entry(daysAgo = 0, item = "Food", costCents = 100_00, type = EntryType.NEED),
+                entry(daysAgo = 0, item = "Gadget", costCents = 300_00, type = EntryType.WANT)
+            )
+        )
+
+        val overspend = FinancialAdvisorEngine.evaluateConversationalQuery(
+            advisorProtocolQuery(AdvisorProtocols.OVERSPEND), overBudget
+        )
+        assertTrue(overspend.isWarning)
+        assertTrue(overspend.text.contains("over budget"))
+
+        val buy = FinancialAdvisorEngine.evaluateConversationalQuery(
+            advisorProtocolQuery(AdvisorProtocols.CAN_I_BUY_THIS), wantsHeavy
+        )
+        assertTrue(buy.isWarning)
+        assertTrue(buy.text.contains("24 hours"))
+
+        val share = FinancialAdvisorEngine.evaluateConversationalQuery(
+            advisorProtocolQuery(AdvisorProtocols.WANT_SHARE), withinBudget
+        )
+        assertTrue(share.text.contains("% Needs"))
+
+        val health = FinancialAdvisorEngine.evaluateConversationalQuery(
+            advisorProtocolQuery(AdvisorProtocols.BUDGET_HEALTH), withinBudget
+        )
+        assertTrue(health.text.contains("green"))
+
+        val weekend = FinancialAdvisorEngine.evaluateConversationalQuery(
+            advisorProtocolQuery(AdvisorProtocols.WEEKEND_PLAN), withinBudget
+        )
+        assertTrue(weekend.text.contains("weekend"))
+
+        listOf(overspend, buy, share, health, weekend).forEach { msg ->
+            assertNotNull(msg.citation)
+            assertTrue(sectionCitation.containsMatchIn(msg.citation!!.section))
+        }
+    }
+
+    // --- Citation drift guard (Task 4): engine 3.1 title == asset verbatim ---------
+
+    @Test
+    fun engineSection31Citation_matchesAssetTitleVerbatim() {
+        assertEquals(
+            "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control",
+            FinancialAdvisorEngine.CITATION_SECTION_31
+        )
+        // study_05 asset string is also the WantHold ok-citation (single source).
+        assertEquals(FinancialAdvisorEngine.CITATION_SECTION_31, WantHold.CITATION_OK)
+
+        // Rules/branches that previously carried drifted 3.1 variants.
+        val streakPack = pack(
+            (0..4).map { entry(daysAgo = it, item = "Staples", costCents = 100_00, type = EntryType.NEED) }
+        )
+        assertEquals(
+            FinancialAdvisorEngine.CITATION_SECTION_31,
+            FinancialAdvisorEngine.generateInsight(streakPack).citation.section
+        )
+
+        val base = pack(
+            listOf(entry(daysAgo = 0, item = "Groceries", costCents = 100_00, type = EntryType.NEED)),
+            dailyBudgetCents = 1000_00
+        )
+        assertEquals(
+            FinancialAdvisorEngine.CITATION_SECTION_31,
+            FinancialAdvisorEngine.evaluateConversationalQuery("Plan my weekend", base).citation!!.section
+        )
+        assertEquals(
+            FinancialAdvisorEngine.CITATION_SECTION_31,
+            FinancialAdvisorEngine.evaluateConversationalQuery("Am I over budget today?", base).citation!!.section
+        )
+        assertEquals(
+            FinancialAdvisorEngine.CITATION_SECTION_31,
+            FinancialAdvisorEngine.evaluateConversationalQuery("hello there", base).citation!!.section
+        )
+    }
 }

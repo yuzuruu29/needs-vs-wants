@@ -3,6 +3,8 @@ package com.needsvswants.app.ui.screens.advisor
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +27,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.needsvswants.app.domain.AdvisorProtocols
 import com.needsvswants.app.domain.ChatMessage
 import com.needsvswants.app.domain.ChatSender
+import com.needsvswants.app.domain.advisorProtocolQuery
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -44,6 +48,7 @@ import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.TierTag
 import com.needsvswants.app.ui.theme.themedInkWash
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FinancialAdvisorScreen(
     onOpenPaywall: () -> Unit = {},
@@ -133,47 +138,53 @@ fun FinancialAdvisorScreen(
         uiState.insight?.let { insight ->
             val edge = if (insight.isWarning) palette.crimson.copy(alpha = 0.45f)
             else palette.marketGreen.copy(alpha = 0.45f)
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = palette.surfaceCard,
-                border = androidx.compose.foundation.BorderStroke(1.dp, edge),
-                shadowElevation = 2.dp,
-                tonalElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth()
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(Motion.entrance()),
+                label = "todayInsightCard"
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Eyebrow(
-                        if (insight.isWarning) "ADVISOR ALERT" else "RECOMMENDATION",
-                        color = if (insight.isWarning) palette.crimson else palette.marketGreen,
-                        size = 10
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = insight.headline,
-                        style = AppType.sectionTitle,
-                        color = palette.textPrimary
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = insight.advice,
-                        style = AppType.bodyMd,
-                        color = palette.textPrimary
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    GiltRule(width = 28.dp)
-                    Spacer(Modifier.height(10.dp))
-                    Eyebrow("CITATION", color = palette.gilt, size = 10)
-                    Text(
-                        text = insight.citation.title,
-                        style = AppType.bodySmEmph,
-                        color = palette.textPrimary,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    Text(
-                        text = insight.citation.section,
-                        style = AppType.bodySm,
-                        color = palette.textSecondary
-                    )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = palette.surfaceCard,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, edge),
+                    shadowElevation = 2.dp,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Eyebrow(
+                            "TODAY'S INSIGHT",
+                            color = if (insight.isWarning) palette.crimson else palette.marketGreen,
+                            size = 10
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = insight.headline,
+                            style = AppType.sectionTitle,
+                            color = palette.textPrimary
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = insight.advice,
+                            style = AppType.bodyMd,
+                            color = palette.textPrimary
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        GiltRule(width = 28.dp)
+                        Spacer(Modifier.height(10.dp))
+                        Eyebrow("CITATION", color = palette.gilt, size = 10)
+                        Text(
+                            text = insight.citation.title,
+                            style = AppType.bodySmEmph,
+                            color = palette.textPrimary,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Text(
+                            text = insight.citation.section,
+                            style = AppType.bodySm,
+                            color = palette.textSecondary
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -190,6 +201,30 @@ fun FinancialAdvisorScreen(
             }
         }
 
+        PremiumSurface(goldEdge = false, raised = false) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Eyebrow("QUICK PROTOCOLS", color = palette.gilt, size = 10)
+                Spacer(Modifier.height(12.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    AdvisorProtocols.ALL.forEach { protocol ->
+                        QuickChip(protocol) {
+                            if (protocol == AdvisorProtocols.OVERSPEND) {
+                                // Re-surfaces the live recovery plan (rebuilt from current context in the VM).
+                                recoveryDismissed = false
+                            }
+                            viewModel.sendUserQuery(advisorProtocolQuery(protocol))
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 10)
@@ -205,21 +240,6 @@ fun FinancialAdvisorScreen(
                             ChatBubble(message = msg)
                         }
                     }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    QuickChip("Want today?") { viewModel.sendUserQuery("Can I buy a Want item today?") }
-                    QuickChip("Overspend") {
-                        // Re-surfaces the live recovery plan (rebuilt from current context in the VM) and asks the coach.
-                        recoveryDismissed = false
-                        viewModel.sendUserQuery("What is my overspend status?")
-                    }
-                    QuickChip("Need ratio") { viewModel.sendUserQuery("How is my Need to Want ratio?") }
                 }
 
                 Spacer(Modifier.height(12.dp))
