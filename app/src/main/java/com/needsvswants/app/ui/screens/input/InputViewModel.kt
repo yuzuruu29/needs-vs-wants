@@ -7,11 +7,14 @@ import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.domain.AdvisorContextPack
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.DailyLogQuota
+import com.needsvswants.app.domain.FinancialAdvisorEngine
 import com.needsvswants.app.domain.QuotaState
+import com.needsvswants.app.domain.WantHold
 import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
 import com.needsvswants.app.widget.NvwWidget
@@ -29,6 +32,20 @@ sealed class SealEvent {
 }
 
 data class QuotaBlocked(val item: String, val costCents: Long, val type: EntryType)
+
+/**
+ * Pending pre-seal Want consult for Max users (Task 3). Non-null while a
+ * draft Want row is waiting for the coach verdict; the seal is held until the
+ * user chooses "Seal anyway" (via [InputViewModel.confirmCoachSeal]) or edits
+ * the row away. Needs and Free/Pro never produce this state.
+ */
+data class CoachHold(
+    val item: String,
+    val costCents: Long,
+    val hold: Boolean,
+    val reason: String,
+    val citation: String
+)
 
 @HiltViewModel
 class InputViewModel @Inject constructor(
@@ -89,6 +106,17 @@ class InputViewModel @Inject constructor(
     private val _quotaBlocked = MutableStateFlow<QuotaBlocked?>(null)
     val quotaBlocked: StateFlow<QuotaBlocked?> = _quotaBlocked.asStateFlow()
 
+    /** Pending pre-seal Want consult (Max only); null for Free/Pro and Needs. */
+    private val _coachHold = MutableStateFlow<CoachHold?>(null)
+    val coachHold: StateFlow<CoachHold?> = _coachHold.asStateFlow()
+
+    /** True when the current entitlement grants Max at this moment (coach gate). */
+    val hasMaxAccess: Boolean
+        get() = entitlement.value.hasMaxAccessAt(System.currentTimeMillis())
+
+    /** True only for the seal the user explicitly confirmed through the coach dialog. */
+    private var coachSealOverride = false
+
     private val _sealEvents = MutableSharedFlow<SealEvent>(extraBufferCapacity = 1)
     val sealEvents: SharedFlow<SealEvent> = _sealEvents.asSharedFlow()
 
@@ -120,9 +148,33 @@ class InputViewModel @Inject constructor(
         val item = activeItem.value.trim()
         val costCents = parseCents(activeCost.value)
         val type = activeType.value
-        if (item.isEmpty() || costCents == null || type == null || isSheetFull) return
+        if (item.isEmpty() || costCents == null || type == null || isSheetFull) {
+            // Row is no longer sealable; drop any stale pending consult.
+            _coachHold.value = null
+            return
+        }
 
         val now = System.currentTimeMillis()
+        // Max coach gate (Task 3): a draft Want with a budget On gets a quiet
+        // pre-seal consult instead of an instant seal. Needs are never gated,
+        // Free/Pro are untouched, and a budget Off yields no guardrail at all.
+        if (!coachSealOverride &&
+            entitlement.value.hasMaxAccessAt(now) && type == EntryType.WANT
+        ) {
+            val suggestion = wantHoldSuggestion(costCents)
+            if (suggestion != null) {
+                _coachHold.value = CoachHold(
+                    item = item,
+                    costCents = costCents,
+                    hold = suggestion.hold,
+                    reason = suggestion.reason,
+                    citation = suggestion.citation
+                )
+                return
+            }
+        }
+        coachSealOverride = false
+
         if (!entitlement.value.hasProAccessAt(now)) {
             val rolled = DailyLogQuota.rollDayIfNeeded(quotaState.value, todayString())
             if (!DailyLogQuota.canLog(rolled, todayString())) {
@@ -139,6 +191,30 @@ class InputViewModel @Inject constructor(
             return
         }
         sealNow(item, costCents, type, now)
+    }
+
+    /**
+     * Pure-ish coach verdict for a draft Want, backed by the domain engine
+     * over the live ledger + daily budget. Null when the budget is off.
+     */
+    fun wantHoldSuggestion(costCents: Long): WantHold? {
+        val context = AdvisorContextPack.build(
+            entries = sheetEntries.value,
+            dailyBudgetCents = dailyBudgetCents.value,
+            spendingGoal = AdvisorContextPack.DEFAULT_SPENDING_GOAL
+        )
+        return FinancialAdvisorEngine.wantHoldSuggestion(costCents, context)
+    }
+
+    /**
+     * "Seal anyway" from the coach dialog: drops the pending consult and
+     * re-enters the untouched seal path (quota gate, overspend confirm, seal).
+     */
+    fun confirmCoachSeal() {
+        if (_coachHold.value == null) return
+        _coachHold.value = null
+        coachSealOverride = true
+        trySeal()
     }
 
     fun confirmOverspendSeal() {
@@ -161,6 +237,7 @@ class InputViewModel @Inject constructor(
     private fun sealNow(item: String, costCents: Long, type: EntryType, now: Long) {
         if (isSealing) return
         isSealing = true
+        _coachHold.value = null
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         val willComplete = !entitlement.value.hasProAccessAt(now) && sheetEntries.value.size + 1 >= 20

@@ -97,6 +97,8 @@ fun InputScreen(
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
     val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
+    val coachHold by viewModel.coachHold.collectAsStateWithLifecycle()
+    var showCoachDialog by remember { mutableStateOf(false) }
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
@@ -159,6 +161,11 @@ fun InputScreen(
                 viewModel.trySeal()
             }
         }
+    }
+
+    // A sealed or edited-away row clears the pending consult; drop any open dialog.
+    LaunchedEffect(coachHold) {
+        if (coachHold == null) showCoachDialog = false
     }
 
     Box(
@@ -320,6 +327,19 @@ fun InputScreen(
                                                 viewModel.trySeal()
                                             }
                                         }
+                                        // Max-only pre-seal Want coach (Task 3): quiet chip
+                                        // while a draft Want consult is pending. Needs never
+                                        // produce this state; Free/Pro see nothing.
+                                        if (coachHold != null) {
+                                            Spacer(Modifier.height(10.dp))
+                                            CoachChip(
+                                                label = "Ask Max before sealing",
+                                                onClick = {
+                                                    haptics.tick()
+                                                    showCoachDialog = true
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             } else {
@@ -474,6 +494,71 @@ fun InputScreen(
             )
         }
 
+        // Max-only pre-seal Want coach dialog (Task 3): the soft hold gate when
+        // the coach suggests a 24h hold, a light all-clear otherwise. "Hold"
+        // only closes the dialog: the seal never fired, so the draft stays.
+        coachHold?.let { hold ->
+            if (showCoachDialog) {
+                if (hold.hold) {
+                    PremiumDialog(
+                        onDismissRequest = { showCoachDialog = false },
+                        eyebrow = "MAX COACH",
+                        eyebrowColor = palette.crimson,
+                        title = "24h hold suggested",
+                        bodyContent = {
+                            Column {
+                                Text(
+                                    text = hold.reason,
+                                    color = palette.textPrimary,
+                                    style = AppType.body
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = hold.citation,
+                                    color = palette.textMuted,
+                                    style = AppType.caption
+                                )
+                            }
+                        },
+                        confirmLabel = "Seal anyway",
+                        onConfirm = {
+                            showCoachDialog = false
+                            viewModel.confirmCoachSeal()
+                        },
+                        dismissLabel = "Hold"
+                    )
+                } else {
+                    PremiumDialog(
+                        onDismissRequest = { showCoachDialog = false },
+                        eyebrow = "MAX COACH",
+                        eyebrowColor = palette.gold,
+                        title = "Max: looks okay",
+                        bodyContent = {
+                            Column {
+                                Text(
+                                    text = hold.reason,
+                                    color = palette.textPrimary,
+                                    style = AppType.body
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = hold.citation,
+                                    color = palette.textMuted,
+                                    style = AppType.caption
+                                )
+                            }
+                        },
+                        confirmLabel = "Seal",
+                        onConfirm = {
+                            showCoachDialog = false
+                            viewModel.confirmCoachSeal()
+                        },
+                        dismissLabel = "Keep typing"
+                    )
+                }
+            }
+        }
+
         deleteTarget?.let { entry ->
             PremiumDialog(
                 onDismissRequest = { deleteTarget = null },
@@ -556,6 +641,29 @@ private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: ()
                 )
             )
         }
+    }
+}
+
+/**
+ * Quiet Max coach affordance for a pending Want consult (Task 3). Static
+ * surface (reduced-motion safe by construction); tick haptic on tap.
+ */
+@Composable
+private fun CoachChip(label: String, onClick: () -> Unit) {
+    val palette = AppTheme.colors
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = palette.surfaceRaised,
+        border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
+        modifier = Modifier.heightIn(min = 36.dp)
+    ) {
+        Text(
+            text = label,
+            style = AppType.meta,
+            color = palette.textPrimary,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+        )
     }
 }
 

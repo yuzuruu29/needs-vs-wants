@@ -176,10 +176,61 @@ data class RecoveryPlan(
     }
 }
 
+/**
+ * Pre-seal Want consult verdict (study_04 Want Impulse Hold Protocol /
+ * study_05 Daily Budget Health Check). Pure; no Android types. Null when the
+ * daily budget is off: there is no guardrail to measure against.
+ */
+data class WantHold(
+    val hold: Boolean,
+    val reason: String,
+    val citation: String
+) {
+    companion object {
+        /** study_04 asset citation, verbatim. */
+        const val CITATION_HOLD = "NotebookLM Section 1.2 — Binary Classification Dynamics"
+
+        /** study_05 asset citation, verbatim. */
+        const val CITATION_OK = "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control"
+    }
+}
+
 object FinancialAdvisorEngine {
 
     const val SOURCE_OF_TRUTH_TITLE = "Google NotebookLM — Economic Studies"
     const val DEFAULT_NOTEBOOK_URL = "https://notebook.google.com/"
+
+    private const val HOLD_SHARE_PERCENT = 15
+    private const val WANTS_SHARE_HOLD_THRESHOLD = 55.0
+
+    /**
+     * Pre-seal consult for a draft Want. Hold when the item costs strictly
+     * more than 15% of today's remaining budget, or Wants are strictly more
+     * than 55% of this week's spending (integer cents math on the share
+     * threshold). Returns null when the daily budget is off.
+     */
+    fun wantHoldSuggestion(costCents: Long, context: AdvisorContextPack): WantHold? {
+        if (!context.budgetOn) return null
+        val overRemainingShare = costCents > context.remainingCents * HOLD_SHARE_PERCENT / 100
+        val wantsHeavy = context.wantsPct > WANTS_SHARE_HOLD_THRESHOLD
+        return if (overRemainingShare || wantsHeavy) {
+            WantHold(
+                hold = true,
+                reason = if (overRemainingShare) {
+                    "This Want costs more than 15% of what remains for today."
+                } else {
+                    "Wants are more than 55% of this week's spending."
+                },
+                citation = WantHold.CITATION_HOLD
+            )
+        } else {
+            WantHold(
+                hold = false,
+                reason = "This Want stays within today's remaining budget.",
+                citation = WantHold.CITATION_OK
+            )
+        }
+    }
 
     private fun pct(value: Double): Int = value.roundToInt()
 
