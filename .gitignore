@@ -75,3 +75,4 @@ supabase/.temp/
 
 # Local LLM orientation dump (not source of truth — vault + AGENTS.md are)
 CHATGPT_CONTEXT.md
+.freebuff/
