@@ -527,21 +527,33 @@ fun SummaryScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Clear dual percentage summary of this period's logs (by spend share)
-                SplitSummaryCard(
-                    needsPct = stats.needsPct,
-                    wantsPct = stats.wantsPct,
-                    needsCents = stats.needsTotalCents,
-                    wantsCents = stats.wantsTotalCents,
-                    symbol = symbol,
-                    onOpenPortal = {
-                        if (stats.totalCents > 0L) {
-                            haptics.tick()
-                            showSplitPortal = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().staggerIn(2)
-                )
+                // Bento row (design audit #8): spend-split card + streak card 2-up.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SplitSummaryCard(
+                        needsPct = stats.needsPct,
+                        wantsPct = stats.wantsPct,
+                        needsCents = stats.needsTotalCents,
+                        wantsCents = stats.wantsTotalCents,
+                        symbol = symbol,
+                        onOpenPortal = {
+                            if (stats.totalCents > 0L) {
+                                haptics.tick()
+                                showSplitPortal = true
+                            }
+                        },
+                        modifier = Modifier.weight(1.25f).staggerIn(2)
+                    )
+                    if (streakDays > 0) {
+                        StreakBentoCard(
+                            currentStreak = streakDays,
+                            bestStreak = bestStreak,
+                            modifier = Modifier.weight(0.75f).staggerIn(3)
+                        )
+                    }
+                }
             }
         }
 
@@ -556,16 +568,6 @@ fun SummaryScreen(
                 dailyTotals = stats.dailyTotals,
                 periodLabel = getPeriodLabel(period, paid),
                 onDismiss = { showSplitPortal = false }
-            )
-        }
-
-        // Quiet streak + one insight — never above the donut (outside period fade)
-        if (streakDays > 0) {
-            Spacer(Modifier.height(16.dp))
-            StreakLine(
-                currentStreak = streakDays,
-                bestStreak = bestStreak,
-                modifier = Modifier.fillMaxWidth().staggerIn(3)
             )
         }
 
@@ -939,6 +941,51 @@ private fun StatCard(
             drawRect(color = dividerColor, size = Size(size.width, size.height))
             drawRect(color = accent, size = Size(size.width * pct / 100f, size.height))
         }
+    }
+}
+
+/** Compact streak card for the bento row (design audit #8) — chip geometry matching StatCard. */
+@Composable
+private fun StreakBentoCard(
+    currentStreak: Int,
+    bestStreak: Int,
+    modifier: Modifier = Modifier
+) {
+    val palette = AppTheme.colors
+    val next = StreakMilestone.nextAfter(currentStreak)
+    val secondary = when {
+        next != null -> {
+            val left = next.days - currentStreak
+            val unit = if (left == 1) "day" else "days"
+            "$left $unit to ${next.label}"
+        }
+        bestStreak > currentStreak -> "Best $bestStreak"
+        else -> "Full cycle"
+    }
+    Column(
+        modifier = modifier
+            .paperSurface(
+                rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = scaledSpacing(12f), vertical = scaledSpacing(14f))
+    ) {
+        Eyebrow("STREAK", color = palette.gilt, size = 11)
+        Spacer(Modifier.height(scaledSpacing(6f)))
+        Text(
+            if (currentStreak == 1) "Day 1" else "Day $currentStreak",
+            style = AppType.moneyMd.copy(fontSize = 20.sp, color = palette.textPrimary),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            secondary,
+            style = AppType.caption,
+            color = palette.textSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

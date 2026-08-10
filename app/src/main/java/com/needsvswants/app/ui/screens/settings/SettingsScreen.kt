@@ -16,6 +16,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.CardMembership
+import androidx.compose.material.icons.outlined.CurrencyExchange
+import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.Today
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,7 +109,7 @@ fun SettingsScreen(
         // Membership Desk for Pro/Max; compact free invite otherwise. The `plain`
         // test flavor strips all Pro/Max surfaces — no plan invite, no desk.
         if (!BuildConfig.PLAIN_FREE) {
-            SectionLabel(if (paid) "MEMBERSHIP" else "ACCOUNT")
+            SectionLabelWithIcon(Icons.Outlined.CardMembership, if (paid) "MEMBERSHIP" else "ACCOUNT", AppTheme.colors.gold)
             Spacer(Modifier.height(10.dp))
             if (paid) {
                 MembershipDesk(
@@ -142,7 +152,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("CURRENCY")
+        SectionLabelWithIcon(Icons.Outlined.CurrencyExchange, "CURRENCY", AppTheme.colors.crimson)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
@@ -179,7 +189,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("TEXT SIZE")
+        SectionLabelWithIcon(Icons.Outlined.TextFields, "TEXT SIZE", AppTheme.colors.textSecondary)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
@@ -217,7 +227,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("APPEARANCE")
+        SectionLabelWithIcon(Icons.Outlined.Palette, "APPEARANCE", AppTheme.colors.textSecondary)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Column(modifier = Modifier.padding(6.dp)) {
@@ -260,7 +270,7 @@ fun SettingsScreen(
 // the Membership Desk for paid users; kept for free users to discover plans).
         // The `plain` test flavor strips it entirely.
         if (!BuildConfig.PLAIN_FREE) {
-            SectionLabel("PLAN")
+            SectionLabelWithIcon(Icons.Outlined.WorkspacePremium, "PLAN", AppTheme.colors.gold)
             Spacer(Modifier.height(10.dp))
             SettingsPanel {
                 Row(
@@ -299,7 +309,7 @@ fun SettingsScreen(
         // Only render the section (title + panel) when the quota applies —
         // i.e. the user is Free. Pro/Max get no DAILY FREE LOGS header at all.
         if (freeLogs != null) {
-            SectionLabel("DAILY FREE LOGS")
+            SectionLabelWithIcon(Icons.Outlined.Today, "DAILY FREE LOGS", AppTheme.colors.marketGreen)
             Spacer(Modifier.height(10.dp))
             SettingsPanel {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
@@ -334,7 +344,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("FEEDBACK")
+        SectionLabelWithIcon(Icons.Outlined.Feedback, "FEEDBACK", AppTheme.colors.crimson)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             FeedbackToggleRow(
@@ -376,7 +386,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("NOTIFICATIONS")
+        SectionLabelWithIcon(Icons.Outlined.Notifications, "NOTIFICATIONS", AppTheme.colors.textSecondary)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             FeedbackToggleRow(
@@ -407,7 +417,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("DATA")
+        SectionLabelWithIcon(Icons.Outlined.DeleteSweep, "DATA", AppTheme.colors.want)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Row(
@@ -442,7 +452,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabel("ABOUT")
+        SectionLabelWithIcon(Icons.Outlined.Info, "ABOUT", AppTheme.colors.textMuted)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Column(modifier = Modifier.padding(18.dp)) {
@@ -685,4 +695,18 @@ private fun QuotaStatRow(label: String, value: String, valueColor: Color) {
 @Composable
 private fun SectionLabel(text: String) {
     Eyebrow(text, color = AppTheme.colors.textMuted, size = 12)
+}
+
+/** Section label with a small tinted icon (design audit #15) — breaks Settings monotony. */
+@Composable
+private fun SectionLabelWithIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    tint: Color = AppTheme.colors.crimson
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        SectionLabel(text)
+    }
 }

@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PieChart
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -263,6 +266,34 @@ fun AppNavigation(
                         })
                     }
                 }
+            }
+        }
+
+        // Quick-log FAB (design audit #13): floats on every tab except Log itself.
+        // Hidden while the paywall covers the desk.
+        if (!paywallOpen && MainTab.visibleEntries().getOrNull(pagerState.currentPage) != MainTab.Log) {
+            FloatingActionButton(
+                onClick = {
+                    haptics.tick()
+                    sfx.tap()
+                    lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
+                    scope.launch {
+                        pagerState.animateScrollToPage(
+                            page = MainTab.visibleEntries().indexOf(MainTab.Log),
+                            animationSpec = Motion.pageFlip()
+                        )
+                    }
+                },
+                shape = CircleShape,
+                containerColor = AppTheme.colors.crimson,
+                contentColor = AppTheme.colors.surfaceCard,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 20.dp, bottom = 96.dp)
+                    .navigationBarsPadding()
+                    .shadow(8.dp, CircleShape)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Quick log")
             }
         }
 
