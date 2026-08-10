@@ -197,6 +197,128 @@ Deno.test("event without a user id maps to null", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Trial tenure detection + PAYMENT.SUCCEEDED (D142: trial-aware grants)
+// ---------------------------------------------------------------------------
+
+Deno.test("activated event with TRIAL tenure grants trial mode with trial_ends_at", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-PRO",
+      billing_info: {
+        next_billing_time: "2026-08-06T10:00:00Z",
+        cycle_executions: [
+          { tenure_type: "TRIAL", sequence: 1, cycles_completed: 0, cycles_remaining: 1 },
+        ],
+      },
+    },
+  }, "P-PRO", "P-MAX");
+  assertEquals(mapped, {
+    user_id: "user-abc",
+    grant: {
+      mode: "trial",
+      tier: "pro",
+      trial_ends_at: "2026-08-06T10:00:00Z",
+      provider: "paypal",
+      source: "paypal",
+      status: "billing.subscription.activated",
+    },
+  });
+});
+
+Deno.test("activated event with REGULAR tenure still grants paid (no trial)", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-MAX",
+      billing_info: {
+        next_billing_time: "2026-09-01T00:00:00Z",
+        cycle_executions: [
+          { tenure_type: "REGULAR", sequence: 1, cycles_completed: 0, cycles_remaining: 12 },
+        ],
+      },
+    },
+  }, "P-PRO", "P-MAX");
+  assertEquals(mapped?.grant.mode, "paid");
+  assertEquals(mapped?.grant.paid_until, "2026-09-01T00:00:00Z");
+  assertEquals(mapped?.grant.tier, "max");
+});
+
+Deno.test("activated event with a completed trial (cycles_remaining 0) grants paid", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      billing_info: {
+        next_billing_time: "2026-09-01T00:00:00Z",
+        cycle_executions: [
+          { tenure_type: "TRIAL", sequence: 1, cycles_completed: 1, cycles_remaining: 0 },
+        ],
+      },
+    },
+  });
+  assertEquals(mapped?.grant.mode, "paid");
+});
+
+Deno.test("activated trial without next_billing_time omits trial_ends_at (bounded fallback)", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      billing_info: {
+        cycle_executions: [
+          { tenure_type: "TRIAL", sequence: 1, cycles_completed: 0, cycles_remaining: 1 },
+        ],
+      },
+    },
+  });
+  assertEquals(mapped?.grant.mode, "trial");
+  assertEquals(
+    (mapped?.grant as unknown as Record<string, unknown>).trial_ends_at,
+    undefined,
+  );
+});
+
+Deno.test("payment succeeded extends paid_until (mode paid, not ignored)", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-PRO",
+      billing_info: {
+        next_billing_time: "2026-09-10T10:00:00Z",
+        last_payment: { amount: { currency_code: "PHP", value: "199.00" }, time: "2026-08-06T10:00:00Z" },
+      },
+    },
+  }, "P-PRO", "P-MAX");
+  assertEquals(mapped, {
+    user_id: "user-abc",
+    grant: {
+      mode: "paid",
+      tier: "pro",
+      paid_until: "2026-09-10T10:00:00Z",
+      provider: "paypal",
+      source: "paypal",
+      status: "billing.subscription.payment.succeeded",
+    },
+  });
+});
+
+Deno.test("payment succeeded without next_billing_time omits paid_until (bounded fallback)", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED",
+    resource: { custom_id: "user-abc" },
+  });
+  assertEquals(mapped?.grant.mode, "paid");
+  assertEquals(
+    (mapped?.grant as unknown as Record<string, unknown>).paid_until,
+    undefined,
+  );
+});
+
+// ---------------------------------------------------------------------------
 // grantToRowFields / buildTrialGrant
 // ---------------------------------------------------------------------------
 
@@ -267,6 +389,33 @@ Deno.test("trial grant sets is_pro true and a +TRIAL_DURATION_DAYS trial_ends_at
   assertEquals(trial.is_pro, true);
   const start = Date.parse(trial.trial_started_at!);
   const end = Date.parse(trial.trial_ends_at!);
+  assertEquals((end - start) / (24 * 60 * 60 * 1000), TRIAL_DURATION_DAYS);
+});
+
+Deno.test("trial grant with explicit trial_ends_at writes it through, paid_until stays null", () => {
+  const trial = grantToRowFields({
+    mode: "trial",
+    trial_ends_at: "2026-08-06T10:00:00Z",
+    provider: "paypal",
+    source: "paypal",
+    status: "billing.subscription.activated",
+  });
+  assertEquals(trial.is_pro, true);
+  // Round-tripped through Date -> toISOString() (canonical .000Z form).
+  assertEquals(trial.trial_ends_at, "2026-08-06T10:00:00.000Z");
+  assertEquals(trial.paid_until, null);
+});
+
+Deno.test("trial grant with malformed trial_ends_at falls back to trial_days (no Invalid Date)", () => {
+  const trial = grantToRowFields({
+    mode: "trial",
+    trial_ends_at: "not-a-date",
+    provider: "paypal",
+    source: "paypal",
+  });
+  const start = Date.parse(trial.trial_started_at!);
+  const end = Date.parse(trial.trial_ends_at!);
+  assertEquals(Number.isNaN(end), false);
   assertEquals((end - start) / (24 * 60 * 60 * 1000), TRIAL_DURATION_DAYS);
 });
 

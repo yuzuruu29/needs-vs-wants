@@ -33,6 +33,8 @@ export interface GrantState {
   source?: string | null;
   status?: string | null;
   trial_days?: number;
+  /** Authoritative trial end (e.g. PayPal next_billing_time during a trial). */
+  trial_ends_at?: string | null;
 }
 
 /**
@@ -108,6 +110,31 @@ export function tierFromPayPalPlanId(
 }
 
 /**
+ * Detect an ACTIVE trial tenure from PayPal's billing_info.cycle_executions.
+ * A trial tenure with cycles still remaining means the subscription is inside
+ * its free-trial window (e.g. the 3-day Pro plan) — the grant must be mode
+ * "trial" so trial_ends_at gates access and paid_until stays null until the
+ * first real charge. An explicitly completed trial (cycles_remaining === 0) is
+ * a regular subscription.
+ */
+export function hasActiveTrialTenure(
+  billingInfo: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!billingInfo || typeof billingInfo !== "object") return false;
+  const executions = billingInfo.cycle_executions;
+  if (!Array.isArray(executions)) return false;
+  return executions.some((execution) => {
+    if (!execution || typeof execution !== "object") return false;
+    const exec = execution as Record<string, unknown>;
+    if (exec.tenure_type !== "TRIAL") return false;
+    const remaining = exec.cycles_remaining;
+    // Absent remaining counts as an active trial; only an explicit 0 (completed
+    // trial) is treated as a regular subscription.
+    return remaining === undefined || remaining === null || Number(remaining) > 0;
+  });
+}
+
+/**
  * Map a PayPal BILLING.SUBSCRIPTION.* webhook event to an entitlement grant.
  * Returns null when the event is not one we grant/flag from.
  *
@@ -145,23 +172,58 @@ export function mapPayPalWebhookEvent(
       : null;
   const tier = tierFromPayPalPlanId(planId, proPlanId, maxPlanId);
 
+  const billingInfo =
+    typeof resource.billing_info === "object" && resource.billing_info !== null
+      ? resource.billing_info as Record<string, unknown>
+      : undefined;
   // next_billing_time may be absent when PayPal cannot determine a next cycle.
   // Leave paid_until UNSET (undefined) in that case so grantToRowFields applies
   // a bounded fallback window. We must never emit a plain null here: for a paid
   // grant, null would mean lifetime Pro in the model.
   const hasPaidUntil =
-    typeof resource.billing_info === "object" &&
-    resource.billing_info !== null &&
-    typeof (resource.billing_info as Record<string, unknown>).next_billing_time === "string";
-  const paidUntil = hasPaidUntil
-    ? (resource.billing_info as Record<string, unknown>).next_billing_time as string
-    : undefined;
+    billingInfo !== undefined &&
+    typeof billingInfo.next_billing_time === "string";
+  const paidUntil = hasPaidUntil ? billingInfo.next_billing_time as string : undefined;
+  const inTrial = hasActiveTrialTenure(billingInfo);
 
   switch (eventType) {
     case "BILLING.SUBSCRIPTION.ACTIVATED":
     case "BILLING.SUBSCRIPTION.CREATED":
     case "BILLING.SUBSCRIPTION.REACTIVATED":
     case "BILLING.SUBSCRIPTION.REVISED":
+      if (inTrial) {
+        // Inside the free-trial window: gate access with trial_ends_at (the
+        // authoritative next_billing_time) and keep paid_until null. The first
+        // real charge (PAYMENT.SUCCEEDED) converts the row to paid.
+        return {
+          user_id,
+          grant: {
+            mode: "trial",
+            tier,
+            ...(hasPaidUntil ? { trial_ends_at: paidUntil as string } : {}),
+            provider: "paypal",
+            source: "paypal",
+            status: eventType.toLowerCase(),
+          },
+        };
+      }
+      return {
+        user_id,
+        grant: {
+          mode: "paid",
+          tier,
+          ...(hasPaidUntil ? { paid_until: paidUntil as string } : {}),
+          provider: "paypal",
+          source: "paypal",
+          status: eventType.toLowerCase(),
+        },
+      };
+    case "BILLING.SUBSCRIPTION.PAYMENT.SUCCEEDED":
+      // The recurring charge landed — extend paid access to the next cycle.
+      // For a trial plan this is the first real charge after the trial: it
+      // converts the row from trial (trial_ends_at in the past) to paid and
+      // must never be ignored (previously PAYMENT.SUCCEEDED fell through to
+      // null and a paying user lost Pro at trial end).
       return {
         user_id,
         grant: {
@@ -236,9 +298,19 @@ export function grantToRowFields(
       };
     case "trial":
       const trialStart = new Date();
-      const trialEnd = new Date(
-        trialStart.getTime() + (grant.trial_days ?? TRIAL_DURATION_DAYS) * 24 * 60 * 60 * 1000,
-      );
+      // Prefer the authoritative trial end (PayPal next_billing_time during a
+      // trial) when provided; fall back to now + trial_days otherwise. A
+      // malformed timestamp must never produce an Invalid Date (that would
+      // throw in toISOString() and 500 the webhook) — fall back too.
+      const explicitEnd = grant.trial_ends_at === undefined || grant.trial_ends_at === null
+        ? null
+        : new Date(Date.parse(grant.trial_ends_at));
+      const trialEnd = explicitEnd !== null && !Number.isNaN(explicitEnd.getTime())
+        ? explicitEnd
+        : new Date(
+            trialStart.getTime() +
+              (grant.trial_days ?? TRIAL_DURATION_DAYS) * 24 * 60 * 60 * 1000,
+          );
       return {
         is_pro: true,
         tier: grant.tier ?? "pro",
