@@ -21,13 +21,19 @@ class AdvisorChatSession(
 
     /**
      * Appends the user query and the engine response. No-op for blank input.
+     * The engine receives a pure [AdvisorContextPack] built from the ledger,
+     * the optional daily budget, and the user's spending goal.
+     * [currencySymbol] is retained for API compatibility; the context pack
+     * carries all numeric context the engine reasons over.
      * @return the new message list, or null if the query was blank.
      */
+    @Suppress("UNUSED_PARAMETER") // currencySymbol retained for call-site compatibility
     fun sendUserQuery(
         queryText: String,
         entries: List<Entry>,
         currencySymbol: String,
-        dailyBudgetCents: Long?
+        dailyBudgetCents: Long?,
+        spendingGoal: String = AdvisorContextPack.DEFAULT_SPENDING_GOAL
     ): List<ChatMessage>? {
         if (queryText.isBlank()) return null
         messages.add(
@@ -37,12 +43,15 @@ class AdvisorChatSession(
                 text = queryText
             )
         )
+        val context = AdvisorContextPack.build(
+            entries = entries,
+            dailyBudgetCents = dailyBudgetCents,
+            spendingGoal = spendingGoal
+        )
         messages.add(
             FinancialAdvisorEngine.evaluateConversationalQuery(
                 query = queryText,
-                entries = entries,
-                currencySymbol = currencySymbol,
-                dailyBudgetCents = dailyBudgetCents
+                context = context
             )
         )
         return snapshot()

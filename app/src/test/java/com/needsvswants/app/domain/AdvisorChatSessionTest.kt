@@ -6,8 +6,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AdvisorChatSessionTest {
+
+    private fun todayEntry(item: String, costCents: Long, type: EntryType): Entry {
+        val now = System.currentTimeMillis()
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(now))
+        return Entry(id = 1, dateUtc = now, date = date, time = "10:00", item = item, costCents = costCents, type = type)
+    }
 
     @Test
     fun initialSnapshot_hasWelcomeMessage() {
@@ -47,7 +56,7 @@ class AdvisorChatSessionTest {
     fun sendUserQuery_overspendQuery_warnsWhenOverBudget() {
         val session = AdvisorChatSession()
         val entries = listOf(
-            Entry(1, 1L, "2026-08-03", "10:00", "Dinner", 600_00, EntryType.WANT)
+            todayEntry("Dinner", 600_00, EntryType.WANT)
         )
         val updated = session.sendUserQuery(
             queryText = "What is my overspend status?",
@@ -58,5 +67,40 @@ class AdvisorChatSessionTest {
         val advisor = updated.last()
         assertTrue(advisor.isWarning)
         assertTrue(advisor.text.contains("over budget", ignoreCase = true))
+        assertTrue(advisor.citation!!.section.contains("Section"))
+    }
+
+    @Test
+    fun sendUserQuery_spendingGoal_passedToEngine() {
+        val session = AdvisorChatSession()
+        val entries = listOf(
+            todayEntry("Groceries", 100_00, EntryType.NEED)
+        )
+        val updated = session.sendUserQuery(
+            queryText = "Analyze my week",
+            entries = entries,
+            currencySymbol = "₱",
+            dailyBudgetCents = null,
+            spendingGoal = "analyze"
+        )!!
+        val advisor = updated.last()
+        assertTrue(advisor.text.contains("analyze", ignoreCase = true))
+        assertTrue(advisor.citation!!.section.contains("Section"))
+    }
+
+    @Test
+    fun sendUserQuery_defaultSpendingGoal_isTrack() {
+        val session = AdvisorChatSession()
+        val entries = listOf(
+            todayEntry("Groceries", 100_00, EntryType.NEED)
+        )
+        val updated = session.sendUserQuery(
+            queryText = "Analyze my week",
+            entries = entries,
+            currencySymbol = "₱",
+            dailyBudgetCents = null
+        )!!
+        val advisor = updated.last()
+        assertTrue(advisor.text.contains("track", ignoreCase = true))
     }
 }

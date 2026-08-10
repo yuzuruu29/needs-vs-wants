@@ -26,6 +26,54 @@
       "summary": "Overspending on a single day should be compensated by tightening discretionary Want spending on subsequent days.",
       "advice": "If you exceed your daily budget today, reduce your daily Want target by 33% for the next 3 days until liquidity normalizes.",
       "keywords": ["overspend", "exceed", "limit", "recovery", "compensate", "sinking"]
+    },
+    {
+      "id": "study_04",
+      "title": "Want Impulse Hold Protocol",
+      "citation": "NotebookLM Section 1.2 — Binary Classification Dynamics",
+      "summary": "Impulse Want purchases cluster when the Want share of the ledger is high and transaction friction is low.",
+      "advice": "When Wants reach or exceed half of weekly spend, hold new Want purchases for 24 hours before deciding.",
+      "keywords": ["hold", "delay", "impulse", "want", "24-hour", "wait"]
+    },
+    {
+      "id": "study_05",
+      "title": "Daily Budget Health Check",
+      "citation": "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control",
+      "summary": "A daily budget turns every purchase into an explicit trade-off against a visible limit.",
+      "advice": "When today's spend stays within the daily budget, keep logging at point of sale; the friction is the training.",
+      "keywords": ["budget", "health", "within", "remaining", "green", "guardrail"]
+    },
+    {
+      "id": "study_06",
+      "title": "Need vs Want Ratio Benchmark",
+      "citation": "NotebookLM Section 1.2 — Binary Classification Dynamics",
+      "summary": "Ledgers with Needs above 50% of total spend show more stable cash-flow patterns.",
+      "advice": "Compare your weekly Need share against the 50% benchmark and shift future Wants when the ratio tilts.",
+      "keywords": ["ratio", "needs", "wants", "benchmark", "split", "share"]
+    },
+    {
+      "id": "study_07",
+      "title": "Weekend Spending Plan",
+      "citation": "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control",
+      "summary": "Weekend spending spikes are predictable; a pre-committed Want cap reduces impulse leakage.",
+      "advice": "Plan the weekend ledger in advance: set a Want cap, keep Needs first, and log at point of sale.",
+      "keywords": ["weekend", "saturday", "sunday", "plan", "cap", "pre-commit"]
+    },
+    {
+      "id": "study_08",
+      "title": "Consistency Streak Momentum",
+      "citation": "NotebookLM Section 3.1 — Real-Time Friction Behavioral Control",
+      "summary": "Consecutive logging days strengthen the categorization habit and damp impulse spending.",
+      "advice": "Protect the streak by logging every day; a streak of five or more days is the strongest habit signal.",
+      "keywords": ["streak", "consistency", "momentum", "consecutive", "days", "habit"]
+    },
+    {
+      "id": "study_09",
+      "title": "Goal-Based Period Comparison",
+      "citation": "NotebookLM Section 1.2 — Binary Classification Dynamics",
+      "summary": "Analyze-mode users benefit from comparing weekly Need and Want shares across periods.",
+      "advice": "When the spending goal is analyze, compare week-over-week shares and spot the trend before it becomes a pattern.",
+      "keywords": ["goal", "analyze", "analysis", "period", "comparison", "trend"]
     }
   ]
 }
