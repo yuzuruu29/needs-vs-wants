@@ -40,6 +40,17 @@ class HistoryViewModel @Inject constructor(
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
 
+    /** True until the first real entries emission lands (cold-start skeleton, design audit #2). */
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            entries.drop(1).first()
+            _loading.value = false
+        }
+    }
+
     val isPro: StateFlow<Boolean> = entitlementRepository.isPro
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 

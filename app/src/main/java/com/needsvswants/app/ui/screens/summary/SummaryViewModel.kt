@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -46,6 +48,10 @@ class SummaryViewModel @Inject constructor(
 
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetStatus.Off)
+
+    /** True until the first real stats emission lands (cold-start skeleton, design audit #2). */
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
     private val _period = MutableStateFlow(Period.DAY)
     val period: StateFlow<Period> = _period.asStateFlow()
@@ -114,6 +120,13 @@ class SummaryViewModel @Inject constructor(
     val newMilestone: SharedFlow<StreakMilestone> = _newMilestone.asSharedFlow()
 
     init {
+        // Flip loading=false once the first real stats emission (not the default
+        // SummaryStats()) has arrived, so the skeleton clears when Room resolves.
+        viewModelScope.launch {
+            stats.drop(1).first()
+            _loading.value = false
+        }
+
         viewModelScope.launch {
             var lastPersisted = -1
             computedBest.collect { best ->

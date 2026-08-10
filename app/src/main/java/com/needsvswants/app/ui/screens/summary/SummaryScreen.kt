@@ -77,6 +77,7 @@ fun SummaryScreen(
     viewModel: SummaryViewModel = hiltViewModel()
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val loading by viewModel.loading.collectAsStateWithLifecycle()
     val trendPct by viewModel.trendPct.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
@@ -321,6 +322,16 @@ fun SummaryScreen(
             modifier = Modifier.fillMaxWidth()
         ) { animatedPeriod ->
             Column(modifier = Modifier.fillMaxWidth()) {
+                if (loading && !hasHistory) {
+                    // Cold first render — shimmer matching the loaded layout (zero CLS).
+                    SummarySkeletonDonut(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    SummarySkeletonStatRow()
+                } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -554,6 +565,7 @@ fun SummaryScreen(
                         )
                     }
                 }
+                } // end else (loaded content)
             }
         }
 

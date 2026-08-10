@@ -51,6 +51,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val entries by viewModel.entries.collectAsStateWithLifecycle()
+    val loading by viewModel.loading.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     var editTarget by remember { mutableStateOf<Entry?>(null) }
@@ -160,7 +161,17 @@ fun HistoryScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        if (entries.isEmpty()) {
+        if (loading) {
+            // Cold first render — shimmer groups matching day-card height (zero CLS).
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                repeat(3) {
+                    HistorySkeletonGroup()
+                }
+            }
+        } else if (entries.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     EmptyDiaryIllustration(modifier = Modifier.size(160.dp, 120.dp))
