@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash brand mark — the NeedWantSealMark double seal (D88 family).
+  Two circular seals: green "N" (Need) and crimson "W" (Want), separated by a
+  short gold rule, centered on the warm off-white splash background (#FAFAF7).
+
+  This is the same brand identity as the in-app NeedWantSealMark composable
+  (PlanCards.kt), drawn as a crisp VectorDrawable so the launch screen carries
+  the supermarket-premium mark instead of the raw app_icon JPG.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Warm off-white circular container -->
+    <path
+        android:fillColor="#FAFAF7"
+        android:pathData="M144,8 A136,136 0 1,0 288,144 A136,136 0 1,0 144,8 Z" />
+
+    <!-- Inner gold hairline ring for a premium seal feel -->
+    <path
+        android:strokeColor="#E8A92A"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M144,24 A120,120 0 1,0 264,144 A120,120 0 1,0 144,24 Z" />
+
+    <!-- Green Need seal — tinted circle + hairline -->
+    <path
+        android:fillColor="#0B6B3A33"
+        android:pathData="M118,58 A44,44 0 1,0 162,102 A44,44 0 1,0 118,58 Z" />
+    <path
+        android:strokeColor="#0B6B3A"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M118,58 A44,44 0 1,0 162,102 A44,44 0 1,0 118,58 Z" />
+    <!-- "N" counter mark in brand green -->
+    <path
+        android:fillColor="#0B6B3A"
+        android:pathData="M128,92 L128,82 L138,82 L138,72 L128,72 L128,62 L120,62 L120,72 L110,72 L110,82 L120,82 L120,92 Z" />
+
+    <!-- Gold rule between the seals -->
+    <path
+        android:fillColor="#E8A92A"
+        android:pathData="M144,140 L144,148 L172,148 L172,140 Z" />
+
+    <!-- Crimson Want seal — tinted circle + hairline -->
+    <path
+        android:fillColor="#C8102E33"
+        android:pathData="M180,186 A44,44 0 1,0 224,230 A44,44 0 1,0 180,186 Z" />
+    <path
+        android:strokeColor="#C8102E"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M180,186 A44,44 0 1,0 224,230 A44,44 0 1,0 180,186 Z" />
+    <!-- "W" counter mark in brand crimson -->
+    <path
+        android:fillColor="#C8102E"
+        android:pathData="M190,228 L194,206 L200,220 L206,206 L210,228 L201,222 Z M192,228 L200,224 L208,228 Z" />
+</vector>

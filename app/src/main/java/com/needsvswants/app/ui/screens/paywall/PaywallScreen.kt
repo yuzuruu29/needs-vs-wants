@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.paywall
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
@@ -251,9 +253,27 @@ fun PaywallScreen(
     val showProviderSelector = (selected == MembershipPlan.Pro || selected == MembershipPlan.Max) &&
         payPalAvailable && payMongoAvailable
 
+    // Predictive back (design audit #10): scale the desk down proportional to the
+    // system back gesture so the user sees the previous surface beneath, then
+    // dismiss on commit. Progress 0..1, negligible at rest.
+    var backScale by remember { mutableStateOf(1f) }
+    var backAlpha by remember { mutableStateOf(1f) }
+    PredictiveBackHandler(enabled = true) {
+        it.collect { event ->
+            backScale = 1f - (event.progress * 0.08f)
+            backAlpha = 1f - (event.progress * 0.3f)
+        }
+        closeFree()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .graphicsLayer {
+                scaleX = backScale
+                scaleY = backScale
+                alpha = backAlpha
+            }
             .background(themedInkWash())
     ) {
         Column(modifier = Modifier.fillMaxSize()) {

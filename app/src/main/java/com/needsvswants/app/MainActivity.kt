@@ -3,6 +3,7 @@ package com.needsvswants.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -29,7 +30,20 @@ class MainActivity : ComponentActivity() {
     lateinit var payPalReturnHandler: PayPalReturnHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
+        // Branded exit: crossfade the splash seal into Compose content instead of a
+        // hard cut (design audit #1). Scaled alpha-fade on the centered brand mark.
+        splashScreen.setOnExitAnimationListener { provider ->
+            val icon = provider.iconView
+            icon.animate()
+                .alpha(0f)
+                .scaleX(0.92f)
+                .scaleY(0.92f)
+                .setDuration(280)
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .withEndAction { provider.remove() }
+                .start()
+        }
         super.onCreate(savedInstanceState)
         // Fresh process launched by a PayPal / PayMongo checkout deep link.
         handleCheckoutDeepLink(intent?.data)

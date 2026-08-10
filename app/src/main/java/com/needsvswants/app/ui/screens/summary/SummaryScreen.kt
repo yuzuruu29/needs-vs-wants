@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.summary
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -26,6 +27,9 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +61,10 @@ import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SummaryScreen(
     onNavigateToInput: () -> Unit = {},
@@ -80,6 +86,9 @@ fun SummaryScreen(
     var showInstructions by remember { mutableStateOf(false) }
     var showSplitPortal by remember { mutableStateOf(false) }
     var currentMilestone by remember { mutableStateOf<StreakMilestone?>(null) }
+    // Pull-to-refresh (design audit #11): auto-dismiss shortly after a refresh
+    // so the gold spinner never sticks if the reactive flows don't re-emit.
+    var refreshing by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
     val context = LocalContext.current
@@ -114,7 +123,34 @@ fun SummaryScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val pullState = rememberPullToRefreshState()
+    // Auto-dismiss the gold spinner shortly after it starts — the stats/entitlement
+    // flows re-emit reactively, but this guarantees the indicator retracts.
+    LaunchedEffect(refreshing) {
+        if (refreshing) {
+            delay(900)
+            refreshing = false
+        }
+    }
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            haptics.tick()
+            refreshing = true
+            viewModel.refresh()
+        },
+        state = pullState,
+        indicator = {
+            // Theme-derived indicator (maps to the app's crimson primary via
+            // toMaterialColorScheme). Gold tint is a documented follow-up.
+            PullToRefreshDefaults.Indicator(
+                state = pullState,
+                isRefreshing = refreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -611,6 +647,18 @@ private fun SplitPercentagePortal(
     val reveal = remember { Animatable(0f) }
     val scrim = remember { Animatable(0f) }
 
+    // Predictive back (design audit #10): scale the sheet down with the system
+    // back gesture so the user sees the Summary beneath, then dismiss on commit.
+    var backScale by remember { mutableStateOf(1f) }
+    var backAlpha by remember { mutableStateOf(1f) }
+    PredictiveBackHandler(enabled = true) {
+        it.collect { event ->
+            backScale = 1f - (event.progress * 0.08f)
+            backAlpha = 1f - (event.progress * 0.3f)
+        }
+        onDismiss()
+    }
+
     LaunchedEffect(Unit) {
         if (!Motion.enabled) {
             scrim.snapTo(1f)
@@ -643,9 +691,9 @@ private fun SplitPercentagePortal(
                     .graphicsLayer {
                         val t = reveal.value
                         // Subtle land from 0.96 — not a 0.72 zoom pop.
-                        scaleX = Motion.RiseScale + (1f - Motion.RiseScale) * t
-                        scaleY = Motion.RiseScale + (1f - Motion.RiseScale) * t
-                        alpha = t
+                        scaleX = (Motion.RiseScale + (1f - Motion.RiseScale) * t) * backScale
+                        scaleY = (Motion.RiseScale + (1f - Motion.RiseScale) * t) * backScale
+                        alpha = t * backAlpha
                         translationY = (1f - t) * 18f
                     }
                     .paperSurface(
@@ -829,14 +877,32 @@ fun InstructionsOverlay(onDismiss: () -> Unit, paid: Boolean = false) {
     )
     val lastPage = titles.lastIndex
 
+    // Predictive back (design audit #10): scale the instructions sheet down with
+    // the system back gesture, then dismiss on commit.
+    var backScale by remember { mutableStateOf(1f) }
+    var backAlpha by remember { mutableStateOf(1f) }
+    PredictiveBackHandler(enabled = true) {
+        it.collect { event ->
+            backScale = 1f - (event.progress * 0.08f)
+            backAlpha = 1f - (event.progress * 0.3f)
+        }
+        onDismiss()
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
             color = Color.Transparent,
-            modifier = Modifier.paperSurface(
-                rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                RoundedCornerShape(20.dp)
-            )
+            modifier = Modifier
+                .paperSurface(
+                    rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
+                    RoundedCornerShape(20.dp)
+                )
+                .graphicsLayer {
+                    scaleX = backScale
+                    scaleY = backScale
+                    alpha = backAlpha
+                }
         ) {
             Column(
                 modifier = Modifier.padding(22.dp),

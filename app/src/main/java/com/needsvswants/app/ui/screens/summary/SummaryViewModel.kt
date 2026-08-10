@@ -41,7 +41,7 @@ class SummaryViewModel @Inject constructor(
     dailyBudgetUseCase: DailyBudgetUseCase,
     private val preferences: AppPreferences,
     entryRepository: EntryRepository,
-    entitlementRepository: EntitlementRepository
+    private val entitlementRepository: EntitlementRepository
 ) : ViewModel() {
 
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
@@ -161,6 +161,18 @@ class SummaryViewModel @Inject constructor(
 
     fun dismissFirstLaunch() {
         viewModelScope.launch { preferences.setFirstLaunchComplete() }
+    }
+
+    /**
+     * Pull-to-refresh (design audit #11): force a remote entitlement re-sync.
+     * The stats chain is already reactive to [com.needsvswants.app.data.db.EntryDao]
+     * and entitlement flows, so a fresh entitlement re-emits the period stats
+     * downstream. Best-effort — offline-first stays silent on failure.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            runCatching { entitlementRepository.refreshFromRemote() }
+        }
     }
 
     fun shareSummaryText(): String {
