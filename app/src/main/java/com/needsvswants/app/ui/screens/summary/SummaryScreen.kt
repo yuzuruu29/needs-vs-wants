@@ -124,7 +124,10 @@ fun SummaryScreen(
     if (showInstructions) {
         InstructionsOverlay(
             paid = paid,
-            onSelectGoal = { viewModel.setSpendingGoal(it) },
+            onSelectGoal = {
+                viewModel.setSpendingGoal(it)
+                if (it == "budget") viewModel.setBudgetNudgePending(true)
+            },
             onDismiss = {
                 showInstructions = false
                 if (isFirstLaunch) viewModel.dismissFirstLaunch()
@@ -150,12 +153,14 @@ fun SummaryScreen(
         },
         state = pullState,
         indicator = {
-            // Theme-derived indicator (maps to the app's crimson primary via
-            // toMaterialColorScheme). Gold tint is a documented follow-up.
+            // Gold spinner on a paper chip (design audit #11). Positional args:
+            // (state, isRefreshing, modifier, containerColor, indicatorColor).
             PullToRefreshDefaults.Indicator(
-                state = pullState,
-                isRefreshing = refreshing,
-                modifier = Modifier.align(Alignment.TopCenter)
+                pullState,
+                refreshing,
+                Modifier.align(Alignment.TopCenter),
+                palette.surfaceCard,
+                palette.gold
             )
         },
         modifier = Modifier.fillMaxSize()

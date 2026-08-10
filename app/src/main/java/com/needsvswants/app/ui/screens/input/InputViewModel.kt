@@ -75,6 +75,14 @@ class InputViewModel @Inject constructor(
     val dailyBudgetCents: StateFlow<Long?> = preferences.dailyBudgetCents
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /** One-shot onboarding nudge: pre-open the set-budget form on Log (design audit #9 follow-up). */
+    val budgetNudgePending: StateFlow<Boolean> = preferences.budgetNudgePending
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun consumeBudgetNudge() {
+        viewModelScope.launch { preferences.setBudgetNudgePending(false) }
+    }
+
     private val _overspendConfirm = MutableStateFlow<Long?>(null)
     val overspendConfirmCostCents: StateFlow<Long?> = _overspendConfirm.asStateFlow()
 

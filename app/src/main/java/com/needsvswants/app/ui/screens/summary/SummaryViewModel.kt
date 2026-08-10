@@ -187,6 +187,11 @@ class SummaryViewModel @Inject constructor(
         viewModelScope.launch { preferences.setSpendingGoal(goal) }
     }
 
+    /** One-shot Log budget-set nudge when the onboarding 'budget' goal is chosen. */
+    fun setBudgetNudgePending(pending: Boolean) {
+        viewModelScope.launch { preferences.setBudgetNudgePending(pending) }
+    }
+
     /**
      * Pull-to-refresh (design audit #11): force a remote entitlement re-sync.
      * The stats chain is already reactive to [com.needsvswants.app.data.db.EntryDao]

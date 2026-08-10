@@ -85,6 +85,7 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val QUOTA_CARRIED_LOGS = intPreferencesKey("quota_carried_logs")
         private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
         private val SPENDING_GOAL = stringPreferencesKey("spending_goal")
+        private val BUDGET_NUDGE_PENDING = booleanPreferencesKey("budget_nudge_pending")
     }
 
     val currencySymbol: Flow<String> = dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
@@ -266,6 +267,17 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
 
     suspend fun setSpendingGoal(goal: String) {
         dataStore.edit { it[SPENDING_GOAL] = goal }
+    }
+
+    /**
+     * One-shot nudge (design audit #9 follow-up): when onboarding's "Stay under a
+     * daily budget" goal is chosen, this flag makes the Log screen pre-open its
+     * set-budget form on the next visit. Consumed (cleared) by InputViewModel.
+     */
+    val budgetNudgePending: Flow<Boolean> = dataStore.data.map { it[BUDGET_NUDGE_PENDING] ?: false }
+
+    suspend fun setBudgetNudgePending(pending: Boolean) {
+        dataStore.edit { it[BUDGET_NUDGE_PENDING] = pending }
     }
 
     suspend fun updateBestStreak(streak: Int) {

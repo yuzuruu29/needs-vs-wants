@@ -95,6 +95,7 @@ fun InputScreen(
     val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
+    val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
     val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
@@ -124,6 +125,15 @@ fun InputScreen(
                 budgetAmount = cents.toInputAmount()
             }
             editingBudget = false
+        }
+    }
+
+    // Onboarding nudge: the user picked "Stay under a daily budget" — pre-open the
+    // set-budget form once (no invented amount; they type their own), then consume.
+    LaunchedEffect(budgetNudgePending, budgetStatus) {
+        if (budgetNudgePending && budgetStatus !is BudgetStatus.On) {
+            editingBudget = true
+            viewModel.consumeBudgetNudge()
         }
     }
 

@@ -1,6 +1,11 @@
 package com.needsvswants.app.ui.navigation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +30,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +44,10 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,6 +110,29 @@ fun AppNavigation(
     var landedOnDesk by remember { mutableStateOf(false) }
     var lastTappedPage by remember { mutableIntStateOf(initialPage) }
 
+    // Quick-log FAB scroll behavior (design audit #13): hide on scroll-down past a
+    // threshold, show again on any scroll-up. Driven by nested scroll events from
+    // the tab pages' vertical scrolls (propagate up to this root Box).
+    var fabVisible by remember { mutableStateOf(true) }
+    var fabScrollAccum by remember { mutableFloatStateOf(0f) }
+    val fabThresholdPx = with(LocalDensity.current) { 48.dp.toPx() }
+    val fabScrollConnection = remember(fabThresholdPx) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: NestedScrollSource): androidx.compose.ui.geometry.Offset {
+                if (source != NestedScrollSource.UserInput) return androidx.compose.ui.geometry.Offset.Zero
+                val dy = available.y
+                if (dy > 0f) {
+                    fabScrollAccum += dy
+                    if (fabScrollAccum > fabThresholdPx && fabVisible) fabVisible = false
+                } else if (dy < 0f) {
+                    fabScrollAccum = 0f
+                    if (!fabVisible) fabVisible = true
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+
     // Soft paywall only on normal cold start — not when deep-linking to Log from a reminder.
     // The `plain` test flavor never offers it, regardless of entitlement state.
     LaunchedEffect(shouldOfferSoftPaywall, startDestination) {
@@ -148,7 +181,7 @@ fun AppNavigation(
 
     // Desk under the ledger: warm paper wash. Individual tabs are opaque sheets
     // that paper-flip on swipe / pill tap (see [PaperPagerPage]).
-    Box(modifier = Modifier.fillMaxSize().background(themedInkWash())) {
+    Box(modifier = Modifier.fillMaxSize().background(themedInkWash()).nestedScroll(fabScrollConnection)) {
         Scaffold(
             containerColor = AppTheme.colors.background,
             bottomBar = {
@@ -270,30 +303,38 @@ fun AppNavigation(
         }
 
         // Quick-log FAB (design audit #13): floats on every tab except Log itself.
-        // Hidden while the paywall covers the desk.
-        if (!paywallOpen && MainTab.visibleEntries().getOrNull(pagerState.currentPage) != MainTab.Log) {
-            FloatingActionButton(
-                onClick = {
-                    haptics.tick()
-                    sfx.tap()
-                    lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
-                    scope.launch {
-                        pagerState.animateScrollToPage(
-                            page = MainTab.visibleEntries().indexOf(MainTab.Log),
-                            animationSpec = Motion.pageFlip()
-                        )
-                    }
-                },
-                shape = CircleShape,
-                containerColor = AppTheme.colors.crimson,
-                contentColor = AppTheme.colors.surfaceCard,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 96.dp)
-                    .navigationBarsPadding()
-                    .shadow(8.dp, CircleShape)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Quick log")
+        // Hidden while the paywall covers the desk and while the user scrolls down.
+        AnimatedVisibility(
+            visible = fabVisible && !paywallOpen &&
+                MainTab.visibleEntries().getOrNull(pagerState.currentPage) != MainTab.Log,
+            enter = fadeIn(Motion.feedback()) + scaleIn(initialScale = 0.8f, animationSpec = Motion.feedback()),
+            exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.8f, animationSpec = Motion.feedback())
+        ) {
+            // Inner Box restores BoxScope for the FAB's bottom-end alignment.
+            Box(Modifier.fillMaxSize()) {
+                FloatingActionButton(
+                    onClick = {
+                        haptics.tick()
+                        sfx.tap()
+                        lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
+                        scope.launch {
+                            pagerState.animateScrollToPage(
+                                page = MainTab.visibleEntries().indexOf(MainTab.Log),
+                                animationSpec = Motion.pageFlip()
+                            )
+                        }
+                    },
+                    shape = CircleShape,
+                    containerColor = AppTheme.colors.crimson,
+                    contentColor = AppTheme.colors.surfaceCard,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 96.dp)
+                        .navigationBarsPadding()
+                        .shadow(8.dp, CircleShape)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Quick log")
+                }
             }
         }
 
