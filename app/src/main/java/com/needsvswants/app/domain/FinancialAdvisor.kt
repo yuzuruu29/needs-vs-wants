@@ -249,6 +249,18 @@ object FinancialAdvisorEngine {
     }
 
     /**
+     * Coach gate predicate (Task 3): intercept the Want seal only when the
+     * user has Max access, the row is a Want, and the coach verdict is a
+     * hold. Needs, Free/Pro, and all-clear verdicts fall through to the
+     * untouched seal path.
+     */
+    fun shouldInterceptCoach(
+        hasMaxAccess: Boolean,
+        type: EntryType,
+        suggestion: WantHold?
+    ): Boolean = hasMaxAccess && type == EntryType.WANT && suggestion?.hold == true
+
+    /**
      * Rule library for the Today's insight card. Evaluated top-down; every rule
      * returns advice plus a NotebookLM citation (rule 1-3 are the original
      * rules, 4-7 extend the library with streak, weekend, goal, and

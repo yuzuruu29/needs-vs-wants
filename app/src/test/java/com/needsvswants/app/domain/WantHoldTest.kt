@@ -1,5 +1,6 @@
 package com.needsvswants.app.domain
 
+import com.needsvswants.app.data.model.EntryType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -191,5 +192,89 @@ class WantHoldTest {
 
         assertTrue(suggestion!!.hold)
         assertEquals("Wants are more than 55% of this week's spending.", suggestion.reason)
+    }
+
+    // --- Coach gate predicate: intercept ONLY Max + WANT + hold ---------------
+
+    @Test
+    fun shouldInterceptCoach_maxWantHold_intercepts() {
+        val hold = FinancialAdvisorEngine.wantHoldSuggestion(
+            costCents = 30_00,
+            context = pack(remainingCents = 100_00)
+        )!!
+
+        assertTrue(
+            FinancialAdvisorEngine.shouldInterceptCoach(
+                hasMaxAccess = true,
+                type = EntryType.WANT,
+                suggestion = hold
+            )
+        )
+    }
+
+    @Test
+    fun shouldInterceptCoach_neverWhenVerdictIsAllClear() {
+        val ok = FinancialAdvisorEngine.wantHoldSuggestion(
+            costCents = 100,
+            context = pack(remainingCents = 100_00)
+        )!!
+
+        assertFalse(
+            FinancialAdvisorEngine.shouldInterceptCoach(
+                hasMaxAccess = true,
+                type = EntryType.WANT,
+                suggestion = ok
+            )
+        )
+    }
+
+    @Test
+    fun shouldInterceptCoach_neverForNeeds() {
+        val hold = FinancialAdvisorEngine.wantHoldSuggestion(
+            costCents = 30_00,
+            context = pack(remainingCents = 100_00)
+        )!!
+
+        assertFalse(
+            FinancialAdvisorEngine.shouldInterceptCoach(
+                hasMaxAccess = true,
+                type = EntryType.NEED,
+                suggestion = hold
+            )
+        )
+    }
+
+    @Test
+    fun shouldInterceptCoach_neverWithoutMaxAccess() {
+        val hold = FinancialAdvisorEngine.wantHoldSuggestion(
+            costCents = 30_00,
+            context = pack(remainingCents = 100_00)
+        )!!
+
+        assertFalse(
+            FinancialAdvisorEngine.shouldInterceptCoach(
+                hasMaxAccess = false,
+                type = EntryType.WANT,
+                suggestion = hold
+            )
+        )
+    }
+
+    @Test
+    fun shouldInterceptCoach_neverWhenSuggestionIsNull() {
+        // Budget off yields no suggestion at all: not even a Max Want can be gated.
+        val nullSuggestion = FinancialAdvisorEngine.wantHoldSuggestion(
+            costCents = 30_00,
+            context = pack(budgetOn = false)
+        )
+
+        assertNull(nullSuggestion)
+        assertFalse(
+            FinancialAdvisorEngine.shouldInterceptCoach(
+                hasMaxAccess = true,
+                type = EntryType.WANT,
+                suggestion = nullSuggestion
+            )
+        )
     }
 }

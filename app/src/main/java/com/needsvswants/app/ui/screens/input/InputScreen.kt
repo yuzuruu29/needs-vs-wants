@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -494,12 +495,14 @@ fun InputScreen(
             )
         }
 
-        // Max-only pre-seal Want coach dialog (Task 3): the soft hold gate when
-        // the coach suggests a 24h hold, a light all-clear otherwise. "Hold"
-        // only closes the dialog: the seal never fired, so the draft stays.
+        // Max-only pre-seal Want hold gate (Task 3): the soft gate dialog.
+        // "Hold" only closes the dialog: the seal never fired, so the draft
+        // stays. Keyed on the consult instance so an edited row replaces the
+        // verdict instead of showing a stale one (reduced-motion safe: the
+        // PremiumDialog chrome owns all animation via Motion tokens).
         coachHold?.let { hold ->
             if (showCoachDialog) {
-                if (hold.hold) {
+                key(hold) {
                     PremiumDialog(
                         onDismissRequest = { showCoachDialog = false },
                         eyebrow = "MAX COACH",
@@ -526,34 +529,6 @@ fun InputScreen(
                             viewModel.confirmCoachSeal()
                         },
                         dismissLabel = "Hold"
-                    )
-                } else {
-                    PremiumDialog(
-                        onDismissRequest = { showCoachDialog = false },
-                        eyebrow = "MAX COACH",
-                        eyebrowColor = palette.gold,
-                        title = "Max: looks okay",
-                        bodyContent = {
-                            Column {
-                                Text(
-                                    text = hold.reason,
-                                    color = palette.textPrimary,
-                                    style = AppType.body
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = hold.citation,
-                                    color = palette.textMuted,
-                                    style = AppType.caption
-                                )
-                            }
-                        },
-                        confirmLabel = "Seal",
-                        onConfirm = {
-                            showCoachDialog = false
-                            viewModel.confirmCoachSeal()
-                        },
-                        dismissLabel = "Keep typing"
                     )
                 }
             }

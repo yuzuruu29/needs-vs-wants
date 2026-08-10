@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -206,6 +207,97 @@ class InputViewModelTest {
         advanceUntilIdle()
 
         assertEquals(2, vm.quotaState.value.logsCreated)
+    }
+
+    // --- Max coach gate (Task 3): intercept ONLY Max + WANT + hold -------------
+
+    private suspend fun TestScope.buildMaxViewModel(): InputViewModel {
+        prefs.setEntitlement(
+            Entitlement(
+                tier = EntitlementTier.MAX,
+                type = EntitlementType.PAID,
+                expiresAtEpochMillis = System.currentTimeMillis() + 86_400_000L
+            )
+        )
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        // dailyBudgetCents is WhileSubscribed; without a collector it freezes at
+        // null and the coach would see budget Off. Collect it like the screen does.
+        backgroundScope.launch { vm.dailyBudgetCents.collect {} }
+        vm.saveDailyBudget("100")
+        advanceUntilIdle()
+        assertEquals(100_00L, vm.dailyBudgetCents.value)
+        return vm
+    }
+
+    @Test
+    fun max_wantOver15PercentOfRemaining_holdsSeal_andSetsCoachHold() = runTest(dispatcher) {
+        val vm = buildMaxViewModel()
+
+        vm.activeItem.value = "Sneakers"
+        vm.activeCost.value = "3000"
+        vm.activeType.value = EntryType.WANT
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertTrue(dao.entries.value.isEmpty())
+        assertNotNull(vm.coachHold.value)
+        assertTrue(vm.coachHold.value!!.hold)
+        assertTrue(vm.coachHold.value!!.reason.isNotBlank())
+        assertTrue(vm.coachHold.value!!.citation.contains("Section"))
+    }
+
+    @Test
+    fun max_wantWithin15PercentOfRemaining_sealsImmediately_withoutCoachHold() = runTest(dispatcher) {
+        val vm = buildMaxViewModel()
+
+        // ₱10 = 1000 cents, under the ₱15 (15% of ₱100 remaining) threshold.
+        vm.activeItem.value = "Coffee"
+        vm.activeCost.value = "10"
+        vm.activeType.value = EntryType.WANT
+        vm.trySeal()
+        advanceUntilIdle()
+
+        val sealed = dao.entries.value.single()
+        assertEquals("Coffee", sealed.item)
+        assertEquals(1000L, sealed.costCents)
+        assertNull(vm.coachHold.value)
+    }
+
+    @Test
+    fun max_needRow_neverIntercepted_evenWhenCostWouldHold() = runTest(dispatcher) {
+        val vm = buildMaxViewModel()
+
+        vm.activeItem.value = "Groceries"
+        vm.activeCost.value = "9000"
+        vm.activeType.value = EntryType.NEED
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(1, dao.entries.value.size)
+        assertEquals(EntryType.NEED, dao.entries.value.single().type)
+        assertNull(vm.coachHold.value)
+    }
+
+    @Test
+    fun max_confirmCoachSeal_sealsThroughNormalPipeline_andClearsCoachHold() = runTest(dispatcher) {
+        val vm = buildMaxViewModel()
+
+        vm.activeItem.value = "Sneakers"
+        vm.activeCost.value = "3000"
+        vm.activeType.value = EntryType.WANT
+        vm.trySeal()
+        advanceUntilIdle()
+        assertNotNull(vm.coachHold.value)
+
+        vm.confirmCoachSeal()
+        advanceUntilIdle()
+
+        assertNull(vm.coachHold.value)
+        val sealed = dao.entries.value.single()
+        assertEquals("Sneakers", sealed.item)
+        assertEquals(300_000L, sealed.costCents)
+        assertEquals(EntryType.WANT, sealed.type)
     }
 
     private class FakeEntryDao : EntryDao {

@@ -34,14 +34,13 @@ sealed class SealEvent {
 data class QuotaBlocked(val item: String, val costCents: Long, val type: EntryType)
 
 /**
- * Pending pre-seal Want consult for Max users (Task 3). Non-null while a
- * draft Want row is waiting for the coach verdict; the seal is held until the
- * user chooses "Seal anyway" (via [InputViewModel.confirmCoachSeal]) or edits
- * the row away. Needs and Free/Pro never produce this state.
+ * Pending pre-seal Want hold consult for Max users (Task 3). Non-null only
+ * while a draft Want row is waiting for the coach's hold verdict; the seal is
+ * held until the user chooses "Seal anyway" (via [InputViewModel.confirmCoachSeal])
+ * or edits the row away. All-clear verdicts, Needs, and Free/Pro never produce
+ * this state.
  */
 data class CoachHold(
-    val item: String,
-    val costCents: Long,
     val hold: Boolean,
     val reason: String,
     val citation: String
@@ -106,13 +105,9 @@ class InputViewModel @Inject constructor(
     private val _quotaBlocked = MutableStateFlow<QuotaBlocked?>(null)
     val quotaBlocked: StateFlow<QuotaBlocked?> = _quotaBlocked.asStateFlow()
 
-    /** Pending pre-seal Want consult (Max only); null for Free/Pro and Needs. */
+    /** Pending pre-seal Want hold consult (Max only); null for Free/Pro and Needs. */
     private val _coachHold = MutableStateFlow<CoachHold?>(null)
     val coachHold: StateFlow<CoachHold?> = _coachHold.asStateFlow()
-
-    /** True when the current entitlement grants Max at this moment (coach gate). */
-    val hasMaxAccess: Boolean
-        get() = entitlement.value.hasMaxAccessAt(System.currentTimeMillis())
 
     /** True only for the seal the user explicitly confirmed through the coach dialog. */
     private var coachSealOverride = false
@@ -155,23 +150,25 @@ class InputViewModel @Inject constructor(
         }
 
         val now = System.currentTimeMillis()
-        // Max coach gate (Task 3): a draft Want with a budget On gets a quiet
-        // pre-seal consult instead of an instant seal. Needs are never gated,
-        // Free/Pro are untouched, and a budget Off yields no guardrail at all.
+        val hasMax = entitlement.value.hasMaxAccessAt(now)
+        // Max coach gate (Task 3): intercept ONLY a Max Want whose verdict is
+        // a hold. All-clear verdicts, Needs, Free/Pro, and a budget Off fall
+        // through to the untouched seal path (quota, overspend, seal).
+        val coachSuggestion = if (!coachSealOverride && hasMax && type == EntryType.WANT) {
+            wantHoldSuggestion(costCents)
+        } else {
+            null
+        }
         if (!coachSealOverride &&
-            entitlement.value.hasMaxAccessAt(now) && type == EntryType.WANT
+            FinancialAdvisorEngine.shouldInterceptCoach(hasMax, type, coachSuggestion)
         ) {
-            val suggestion = wantHoldSuggestion(costCents)
-            if (suggestion != null) {
-                _coachHold.value = CoachHold(
-                    item = item,
-                    costCents = costCents,
-                    hold = suggestion.hold,
-                    reason = suggestion.reason,
-                    citation = suggestion.citation
-                )
-                return
-            }
+            val verdict = coachSuggestion ?: return
+            _coachHold.value = CoachHold(
+                hold = verdict.hold,
+                reason = verdict.reason,
+                citation = verdict.citation
+            )
+            return
         }
         coachSealOverride = false
 
