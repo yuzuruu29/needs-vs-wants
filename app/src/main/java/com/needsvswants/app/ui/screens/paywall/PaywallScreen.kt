@@ -125,12 +125,19 @@ fun PaywallScreen(
     LaunchedEffect(lastResult) {
         when (val r = lastResult) {
             is BillingResult.OpenCheckout -> {
-                runCatching {
+                try {
                     context.startActivity(
                         Intent(Intent.ACTION_VIEW, Uri.parse(r.approvalUrl)).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                     )
+                } catch (t: Throwable) {
+                    // No browser / malformed approval URL: surface the failure
+                    // and drop the durable pending flag (no checkout actually
+                    // started) instead of silently swallowing it — the user
+                    // gets a retryable error, not a silent no-op.
+                    viewModel.reportCheckoutOpenFailure()
+                    return@LaunchedEffect
                 }
                 // Keep a short "opened checkout" state, then clear so return can refresh.
                 delay(1500)

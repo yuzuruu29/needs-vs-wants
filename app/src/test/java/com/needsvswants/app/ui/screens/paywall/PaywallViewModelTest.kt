@@ -33,6 +33,7 @@ import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -260,6 +261,136 @@ class PaywallViewModelTest {
         vm.subscribeMax()
         advanceUntilIdle()
 
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun runBilling_billingThrow_surfacesFailedResult_notCrash() = runTest(dispatcher) {
+        // "The app stops when going for the free trial": an unexpected throw
+        // inside a billing controller used to escape the ViewModel coroutine
+        // and force-close the app. The pipeline's exception boundary must
+        // surface the paywall's error contract instead.
+        val billing = ThrowingBilling()
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertFalse(vm.busy.first())
+        assertTrue("billing throw must surface as Failed, not crash", vm.lastResult.first() is BillingResult.Failed)
+    }
+
+    @Test
+    fun restore_billingThrow_surfacesFailedResult_notCrash() = runTest(dispatcher) {
+        val billing = ThrowingBilling()
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
+        )
+
+        vm.restore()
+        advanceUntilIdle()
+
+        assertTrue("restore throw must surface as Failed, not crash", vm.lastResult.first() is BillingResult.Failed)
+    }
+
+    @Test
+    fun reportCheckoutOpenFailure_clearsPendingFlag_surfacesFailed() = runTest(dispatcher) {
+        // The browser launch failed (no browser / malformed approval URL): no
+        // checkout actually started, so the durable pending-return flag must
+        // not survive (no phantom cold-start retry loop) and the CTA must show
+        // a retryable error instead of a silent no-op.
+        val payPalReturn = FakePayPalReturnStore().apply { setPaypalReturnPending(true) }
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            SupabaseConfig.Disabled,
+            payPalReturn,
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+
+        vm.reportCheckoutOpenFailure()
+        advanceUntilIdle()
+
+        assertFalse(payPalReturn.paypalReturnPending.first())
+        assertTrue(vm.lastResult.first() is BillingResult.Failed)
+        assertEquals(CheckoutSyncState.Idle, vm.checkoutSyncState.first())
+    }
+
+    @Test
+    fun subscribePro_sessionReadThrows_setsPendingInsteadOfCrashing() = runTest(dispatcher) {
+        // A DataStore session-read failure at the CTA tap must behave like
+        // signed-out (deferred intent), never crash the app.
+        val auth = AuthRepository(
+            auth = NoopSupabaseAuth,
+            store = ThrowingSessionStore(),
+            google = NoopGoogle,
+            entitlements = EntitlementRepository(FakeLocal(), FakeRemote()),
+            payPalReturn = FakePayPalReturnStore(),
+            config = SupabaseConfig.Disabled
+        )
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            auth,
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        // No crash: the failed session read behaves like signed-out (deferred
+        // intent) and the pipeline never engaged (busy stays false).
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertFalse(vm.busy.first())
+    }
+
+    @Test
+    fun onSignedInForPurchase_tokenRefreshStoreThrow_doesNotCrash() = runTest(dispatcher) {
+        // The auto-continue path force-refreshes the access token; a storage
+        // write failure there must not escape the ViewModel coroutine — the
+        // billing controller re-checks the session and reports its own result.
+        val auth = AuthRepository(
+            auth = RefreshOkSupabaseAuth,
+            store = SaveThrowingStore(),
+            google = NoopGoogle,
+            entitlements = EntitlementRepository(FakeLocal(), FakeRemote()),
+            payPalReturn = FakePayPalReturnStore(),
+            config = SupabaseConfig.Disabled
+        )
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            auth,
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+
+        // No crash: the pending intent ran (or aborted) through the guarded
+        // pipeline; the screen's own gates decide the outcome.
         assertFalse(vm.busy.first())
     }
 
@@ -1664,6 +1795,36 @@ class PaywallViewModelTest {
         override suspend fun clear() {
             state.value = null
         }
+    }
+
+    /** Session read always throws — simulates a DataStore read failure. */
+    private class ThrowingSessionStore : AuthSessionStore {
+        override val session: Flow<AuthSession?> = flow { throw RuntimeException("disk read failed") }
+        override suspend fun save(session: AuthSession) = Unit
+        override suspend fun clear() = Unit
+    }
+
+    /** Expired session + refresh succeeds + save throws — the token-refresh storage failure. */
+    private class SaveThrowingStore : AuthSessionStore {
+        private val state = MutableStateFlow(AuthSession("at", "rt", "u1", "user@example.com", 0L))
+        override val session: Flow<AuthSession?> = state
+        override suspend fun save(session: AuthSession) {
+            throw RuntimeException("disk write failed")
+        }
+        override suspend fun clear() = Unit
+    }
+
+    private object RefreshOkSupabaseAuth : SupabaseAuth {
+        override val isConfigured: Boolean = true
+        override suspend fun sendMagicLink(email: String): Result<Unit> =
+            Result.success(Unit)
+        override suspend fun verifyOtp(email: String, token: String): Result<String> =
+            Result.success(token)
+        override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<AuthSession> =
+            Result.success(AuthSession("at", "rt", "u1", "user@example.com", null))
+        override suspend fun refreshSession(refreshToken: String): Result<AuthSession> =
+            Result.success(AuthSession("new-at", "new-rt", "u1", "user@example.com", null))
+        override suspend fun signOut(accessToken: String): Result<Unit> = Result.success(Unit)
     }
 
     private class FakePayPalReturnStore : PayPalReturnStore {

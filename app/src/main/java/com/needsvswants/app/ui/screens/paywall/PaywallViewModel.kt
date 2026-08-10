@@ -12,6 +12,7 @@ import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.entitlement.PayPalReturnStore
 import com.needsvswants.app.data.remote.SupabaseConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -137,6 +138,15 @@ class PaywallViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /**
+     * Reads the signed-in flag defensively: a storage read failure behaves as
+     * signed-out instead of escaping the ViewModel coroutine (an uncaught
+     * exception there force-closes the app). The billing controllers re-check
+     * the session and report their own "Sign in required." when it matters.
+     */
+    private suspend fun signedInSafe(): Boolean =
+        runCatching { authRepository.isSignedIn.first() }.getOrDefault(false)
+
+    /**
      * Switches the payment provider used for the next checkout. Mirrors the
      * plan-switch semantics (D108): while a deferred intent is pending, a
      * signed-in user's intent is cleared (fresh CTA with the new provider);
@@ -153,7 +163,7 @@ class PaywallViewModel @Inject constructor(
             when (_pendingPurchase.value) {
                 PendingPurchase.None -> Unit
                 else -> {
-                    if (authRepository.isSignedIn.first()) {
+                    if (signedInSafe()) {
                         // A deferred purchase must never cross a provider change:
                         // the user re-taps the CTA to start fresh.
                         cancelPendingSignIn()
@@ -175,7 +185,7 @@ class PaywallViewModel @Inject constructor(
     fun subscribePro() {
         viewModelScope.launch {
             if (_busy.value) return@launch
-            if (!authRepository.isSignedIn.first()) {
+            if (!signedInSafe()) {
                 _pendingPurchase.value = PendingPurchase.ProSubscribe
                 autoContinued = null
                 return@launch
@@ -188,7 +198,7 @@ class PaywallViewModel @Inject constructor(
     fun subscribeMax() {
         viewModelScope.launch {
             if (_busy.value) return@launch
-            if (!authRepository.isSignedIn.first()) {
+            if (!signedInSafe()) {
                 _pendingPurchase.value = PendingPurchase.MaxSubscribe
                 autoContinued = null
                 return@launch
@@ -210,7 +220,7 @@ class PaywallViewModel @Inject constructor(
      */
     fun onSignedInForPurchase() {
         viewModelScope.launch {
-            if (!authRepository.isSignedIn.first()) return@launch
+            if (!signedInSafe()) return@launch
             if (autoContinued == _pendingPurchase.value) return@launch
             runPendingSubscription()
         }
@@ -230,7 +240,7 @@ class PaywallViewModel @Inject constructor(
         viewModelScope.launch {
             if (_pendingPurchase.value == PendingPurchase.None) return@launch
             if (_busy.value) return@launch
-            if (!authRepository.isSignedIn.first()) return@launch
+            if (!signedInSafe()) return@launch
             val last = _lastResult.value
             if (last is BillingResult.Success || last is BillingResult.OpenCheckout) return@launch
             runPendingSubscription()
@@ -244,7 +254,16 @@ class PaywallViewModel @Inject constructor(
 
     fun restore() {
         viewModelScope.launch {
-            val result = billing.restorePurchases()
+            val result = try {
+                billing.restorePurchases()
+            } catch (t: CancellationException) {
+                throw t
+            } catch (t: Throwable) {
+                // Exception boundary: a restore failure must surface as the
+                // paywall's error contract, never escape the ViewModel and
+                // force-close the app.
+                BillingResult.Failed("Restore didn't go through. Try again.")
+            }
             // A successful restore proves the subscription is live: the stale
             // "Payment recorded — tap Restore, or wait a moment." (Exhausted)
             // state must not survive it and contradict the Welcome-to-Pro result.
@@ -306,6 +325,22 @@ class PaywallViewModel @Inject constructor(
     }
 
     /**
+     * The checkout browser could not be opened (no browser on the device, or a
+     * malformed approval URL). The durable pending-return flag must not survive
+     * — no checkout actually started, so a later cold start must not re-run a
+     * phantom retry loop — and the failure must be surfaced so the CTA shows a
+     * retryable error instead of silently doing nothing.
+     */
+    fun reportCheckoutOpenFailure() {
+        viewModelScope.launch {
+            runCatching { payPalReturn.clearPaypalReturnPending() }
+            _checkoutSyncState.value = CheckoutSyncState.Idle
+            _lastResult.value =
+                BillingResult.Failed("Couldn't open the payment page. Please try again.")
+        }
+    }
+
+    /**
      * Runs the pending subscription the user chose. Holds the in-flight guard
      * over the WHOLE pipeline (settle delay + token refresh + billing) so no
      * second tap can reach [BillingController.purchase] while this runs. A
@@ -319,7 +354,10 @@ class PaywallViewModel @Inject constructor(
         try {
             delay(TOKEN_SETTLE_MILLIS)
             // Force a fresh access token; the billing controller re-reads it.
-            authRepository.ensureFreshAccessToken()
+            // Best-effort: a storage/token-refresh throw must never kill the
+            // app — the controller re-checks the session and reports its own
+            // Failed("Sign in required.") if the token is really unusable.
+            runCatching { authRepository.ensureFreshAccessToken() }
             when (_pendingPurchase.value) {
                 PendingPurchase.ProSubscribe -> {
                     autoContinued = PendingPurchase.ProSubscribe
@@ -373,9 +411,21 @@ class PaywallViewModel @Inject constructor(
      * Executes a billing block while the caller already holds the busy guard.
      * Once checkout actually starts the deferred intent is consumed; every
      * other result leaves [PendingPurchase] set so the attempt can be retried.
+     *
+     * Exception boundary: an unexpected provider/parse/storage throw during
+     * checkout start must surface as [BillingResult.Failed] (the paywall's
+     * error contract) instead of escaping the ViewModel coroutine — an
+     * uncaught exception there force-closes the app mid-trial ("the app stops
+     * when going for the free trial").
      */
     private suspend fun executeBilling(block: suspend () -> BillingResult) {
-        val result = block()
+        val result = try {
+            block()
+        } catch (t: CancellationException) {
+            throw t
+        } catch (t: Throwable) {
+            BillingResult.Failed("Payment couldn't be started. Please try again.")
+        }
         if (result is BillingResult.OpenCheckout) {
             // Checkout started: persist the durable pending-return flag (survives
             // process death while the browser is open) and re-arm the

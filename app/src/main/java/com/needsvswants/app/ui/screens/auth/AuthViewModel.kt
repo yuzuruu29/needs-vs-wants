@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.auth.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,7 +66,17 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _busy.value = true
             _error.value = null
-            val result = authRepository.signInWithGoogle(activity)
+            // Exception boundary: an unexpected storage/session throw during
+            // sign-in must surface as an error message — never escape the
+            // ViewModel coroutine and force-close the app at the paywall's
+            // "Continue with Google" step.
+            val result = try {
+                authRepository.signInWithGoogle(activity)
+            } catch (t: CancellationException) {
+                throw t
+            } catch (t: Throwable) {
+                Result.failure(t)
+            }
             _busy.value = false
             result.fold(
                 onSuccess = {
