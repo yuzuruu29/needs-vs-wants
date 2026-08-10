@@ -243,7 +243,9 @@ fun AppNavigation(
                                 )
                             }
                         })
-                        MainTab.Log -> InputScreen()
+                        MainTab.Log -> InputScreen(onOpenPaywall = {
+                            paywallOpen = true
+                        })
                         MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
                             paywallOpen = true
                         })

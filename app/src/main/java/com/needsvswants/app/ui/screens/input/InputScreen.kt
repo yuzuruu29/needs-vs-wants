@@ -33,7 +33,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,7 +82,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
+fun InputScreen(
+    viewModel: InputViewModel = hiltViewModel(),
+    onOpenPaywall: () -> Unit = {}
+) {
     val entries by viewModel.sheetEntries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val item by viewModel.activeItem.collectAsStateWithLifecycle()
@@ -451,23 +453,13 @@ fun InputScreen(viewModel: InputViewModel = hiltViewModel()) {
                             color = palette.textSecondary,
                             style = AppType.body
                         )
-                        Spacer(Modifier.height(16.dp))
-                        TextButton(
-                            onClick = { viewModel.dismissQuotaBlocked() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Come back tomorrow", color = palette.textMuted)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            "Or go Pro — unlimited logs, lifetime history",
-                            style = AppType.bodySm,
-                            color = palette.textMuted
-                        )
                     }
                 },
-                confirmLabel = "Come back tomorrow",
-                onConfirm = { viewModel.dismissQuotaBlocked() },
+                confirmLabel = "Go Pro/Max",
+                onConfirm = {
+                    viewModel.dismissQuotaBlocked()
+                    onOpenPaywall()
+                },
                 dismissLabel = "Come back tomorrow"
             )
         }
