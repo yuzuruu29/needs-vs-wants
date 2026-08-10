@@ -57,6 +57,7 @@ import android.content.Intent
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.domain.BudgetStatus
+import com.needsvswants.app.domain.DailySpend
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.StreakMilestone
 import com.needsvswants.app.domain.toMoney
@@ -76,6 +77,7 @@ fun SummaryScreen(
     viewModel: SummaryViewModel = hiltViewModel()
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val trendPct by viewModel.trendPct.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
@@ -319,12 +321,26 @@ fun SummaryScreen(
             modifier = Modifier.fillMaxWidth()
         ) { animatedPeriod ->
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    getPeriodLabel(animatedPeriod, paid),
-                    color = palette.crimson,
-                    style = AppType.meta.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        getPeriodLabel(animatedPeriod, paid),
+                        color = palette.crimson,
+                        style = AppType.meta.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1
+                    )
+                    // Trend pill vs the previous period (design audit #5). Hidden on ALL
+                    // (baseline is not meaningful for lifetime) and when flat.
+                    if (animatedPeriod != Period.ALL && trendPct != 0) {
+                        Spacer(Modifier.width(8.dp))
+                        TrendPill(
+                            trendPct = trendPct,
+                            comparedTo = "vs last ${animatedPeriod.name.lowercase()}"
+                        )
+                    }
+                }
                 Text(
                     getPeriodRange(animatedPeriod, paid),
                     color = palette.textMuted,
@@ -414,6 +430,10 @@ fun SummaryScreen(
                                 onClick = {
                                     haptics.tick()
                                     showSplitPortal = true
+                                },
+                                onLongPress = {
+                                    haptics.seal()
+                                    showSplitPortal = true
                                 }
                             ) {
                                 Column(
@@ -468,6 +488,23 @@ fun SummaryScreen(
 
                 Spacer(Modifier.height(24.dp))
 
+                // Daily-spend sparkline (design audit #5) — trend shape below the donut.
+                if (stats.dailyTotals.size >= 2) {
+                    val daily = stats.dailyTotals
+                    SparklineChart(
+                        data = daily.map { it.totalCents },
+                        accentColor = palette.want,
+                        labels = daily.map { it.date },
+                        tooltip = { i ->
+                            val d = daily[i]
+                            "${d.date}  ${d.totalCents.toMoney(symbol)}"
+                        },
+                        haptics = haptics,
+                        modifier = Modifier.fillMaxWidth().staggerIn(2)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+
                 // Money cards only — no redundant third NEED% box
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
@@ -516,6 +553,7 @@ fun SummaryScreen(
                 wantsCents = stats.wantsTotalCents,
                 totalCents = stats.totalCents,
                 symbol = symbol,
+                dailyTotals = stats.dailyTotals,
                 periodLabel = getPeriodLabel(period, paid),
                 onDismiss = { showSplitPortal = false }
             )
@@ -669,6 +707,7 @@ private fun SplitPercentagePortal(
     wantsCents: Long,
     totalCents: Long,
     symbol: String,
+    dailyTotals: List<DailySpend>,
     periodLabel: String,
     onDismiss: () -> Unit
 ) {
@@ -825,6 +864,21 @@ private fun SplitPercentagePortal(
                 ) {
                     drawRect(color = palette.want, size = size)
                     drawRect(color = palette.need, size = Size(size.width * n, size.height))
+                }
+                // Day-of-week breakdown (design audit #7) — inside the split portal.
+                if (dailyTotals.size >= 7) {
+                    Spacer(Modifier.height(20.dp))
+                    PremiumSurface(
+                        shape = RoundedCornerShape(16.dp),
+                        goldEdge = true,
+                        raised = true
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Eyebrow("SPENDING BY DAY", color = palette.crimson)
+                            Spacer(Modifier.height(12.dp))
+                            DayOfWeekChart(dailyTotals = dailyTotals, symbol = symbol)
+                        }
+                    }
                 }
                 Spacer(Modifier.height(18.dp))
                 GiltButton(

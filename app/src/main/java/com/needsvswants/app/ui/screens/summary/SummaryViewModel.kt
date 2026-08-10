@@ -54,6 +54,12 @@ class SummaryViewModel @Inject constructor(
         summaryUseCase.getStats(p)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SummaryStats())
 
+    /** Trend delta vs the previous period (design audit #5). 0 when no baseline. */
+    val trendPct: StateFlow<Int> = stats.map { s ->
+        val prev = s.previousPeriodTotalCents
+        if (prev > 0) ((s.totalCents - prev) * 100 / prev).toInt() else 0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
 

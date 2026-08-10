@@ -1,12 +1,19 @@
 package com.needsvswants.app.ui.theme
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -16,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -29,6 +37,7 @@ import androidx.compose.ui.unit.dp
  *
  * Optional [onClick] opens the percentage portal (Summary).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FloatingGeminiOrb(
     needsSweepDegrees: Float,
@@ -36,22 +45,43 @@ fun FloatingGeminiOrb(
     modifier: Modifier = Modifier,
     orbSize: Dp = 200.dp,
     onClick: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null,
     center: @Composable BoxScope.() -> Unit
 ) {
     val palette = AppTheme.colors
     val sfx = rememberAppSfx()
+    // Press-hold expansion (design audit #6): the ring scales outward while
+    // pressed (covers tap and long-press holds), springing back on release.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed && onClick != null) 1.02f else 1f,
+        animationSpec = Motion.pressSpring(),
+        label = "orbPress"
+    )
 
     Box(
         modifier = modifier
             .size(orbSize)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(
+                    Modifier.combinedClickable(
+                        interactionSource = interaction,
+                        indication = null,
                         role = Role.Button,
                         onClick = {
                             sfx.orb()
                             onClick()
                         },
+                        onLongClick = {
+                            sfx.orb()
+                            onLongPress?.invoke()
+                        },
+                        onLongClickLabel = "Open split"
                     )
                 } else Modifier
             ),
