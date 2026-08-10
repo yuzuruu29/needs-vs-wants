@@ -410,9 +410,10 @@ fun PaywallScreen(
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
                         "Everything in Pro" to true,
-                        "AI Financial Advisor with citations" to true,
-                        "Footnotes from study notebooks" to false,
-                        "Overspend recovery coaching" to false
+                        "Live insight card from your sealed ledger" to false,
+                        "Pre-seal Want coach + hold suggestions" to false,
+                        "3-day overspend recovery plans" to false,
+                        "Grounded citations on every answer" to false
                     ),
                     statusNote = if (hasMaxAccess) "You're on Max" else null
                 )
