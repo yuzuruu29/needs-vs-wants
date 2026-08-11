@@ -237,7 +237,7 @@ let donutCountPlayed = false;
 
   html = html.replace(
     '},{threshold:.35}).observe($(\'.donut\'));',
-    "},{threshold:.35}).observe($('.donut'));\n\nlet windowSeen = false;\nnew IntersectionObserver((ents, io) => {\n  ents.forEach(en => {\n    if (en.isIntersecting && !windowSeen){\n      windowSeen = true;\n      const n = document.querySelector('#window .dial-center .n');\n      if (n) animateDialDays(n, 35, 900);\n      io.disconnect();\n    }\n  });\n},{threshold:.35}).observe($('#window'));"
+    "},{threshold:.35}).observe($('.donut'));\n\nlet windowSeen = false;\nnew IntersectionObserver((ents, io) => {\n  ents.forEach(en => {\n    if (en.isIntersecting && !windowSeen){\n      windowSeen = true;\n      const n = document.querySelector('#window .dial-center .n');\n      if (n) animateDialDays(n, 30, 900);\n      io.disconnect();\n    }\n  });\n},{threshold:.35}).observe($('#window'));"
   );
 
   html = html.replace(
