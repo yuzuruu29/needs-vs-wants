@@ -193,7 +193,7 @@ class DefaultCheckoutProviderTest {
         override val isConfigured: Boolean = false
         override suspend fun sendMagicLink(email: String): Result<Unit> =
             Result.failure(IllegalStateException("noop"))
-        override suspend fun verifyOtp(email: String, token: String): Result<String> =
+        override suspend fun verifyOtp(email: String, token: String): Result<AuthSession> =
             Result.failure(IllegalStateException("noop"))
         override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<AuthSession> =
             Result.failure(IllegalStateException("noop"))

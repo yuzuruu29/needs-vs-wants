@@ -1,12 +1,18 @@
 package com.needsvswants.app.ui.screens.settings
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.needsvswants.app.data.backup.BackupScheduler
+import com.needsvswants.app.data.backup.BackupService
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.prefs.AvailableUpdate
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.data.update.UpdateChecker
+import com.needsvswants.app.diagnostics.CrashReporting
 import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.FreeQuotaConfig
@@ -62,6 +68,8 @@ class SettingsViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val entryRepository: EntryRepository,
     private val billingController: BillingController,
+    private val backupService: BackupService,
+    private val updateChecker: UpdateChecker,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     val currentSymbol: StateFlow<String> = preferences.currencySymbol
@@ -77,6 +85,9 @@ class SettingsViewModel @Inject constructor(
 
     val reminderEnabled: StateFlow<Boolean> = preferences.reminderEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val reminderHour: StateFlow<Int> = preferences.reminderHour
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 20)
 
     val sfxEnabled: StateFlow<Boolean> = preferences.sfxEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -156,10 +167,124 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferences.setReminderEnabled(enabled)
             if (enabled) {
-                com.needsvswants.app.notification.ReminderScheduler.schedule(context, 20)
+                // Use the stored hour — it was hardcoded to 20 before (audit gap).
+                val hour = preferences.reminderHour.first()
+                com.needsvswants.app.notification.ReminderScheduler.schedule(context, hour)
             } else {
                 com.needsvswants.app.notification.ReminderScheduler.cancel(context)
             }
+        }
+    }
+
+    fun setReminderHour(hour: Int, context: android.content.Context) {
+        viewModelScope.launch {
+            preferences.setReminderHour(hour.coerceIn(0, 23))
+            if (preferences.reminderEnabled.first()) {
+                com.needsvswants.app.notification.ReminderScheduler.schedule(context, hour.coerceIn(0, 23))
+            }
+        }
+    }
+
+    // --- Privacy: crash reporting toggle -------------------------------------
+
+    val crashReportsEnabled: StateFlow<Boolean> = preferences.crashReportsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setCrashReportsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setCrashReportsEnabled(enabled)
+            CrashReporting.applyState(appContext, enabled)
+        }
+    }
+
+    // --- Local backup / restore ----------------------------------------------
+
+    val backupFolderUri: StateFlow<String?> = preferences.backupFolderUri
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val autoBackupEnabled: StateFlow<Boolean> = preferences.autoBackupEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val lastBackupAt: StateFlow<Long> = preferences.lastBackupAt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    private val _backupBusy = MutableStateFlow(false)
+    val backupBusy: StateFlow<Boolean> = _backupBusy.asStateFlow()
+
+    private val _backupFeedback = MutableStateFlow<String?>(null)
+    val backupFeedback: StateFlow<String?> = _backupFeedback.asStateFlow()
+
+    fun setBackupFolder(uri: String?) {
+        viewModelScope.launch {
+            preferences.setBackupFolderUri(uri)
+            _backupFeedback.value = null
+            if (uri == null) {
+                preferences.setAutoBackupEnabled(false)
+                BackupScheduler.cancel(appContext)
+            }
+        }
+    }
+
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.setAutoBackupEnabled(enabled)
+            if (enabled) BackupScheduler.schedule(appContext) else BackupScheduler.cancel(appContext)
+        }
+    }
+
+    fun backupNow() {
+        viewModelScope.launch {
+            if (_backupBusy.value) return@launch
+            _backupBusy.value = true
+            _backupFeedback.value = null
+            _backupFeedback.value = when (val r = backupService.backupNow()) {
+                is BackupService.BackupResult.Success ->
+                    "Backed up ${r.entryCount} entries to ${r.fileName}."
+                BackupService.BackupResult.NoFolder -> "Choose a backup folder first."
+                is BackupService.BackupResult.Failed -> r.reason
+            }
+            _backupBusy.value = false
+        }
+    }
+
+    fun restoreFrom(uri: Uri) {
+        viewModelScope.launch {
+            if (_backupBusy.value) return@launch
+            _backupBusy.value = true
+            _backupFeedback.value = null
+            _backupFeedback.value = when (val r = backupService.restoreFrom(uri)) {
+                is BackupService.RestoreResult.Success ->
+                    "Restored ${r.imported} entries (${r.duplicatesSkipped} duplicates skipped)."
+                is BackupService.RestoreResult.Failed -> r.reason
+            }
+            runCatching { NvwWidget.refreshAll(appContext) }
+            _backupBusy.value = false
+        }
+    }
+
+    // --- Sideload update check -------------------------------------------------
+
+    val updateAvailable: StateFlow<AvailableUpdate?> = preferences.updateAvailable
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _updateCheckBusy = MutableStateFlow(false)
+    val updateCheckBusy: StateFlow<Boolean> = _updateCheckBusy.asStateFlow()
+
+    private val _updateFeedback = MutableStateFlow<String?>(null)
+    val updateFeedback: StateFlow<String?> = _updateFeedback.asStateFlow()
+
+    fun checkForUpdates() {
+        viewModelScope.launch {
+            if (_updateCheckBusy.value) return@launch
+            _updateCheckBusy.value = true
+            _updateFeedback.value = null
+            runCatching { updateChecker.checkOnce(force = true) }
+            _updateFeedback.value = if (preferences.updateAvailable.first() != null) {
+                null // the "Update available" row itself is the feedback
+            } else {
+                "You're on the latest version."
+            }
+            _updateCheckBusy.value = false
         }
     }
 

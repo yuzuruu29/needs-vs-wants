@@ -1,4 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Needs vs. Wants Expense Tracker</string>
+
+    <!-- i18n stage 1 (see docs/I18N_PLAN.md): Settings — Notifications / Backup /
+         Privacy / Data sections + their dialogs. Key convention: <screen>_<element>. -->
+
+    <!-- Common -->
+    <string name="common_cancel">Cancel</string>
+
+    <!-- Settings: Notifications -->
+    <string name="settings_notifications_label">NOTIFICATIONS</string>
+    <string name="settings_reminder_title">Evening reminder</string>
+    <string name="settings_reminder_body">%1$s nudge if you have not sealed a purchase today.</string>
+    <string name="settings_reminder_time_title">Reminder time</string>
+    <string name="settings_reminder_time_body">When the daily nudge arrives.</string>
+    <string name="settings_reminder_time_dialog_title">Reminder time</string>
+
+    <!-- Settings: Backup -->
+    <string name="settings_backup_label">BACKUP</string>
+    <string name="settings_backup_folder_title">Backup folder</string>
+    <string name="settings_backup_folder_unset">Not set — pick any folder, a Google Drive folder works too.</string>
+    <string name="settings_backup_auto_title">Auto-backup daily</string>
+    <string name="settings_backup_auto_body">Writes a backup file to your folder once a day, keeps the last 10.</string>
+    <string name="settings_backup_now_title">Back up now</string>
+    <string name="settings_backup_now_busy">Working…</string>
+    <string name="settings_backup_now_body">Diary entries and settings, as a plain JSON file.</string>
+    <string name="settings_backup_last">Last backup: %1$s</string>
+    <string name="settings_backup_restore_title">Restore from backup file</string>
+    <string name="settings_backup_restore_body">Adds entries from a backup — duplicates are skipped, nothing is deleted.</string>
+    <string name="settings_restore_dialog_title">Restore from backup?</string>
+    <string name="settings_restore_dialog_body">Entries from the file are added to your diary — duplicates are skipped, nothing is deleted. Settings saved in the backup are applied.</string>
+    <string name="settings_restore_dialog_confirm">Restore</string>
+
+    <!-- Settings: Privacy -->
+    <string name="settings_privacy_label">PRIVACY</string>
+    <string name="settings_crash_title">Send crash reports</string>
+    <string name="settings_crash_body">Anonymous crash info only — device model, Android version, stack trace. Never your diary.</string>
+    <string name="settings_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_privacy_policy_body">What stays on-device, what the paid tiers send, and why.</string>
+    <string name="settings_terms_title">Terms &amp; Refund Policy</string>
+    <string name="settings_terms_body">Plans, renewals, and how refunds work.</string>
+
+    <!-- Settings: Data -->
+    <string name="settings_data_label">DATA</string>
+    <string name="settings_wipe_title">Wipe diary</string>
+    <string name="settings_wipe_body">Permanently delete all entries and reset settings</string>
+    <string name="settings_wipe_dialog_title">Wipe all data?</string>
+    <string name="settings_wipe_dialog_body">This will permanently delete all entries and reset settings.\nThere is no recovery.</string>
+    <string name="settings_wipe_dialog_confirm">Wipe</string>
+
+    <!-- Settings: Currency caption -->
+    <string name="settings_currency_caption">Display currency only — it changes the symbol and formatting. Existing entries are not converted.</string>
 </resources>

@@ -31,6 +31,10 @@ class AuthRepository @Inject constructor(
     val googleSignInAvailable: Boolean
         get() = google.isAvailable && config.googleSignInEnabled
 
+    /** Email-code sign-in only needs Supabase itself (no Google client id). */
+    val emailSignInAvailable: Boolean
+        get() = auth.isConfigured
+
     /**
      * Full Google sign-in path. Does not clear an existing session on cancel/failure.
      */
@@ -47,6 +51,22 @@ class AuthRepository @Inject constructor(
         val id = googleResult.getOrElse { return Result.failure(it) }
         val sessionResult = auth.signInWithGoogleIdToken(id.idToken, id.rawNonce)
         val session = sessionResult.getOrElse { return Result.failure(it) }
+        store.save(session)
+        entitlements.refreshFromRemote(session.accessToken)
+        return Result.success(session)
+    }
+
+    // --- Email OTP fallback (account recovery — audit gap: Google-only) ------
+
+    /** Sends a 6-digit sign-in code to [email]. */
+    suspend fun requestEmailCode(email: String): Result<Unit> = auth.sendMagicLink(email)
+
+    /**
+     * Verifies the emailed code and persists the session, mirroring
+     * [completeGoogleSignIn] (store + entitlement refresh).
+     */
+    suspend fun signInWithEmailOtp(email: String, code: String): Result<AuthSession> {
+        val session = auth.verifyOtp(email, code).getOrElse { return Result.failure(it) }
         store.save(session)
         entitlements.refreshFromRemote(session.accessToken)
         return Result.success(session)

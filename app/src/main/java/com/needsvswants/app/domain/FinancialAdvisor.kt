@@ -228,8 +228,11 @@ fun advisorProtocolQuery(protocol: String): String = when (protocol) {
 
 object FinancialAdvisorEngine {
 
-    const val SOURCE_OF_TRUTH_TITLE = "Google NotebookLM — Economic Studies"
-    const val DEFAULT_NOTEBOOK_URL = "https://notebook.google.com/"
+    // Honest naming (2026-08-13 audit): the advisor is an offline rule engine
+    // whose advice cites the bundled study notes in assets/economic_studies_index.json.
+    // Never claim a live NotebookLM/RAG connection in user-facing copy.
+    const val SOURCE_OF_TRUTH_TITLE = "Built-in Economic Study Notes"
+    const val DEFAULT_NOTEBOOK_URL = "https://needs-vs-wants.vercel.app/"
 
     /**
      * Section 3.1 citation, verbatim from economic_studies_index.json
@@ -390,7 +393,7 @@ object FinancialAdvisorEngine {
         // Rule 7: Balanced baseline (NotebookLM Section 3.1)
         return AdvisorInsight(
             headline = "Spending Within Economic Study Targets",
-            advice = "Based on your Google NotebookLM economic study notebooks, your spending velocity is balanced. Essential Needs form the anchor of your daily ledger; top Wants so far: $topWantsText.",
+            advice = "Based on the economic study notes built into this app, your spending velocity is balanced. Essential Needs form the anchor of your daily ledger; top Wants so far: $topWantsText.",
             citation = AdvisorCitation(
                 title = "Notebook #2: Behavioral Friction",
                 section = CITATION_SECTION_31
@@ -527,7 +530,7 @@ object FinancialAdvisorEngine {
             // Branch 8: Default grounding (NotebookLM Section 3.1)
             else -> {
                 Triple(
-                    "Grounded in your Google NotebookLM economic studies: Always classify entries at point-of-sale to preserve behavioral friction. Needs should remain your core financial anchor.",
+                    "Grounded in the app's built-in economic study notes: Always classify entries at point-of-sale to preserve behavioral friction. Needs should remain your core financial anchor.",
                     AdvisorCitation("Notebook #2: Behavioral Control", CITATION_SECTION_31),
                     false
                 )

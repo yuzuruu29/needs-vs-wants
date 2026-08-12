@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material.icons.outlined.WorkspacePremium
@@ -36,13 +38,19 @@ import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.BuildConfig
+import com.needsvswants.app.R
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
@@ -68,8 +76,20 @@ fun SettingsScreen(
     val refreshBusy by viewModel.refreshBusy.collectAsStateWithLifecycle()
     val refreshFeedback by viewModel.refreshFeedback.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val reminderHour by viewModel.reminderHour.collectAsStateWithLifecycle()
+    val crashReportsEnabled by viewModel.crashReportsEnabled.collectAsStateWithLifecycle()
+    val backupFolderUri by viewModel.backupFolderUri.collectAsStateWithLifecycle()
+    val autoBackupEnabled by viewModel.autoBackupEnabled.collectAsStateWithLifecycle()
+    val lastBackupAt by viewModel.lastBackupAt.collectAsStateWithLifecycle()
+    val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
+    val backupFeedback by viewModel.backupFeedback.collectAsStateWithLifecycle()
+    val updateAvailable by viewModel.updateAvailable.collectAsStateWithLifecycle()
+    val updateCheckBusy by viewModel.updateCheckBusy.collectAsStateWithLifecycle()
+    val updateFeedback by viewModel.updateFeedback.collectAsStateWithLifecycle()
     val paid = membership.hasProAccessAt(System.currentTimeMillis())
     var showWipeConfirm by remember { mutableStateOf(false) }
+    var showReminderTimePicker by remember { mutableStateOf(false) }
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()
@@ -83,6 +103,32 @@ fun SettingsScreen(
         } else {
             // User denied — keep toggle off
             viewModel.setReminderEnabled(false, context)
+        }
+    }
+
+    val backupFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            }
+            viewModel.setBackupFolder(uri.toString())
+        }
+    }
+
+    val restoreFileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) pendingRestoreUri = uri
+    }
+
+    val backupFolderLabel = remember(backupFolderUri) {
+        backupFolderUri?.let { stored ->
+            runCatching { DocumentFile.fromTreeUri(context, Uri.parse(stored))?.name }.getOrNull()
         }
     }
 
@@ -188,6 +234,12 @@ fun SettingsScreen(
                 }
             }
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.settings_currency_caption),
+            style = AppType.caption,
+            color = palette.textMuted
+        )
 
         Spacer(Modifier.height(28.dp))
 
@@ -388,12 +440,12 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabelWithIcon(Icons.Outlined.Notifications, "NOTIFICATIONS", AppTheme.colors.textSecondary)
+        SectionLabelWithIcon(Icons.Outlined.Notifications, stringResource(R.string.settings_notifications_label), AppTheme.colors.textSecondary)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             FeedbackToggleRow(
-                title = "Evening reminder",
-                body = "8:00 PM nudge if you have not sealed a purchase today.",
+                title = stringResource(R.string.settings_reminder_title),
+                body = stringResource(R.string.settings_reminder_body, formatHour12(reminderHour)),
                 checked = reminderEnabled,
                 onCheckedChange = { checked ->
                     if (hapticsEnabled) haptics.tick()
@@ -415,11 +467,95 @@ fun SettingsScreen(
                 },
                 palette = palette
             )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsNavRow(
+                title = stringResource(R.string.settings_reminder_time_title),
+                body = stringResource(R.string.settings_reminder_time_body),
+                onClick = {
+                    if (hapticsEnabled) haptics.tick()
+                    showReminderTimePicker = true
+                },
+                trailing = {
+                    Text(
+                        formatHour12(reminderHour),
+                        style = AppType.bodyMd,
+                        color = palette.gilt,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            )
         }
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabelWithIcon(Icons.Outlined.DeleteSweep, "DATA", AppTheme.colors.want)
+        SectionLabelWithIcon(Icons.Outlined.Save, stringResource(R.string.settings_backup_label), AppTheme.colors.marketGreen)
+        Spacer(Modifier.height(10.dp))
+        SettingsPanel {
+            SettingsNavRow(
+                title = stringResource(R.string.settings_backup_folder_title),
+                body = backupFolderLabel
+                    ?: stringResource(R.string.settings_backup_folder_unset),
+                onClick = {
+                    if (hapticsEnabled) haptics.tick()
+                    runCatching { backupFolderLauncher.launch(null) }
+                }
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            FeedbackToggleRow(
+                title = stringResource(R.string.settings_backup_auto_title),
+                body = stringResource(R.string.settings_backup_auto_body),
+                checked = autoBackupEnabled && backupFolderUri != null,
+                onCheckedChange = { checked ->
+                    if (hapticsEnabled) haptics.tick()
+                    if (backupFolderUri == null) {
+                        runCatching { backupFolderLauncher.launch(null) }
+                    } else {
+                        viewModel.setAutoBackupEnabled(checked)
+                    }
+                },
+                palette = palette
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsNavRow(
+                title = if (backupBusy) {
+                    stringResource(R.string.settings_backup_now_busy)
+                } else {
+                    stringResource(R.string.settings_backup_now_title)
+                },
+                body = if (lastBackupAt > 0L) {
+                    stringResource(R.string.settings_backup_last, formatBackupStamp(lastBackupAt))
+                } else {
+                    stringResource(R.string.settings_backup_now_body)
+                },
+                onClick = { if (!backupBusy) viewModel.backupNow() }
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsNavRow(
+                title = stringResource(R.string.settings_backup_restore_title),
+                body = stringResource(R.string.settings_backup_restore_body),
+                onClick = {
+                    if (!backupBusy) {
+                        runCatching {
+                            restoreFileLauncher.launch(
+                                arrayOf("application/json", "application/octet-stream", "text/plain")
+                            )
+                        }
+                    }
+                }
+            )
+            backupFeedback?.let { feedback ->
+                Text(
+                    feedback,
+                    style = AppType.caption,
+                    color = palette.textSecondary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabelWithIcon(Icons.Outlined.DeleteSweep, stringResource(R.string.settings_data_label), AppTheme.colors.want)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
             Row(
@@ -432,14 +568,14 @@ fun SettingsScreen(
             ) {
                 Column {
                     Text(
-                        "Wipe diary",
+                        stringResource(R.string.settings_wipe_title),
                         style = AppType.bodyMd,
                         color = palette.danger,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Permanently delete all entries and reset settings",
+                        stringResource(R.string.settings_wipe_body),
                         style = AppType.caption,
                         color = palette.textMuted
                     )
@@ -450,6 +586,35 @@ fun SettingsScreen(
                     tint = palette.danger.copy(alpha = 0.6f)
                 )
             }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabelWithIcon(Icons.Outlined.Shield, stringResource(R.string.settings_privacy_label), AppTheme.colors.textSecondary)
+        Spacer(Modifier.height(10.dp))
+        SettingsPanel {
+            FeedbackToggleRow(
+                title = stringResource(R.string.settings_crash_title),
+                body = stringResource(R.string.settings_crash_body),
+                checked = crashReportsEnabled,
+                onCheckedChange = { checked ->
+                    if (hapticsEnabled) haptics.tick()
+                    viewModel.setCrashReportsEnabled(checked)
+                },
+                palette = palette
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsNavRow(
+                title = stringResource(R.string.settings_privacy_policy_title),
+                body = stringResource(R.string.settings_privacy_policy_body),
+                onClick = { openUrl(context, "https://needs-vs-wants.vercel.app/privacy.html") }
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsNavRow(
+                title = stringResource(R.string.settings_terms_title),
+                body = stringResource(R.string.settings_terms_body),
+                onClick = { openUrl(context, "https://needs-vs-wants.vercel.app/terms.html") }
+            )
         }
 
         Spacer(Modifier.height(28.dp))
@@ -474,7 +639,7 @@ fun SettingsScreen(
                             color = palette.textMuted
                         )
                     }
-                    Text("v1.5.0", style = AppType.caption, color = palette.textMuted)
+                    Text("v${BuildConfig.VERSION_NAME}", style = AppType.caption, color = palette.textMuted)
                 }
                 Spacer(Modifier.height(14.dp))
                 Box(
@@ -542,6 +707,29 @@ fun SettingsScreen(
                         }
                         .padding(vertical = 4.dp)
                 )
+                Spacer(Modifier.height(6.dp))
+                updateAvailable?.let { update ->
+                    Text(
+                        "Update available — v${update.versionName}. Tap to download.",
+                        style = AppType.caption,
+                        color = palette.marketGreen,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clickable { openUrl(context, update.apkUrl) }
+                            .padding(vertical = 4.dp)
+                    )
+                }
+                Text(
+                    if (updateCheckBusy) "Checking for updates…" else "Check for updates",
+                    style = AppType.caption,
+                    color = palette.textSecondary,
+                    modifier = Modifier
+                        .clickable { if (!updateCheckBusy) viewModel.checkForUpdates() }
+                        .padding(vertical = 4.dp)
+                )
+                updateFeedback?.let { feedback ->
+                    Text(feedback, style = AppType.caption, color = palette.textMuted)
+                }
             }
         }
     }
@@ -551,17 +739,94 @@ fun SettingsScreen(
             onDismissRequest = { showWipeConfirm = false },
             eyebrow = "DANGER",
             eyebrowColor = palette.danger,
-            title = "Wipe all data?",
-            body = "This will permanently delete all entries and reset settings.\nThere is no recovery.",
-            confirmLabel = "Wipe",
+            title = stringResource(R.string.settings_wipe_dialog_title),
+            body = stringResource(R.string.settings_wipe_dialog_body),
+            confirmLabel = stringResource(R.string.settings_wipe_dialog_confirm),
             onConfirm = {
                 haptics.warn()
                 viewModel.wipeData()
                 showWipeConfirm = false
             },
-            dismissLabel = "Cancel",
+            dismissLabel = stringResource(R.string.common_cancel),
             confirmDanger = true
         )
+    }
+
+    if (showReminderTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showReminderTimePicker = false },
+            containerColor = palette.surfaceCard,
+            title = {
+                Text(
+                    stringResource(R.string.settings_reminder_time_dialog_title),
+                    style = AppType.titleSm,
+                    color = palette.textPrimary
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    (0..23).forEach { hour ->
+                        val selected = hour == reminderHour
+                        Text(
+                            formatHour12(hour),
+                            style = AppType.bodyMd,
+                            color = if (selected) palette.gilt else palette.textPrimary,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (hapticsEnabled) haptics.tick()
+                                    viewModel.setReminderHour(hour, context)
+                                    showReminderTimePicker = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showReminderTimePicker = false }) {
+                    Text(stringResource(R.string.common_cancel), color = palette.textSecondary)
+                }
+            }
+        )
+    }
+
+    pendingRestoreUri?.let { restoreUri ->
+        PremiumDialog(
+            onDismissRequest = { pendingRestoreUri = null },
+            eyebrow = "RESTORE",
+            eyebrowColor = palette.marketGreen,
+            title = stringResource(R.string.settings_restore_dialog_title),
+            body = stringResource(R.string.settings_restore_dialog_body),
+            confirmLabel = stringResource(R.string.settings_restore_dialog_confirm),
+            onConfirm = {
+                viewModel.restoreFrom(restoreUri)
+                pendingRestoreUri = null
+            },
+            dismissLabel = stringResource(R.string.common_cancel)
+        )
+    }
+}
+
+/** 24h → "8:00 PM" style label for the reminder rows. */
+private fun formatHour12(hour: Int): String {
+    val amPm = if (hour < 12) "AM" else "PM"
+    val display = ((hour + 11) % 12) + 1
+    return "$display:00 $amPm"
+}
+
+private fun formatBackupStamp(atMillis: Long): String =
+    SimpleDateFormat("MMM d, yyyy · h:mm a", Locale.getDefault()).format(Date(atMillis))
+
+private fun openUrl(context: android.content.Context, url: String) {
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 }
 
@@ -605,6 +870,48 @@ private fun FeedbackToggleRow(
                 uncheckedTrackColor = palette.inkDivider
             )
         )
+    }
+}
+
+/** Clickable settings row: title + optional body, trailing slot (chevron by default). */
+@Composable
+private fun SettingsNavRow(
+    title: String,
+    body: String? = null,
+    titleColor: Color? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val palette = AppTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = AppType.bodyMd,
+                color = titleColor ?: palette.textPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (body != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(body, style = AppType.bodySm, color = palette.textMuted)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        if (trailing != null) {
+            trailing()
+        } else {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = palette.textMuted.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 

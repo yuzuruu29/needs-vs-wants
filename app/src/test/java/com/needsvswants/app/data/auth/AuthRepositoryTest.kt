@@ -106,6 +106,34 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun signInWithEmailOtp_savesSession_andRefreshesEntitlement() = runTest {
+        val store = FakeSessionStore()
+        val session = AuthSession("otp-at", "otp-rt", "u2", "otp@b.com", null)
+        val auth = FakeSupabaseAuth(session = session)
+        val remote = RecordingRemote()
+        val entitlements = EntitlementRepository(FakeEntitlementLocal(), remote)
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, FakePayPalReturnStore(), configEnabled())
+
+        val result = repo.signInWithEmailOtp("otp@b.com", "123456")
+        assertTrue(result.isSuccess)
+        assertEquals("otp-at", store.session.first()?.accessToken)
+        assertEquals("otp-at", remote.lastToken)
+    }
+
+    @Test
+    fun signInWithEmailOtp_failureKeepsExistingSession() = runTest {
+        val existing = AuthSession("old-at", "rt", "u1", "old@b.com", null)
+        val store = FakeSessionStore(existing)
+        val auth = FailingOtpAuth
+        val entitlements = EntitlementRepository(FakeEntitlementLocal(), RecordingRemote())
+        val repo = AuthRepository(auth, store, UnusedGoogle, entitlements, FakePayPalReturnStore(), configEnabled())
+
+        val result = repo.signInWithEmailOtp("x@b.com", "000000")
+        assertTrue(result.isFailure)
+        assertEquals("old-at", store.session.first()?.accessToken)
+    }
+
+    @Test
     fun ensureFreshAccessToken_refreshesWhenExpired() = runTest {
         val expired = AuthSession("old", "rt", "u1", "a@b.com", expiresAtEpochMillis = 1_000L)
         val store = FakeSessionStore(expired)
@@ -170,7 +198,8 @@ private class FakeSupabaseAuth(
     var lastNonce: String? = null
     override val isConfigured: Boolean = true
     override suspend fun sendMagicLink(email: String) = Result.success(Unit)
-    override suspend fun verifyOtp(email: String, token: String) = Result.success("tok")
+    override suspend fun verifyOtp(email: String, token: String): Result<AuthSession> =
+        Result.success(session ?: AuthSession("tok", null, null, email, null))
     override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<AuthSession> {
         lastIdToken = idToken
         lastNonce = nonce
@@ -182,6 +211,18 @@ private class FakeSupabaseAuth(
             ?: Result.failure(IllegalStateException("no session"))
     }
     override suspend fun signOut(accessToken: String): Result<Unit> = signOutResult
+}
+
+private object FailingOtpAuth : SupabaseAuth {
+    override val isConfigured: Boolean = true
+    override suspend fun sendMagicLink(email: String): Result<Unit> = Result.success(Unit)
+    override suspend fun verifyOtp(email: String, token: String): Result<AuthSession> =
+        Result.failure(IllegalStateException("HTTP 401: invalid otp"))
+    override suspend fun signInWithGoogleIdToken(idToken: String, nonce: String?): Result<AuthSession> =
+        Result.failure(IllegalStateException("unused"))
+    override suspend fun refreshSession(refreshToken: String): Result<AuthSession> =
+        Result.failure(IllegalStateException("unused"))
+    override suspend fun signOut(accessToken: String): Result<Unit> = Result.success(Unit)
 }
 
 private class RecordingRemote : EntitlementRemote {

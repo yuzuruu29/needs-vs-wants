@@ -48,6 +48,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -384,7 +387,9 @@ private fun NavPill(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(bg)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick, role = Role.Tab)
+            // TalkBack: announce which tab is active, not just its name.
+            .semantics { this.selected = selected }
             .padding(vertical = scaledSpacing(8f), horizontal = 2.dp)
             .heightIn(min = scaledSpacing(56f)),
         horizontalAlignment = Alignment.CenterHorizontally,

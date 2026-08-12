@@ -99,7 +99,7 @@ fun FinancialAdvisorScreen(
         Spacer(Modifier.height(8.dp))
         Text(
             text = if (uiState.hasMaxAccess) {
-                "Cited coaching from your economic study notebooks."
+                "Cited coaching from the app's built-in economic study notes."
             } else {
                 "Conversational coaching with footnotes. Max tier only."
             },
@@ -125,7 +125,7 @@ fun FinancialAdvisorScreen(
                     color = palette.textPrimary
                 )
                 Text(
-                    text = "Recommendations cite your economic study notebooks.",
+                    text = "Recommendations cite the built-in study notes — everything works offline.",
                     style = AppType.bodySm,
                     color = palette.textSecondary,
                     modifier = Modifier.padding(top = 4.dp)
@@ -134,6 +134,26 @@ fun FinancialAdvisorScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        if (uiState.isLoading) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 8.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = palette.gilt
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Reading your ledger…",
+                    style = AppType.bodySm,
+                    color = palette.textMuted
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
 
         uiState.insight?.let { insight ->
             val edge = if (insight.isWarning) palette.crimson.copy(alpha = 0.45f)

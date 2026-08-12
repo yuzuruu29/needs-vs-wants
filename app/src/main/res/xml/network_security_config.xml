@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Baseline network hardening (audit gap): all app traffic is HTTPS-only
+     (Supabase auth/entitlements, checkout URLs, update check). No cleartext. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

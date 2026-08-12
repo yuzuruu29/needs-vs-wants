@@ -13,14 +13,16 @@ import javax.inject.Inject
 interface SupabaseAuth {
     val isConfigured: Boolean
 
-    /** Requests a one-time-password login link to [email]. */
+    /** Requests a one-time-password login code to [email]. */
     suspend fun sendMagicLink(email: String): Result<Unit>
 
     /**
-     * Verifies the emailed OTP and returns the resulting Supabase access token.
+     * Verifies the emailed OTP and returns the resulting Supabase session
+     * (access + refresh token), so email sign-in persists exactly like the
+     * Google path (audit gap: this API existed but no screen used it).
      * @param token the 6-digit OTP the user received
      */
-    suspend fun verifyOtp(email: String, token: String): Result<String>
+    suspend fun verifyOtp(email: String, token: String): Result<AuthSession>
 
     /**
      * Exchanges a Google ID token for a Supabase session
@@ -52,16 +54,17 @@ class HttpSupabaseAuth @Inject constructor(private val config: SupabaseConfig) :
         ).map { Unit }
     }
 
-    override suspend fun verifyOtp(email: String, token: String): Result<String> {
+    override suspend fun verifyOtp(email: String, token: String): Result<AuthSession> {
         if (!config.enabled) return Result.failure(IllegalStateException("Supabase auth not configured"))
         val body = """{"type":"email","email":"${email.escapeJson()}","token":"${token.escapeJson()}"}"""
+        val now = System.currentTimeMillis()
         return HttpJsonClient.request(
             url = authEndpoint("verify"),
             method = "POST",
             headers = headers(),
             body = body
         ).mapCatching { raw ->
-            SupabaseJson.parseAccessToken(raw)
+            SupabaseJson.parseAuthSession(raw, now)
                 ?: throw IllegalStateException("Missing access_token in verify response")
         }
     }

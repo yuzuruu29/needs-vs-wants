@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
+import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.widget.NvwWidget
@@ -13,6 +14,20 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/**
+ * Pure history filter (audit gap: no search/filter): case-insensitive item
+ * match, or a date match against the entry's `date` string; optional
+ * Need/Want narrowing. Blank query + null type returns the list unchanged.
+ */
+fun filterHistoryEntries(entries: List<Entry>, query: String, type: EntryType?): List<Entry> {
+    val q = query.trim()
+    if (q.isEmpty() && type == null) return entries
+    return entries.filter { e ->
+        (type == null || e.type == type) &&
+            (q.isEmpty() || e.item.contains(q, ignoreCase = true) || e.date.contains(q))
+    }
+}
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
@@ -39,6 +54,29 @@ class HistoryViewModel @Inject constructor(
 
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
+
+    // --- Search + type filter (audit gap) ------------------------------------
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _typeFilter = MutableStateFlow<EntryType?>(null)
+    val typeFilter: StateFlow<EntryType?> = _typeFilter.asStateFlow()
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setTypeFilter(type: EntryType?) {
+        _typeFilter.value = type
+    }
+
+    /** What the ledger list actually renders; export/date-range still use [entries]. */
+    val filteredEntries: StateFlow<List<Entry>> = combine(
+        entries, _searchQuery, _typeFilter
+    ) { list, query, type ->
+        filterHistoryEntries(list, query, type)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** True until the first real entries emission lands (cold-start skeleton, design audit #2). */
     private val _loading = MutableStateFlow(true)

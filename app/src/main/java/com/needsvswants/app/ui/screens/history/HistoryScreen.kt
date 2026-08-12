@@ -51,6 +51,9 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val entries by viewModel.entries.collectAsStateWithLifecycle()
+    val filteredEntries by viewModel.filteredEntries.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val typeFilter by viewModel.typeFilter.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
@@ -84,7 +87,7 @@ fun HistoryScreen(
         }
     }
 
-    val grouped = entries.groupBy { it.date }.toList()
+    val grouped = filteredEntries.groupBy { it.date }.toList()
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val displayFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
 
@@ -161,6 +164,42 @@ fun HistoryScreen(
 
         Spacer(Modifier.height(20.dp))
 
+        if (!loading && entries.isNotEmpty()) {
+            LedgerField(
+                value = searchQuery,
+                onValueChange = viewModel::setSearchQuery,
+                label = "Search item or date"
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                EditTypeChip(
+                    label = "All",
+                    selected = typeFilter == null,
+                    color = AppTheme.colors.gilt,
+                    onClick = { viewModel.setTypeFilter(null) },
+                    modifier = Modifier.weight(1f)
+                )
+                EditTypeChip(
+                    label = "Need",
+                    selected = typeFilter == EntryType.NEED,
+                    color = AppTheme.colors.need,
+                    onClick = { viewModel.setTypeFilter(EntryType.NEED) },
+                    modifier = Modifier.weight(1f)
+                )
+                EditTypeChip(
+                    label = "Want",
+                    selected = typeFilter == EntryType.WANT,
+                    color = AppTheme.colors.want,
+                    onClick = { viewModel.setTypeFilter(EntryType.WANT) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+        }
+
         if (loading) {
             // Cold first render — shimmer groups matching day-card height (zero CLS).
             Column(
@@ -190,6 +229,27 @@ fun HistoryScreen(
                         text = "Log your first purchase",
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
+                }
+            }
+        } else if (filteredEntries.isEmpty()) {
+            // Entries exist but the search/filter matched nothing.
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Eyebrow("NO MATCHES", color = AppTheme.colors.textMuted)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Nothing in the ledger matches that search.",
+                        style = AppType.bodyMd,
+                        color = AppTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(onClick = {
+                        viewModel.setSearchQuery("")
+                        viewModel.setTypeFilter(null)
+                    }) {
+                        Text("Clear search", color = AppTheme.colors.crimson)
+                    }
                 }
             }
         } else {

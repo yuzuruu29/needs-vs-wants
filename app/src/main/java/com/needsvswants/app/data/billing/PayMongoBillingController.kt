@@ -1,5 +1,6 @@
 package com.needsvswants.app.data.billing
 
+import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.remote.HttpJsonClient
@@ -76,7 +77,10 @@ class PayMongoBillingController @Inject constructor(
 
         val url = "${config.url.trimEnd('/')}/functions/v1/paymongo_create_checkout"
         val periodName = if (period == BillingPeriod.ANNUAL) "annual" else "monthly"
-        val body = """{"tier":"${tier.escapeJson()}","period":"$periodName"}"""
+        // scheme: which app build the redirect pages should return to
+        // (plain flavor uses needsvswantsplain; server whitelists the value).
+        val body =
+            """{"tier":"${tier.escapeJson()}","period":"$periodName","scheme":"${BuildConfig.DEEP_LINK_SCHEME}"}"""
         val result = HttpJsonClient.request(
             url = url,
             method = "POST",

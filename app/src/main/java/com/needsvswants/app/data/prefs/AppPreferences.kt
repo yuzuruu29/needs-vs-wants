@@ -33,6 +33,13 @@ fun paypalReturnPendingActive(
     ttlMillis: Long = 24 * 60 * 60 * 1000L
 ): Boolean = storedAt > 0L && nowMillis - storedAt < ttlMillis
 
+/** A newer release advertised by the site's version.json (see UpdateChecker). */
+data class AvailableUpdate(
+    val versionName: String,
+    val versionCode: Int,
+    val apkUrl: String
+)
+
 class AppPreferences internal constructor(private val dataStore: DataStore<Preferences>) :
     EntitlementLocalStore, AuthSessionStore, PayPalReturnStore {
 
@@ -86,6 +93,14 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
         private val SPENDING_GOAL = stringPreferencesKey("spending_goal")
         private val BUDGET_NUDGE_PENDING = booleanPreferencesKey("budget_nudge_pending")
+        private val CRASH_REPORTS_ENABLED = booleanPreferencesKey("crash_reports_enabled")
+        private val BACKUP_FOLDER_URI = stringPreferencesKey("backup_folder_uri")
+        private val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        private val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
+        private val LAST_UPDATE_CHECK_AT = longPreferencesKey("last_update_check_at")
+        private val UPDATE_AVAILABLE_NAME = stringPreferencesKey("update_available_name")
+        private val UPDATE_AVAILABLE_CODE = intPreferencesKey("update_available_code")
+        private val UPDATE_AVAILABLE_URL = stringPreferencesKey("update_available_url")
     }
 
     val currencySymbol: Flow<String> = dataStore.data.map { it[CURRENCY_SYMBOL] ?: "₱" }
@@ -278,6 +293,75 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
 
     suspend fun setBudgetNudgePending(pending: Boolean) {
         dataStore.edit { it[BUDGET_NUDGE_PENDING] = pending }
+    }
+
+    // --- Crash reporting (Sentry opt-out toggle; default ON, release-only) ---
+
+    /** "Send crash reports" toggle in Settings. Default on; fully anonymous. */
+    val crashReportsEnabled: Flow<Boolean> = dataStore.data.map { it[CRASH_REPORTS_ENABLED] ?: true }
+
+    suspend fun setCrashReportsEnabled(enabled: Boolean) {
+        dataStore.edit { it[CRASH_REPORTS_ENABLED] = enabled }
+    }
+
+    // --- Local backup (SAF folder + auto-backup worker) ----------------------
+
+    /** Persisted SAF tree URI of the user-chosen backup folder; null = not set. */
+    val backupFolderUri: Flow<String?> = dataStore.data.map {
+        it[BACKUP_FOLDER_URI]?.takeIf { uri -> uri.isNotBlank() }
+    }
+
+    suspend fun setBackupFolderUri(uri: String?) {
+        dataStore.edit {
+            if (uri.isNullOrBlank()) it.remove(BACKUP_FOLDER_URI) else it[BACKUP_FOLDER_URI] = uri
+        }
+    }
+
+    /** Daily auto-backup toggle (requires a backup folder). Default off. */
+    val autoBackupEnabled: Flow<Boolean> = dataStore.data.map { it[AUTO_BACKUP_ENABLED] ?: false }
+
+    suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        dataStore.edit { it[AUTO_BACKUP_ENABLED] = enabled }
+    }
+
+    /** Epoch millis of the last successful backup write (0 = never). */
+    val lastBackupAt: Flow<Long> = dataStore.data.map { it[LAST_BACKUP_AT] ?: 0L }
+
+    suspend fun setLastBackupAt(atMillis: Long) {
+        dataStore.edit { it[LAST_BACKUP_AT] = atMillis }
+    }
+
+    // --- In-app update check (site version.json) -----------------------------
+
+    /** Epoch millis of the last update-check attempt (throttling). */
+    val lastUpdateCheckAt: Flow<Long> = dataStore.data.map { it[LAST_UPDATE_CHECK_AT] ?: 0L }
+
+    suspend fun setLastUpdateCheckAt(atMillis: Long) {
+        dataStore.edit { it[LAST_UPDATE_CHECK_AT] = atMillis }
+    }
+
+    /** Latest known newer release, or null when up to date / never checked. */
+    val updateAvailable: Flow<AvailableUpdate?> = dataStore.data.map { prefs ->
+        val name = prefs[UPDATE_AVAILABLE_NAME]?.takeIf { it.isNotBlank() } ?: return@map null
+        AvailableUpdate(
+            versionName = name,
+            versionCode = prefs[UPDATE_AVAILABLE_CODE] ?: 0,
+            apkUrl = prefs[UPDATE_AVAILABLE_URL] ?: ""
+        )
+    }
+
+    suspend fun setUpdateAvailable(update: AvailableUpdate?) {
+        dataStore.edit {
+            if (update == null) {
+                it.remove(UPDATE_AVAILABLE_NAME)
+                it.remove(UPDATE_AVAILABLE_CODE)
+                it.remove(UPDATE_AVAILABLE_URL)
+            } else {
+                it[UPDATE_AVAILABLE_NAME] = update.versionName
+                it[UPDATE_AVAILABLE_CODE] = update.versionCode
+                it[UPDATE_AVAILABLE_URL] = update.apkUrl
+            }
+        }
     }
 
     suspend fun updateBestStreak(streak: Int) {

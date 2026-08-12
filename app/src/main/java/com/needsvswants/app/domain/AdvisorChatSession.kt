@@ -11,7 +11,7 @@ class AdvisorChatSession(
         ChatMessage(
             id = "init_welcome",
             sender = ChatSender.ADVISOR,
-            text = "Hello! I am your Financial Advisor, grounded in your Google NotebookLM economic studies. Ask me anything about your budget, spending ratios, or overspend recovery!"
+            text = "Hello! I am your Financial Advisor — an offline coach grounded in the economic study notes built into this app. Ask me anything about your budget, spending ratios, or overspend recovery!"
         )
     )
 ) {

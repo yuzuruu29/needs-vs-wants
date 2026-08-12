@@ -393,7 +393,7 @@ fun HeaderIconWell(
                     )
                 }
             )
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick, role = Role.Button)
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {

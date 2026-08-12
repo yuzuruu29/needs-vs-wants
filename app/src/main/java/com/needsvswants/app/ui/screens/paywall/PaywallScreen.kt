@@ -45,14 +45,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.Dialog
 import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.billing.PaymentProvider
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
+import com.needsvswants.app.ui.screens.auth.EmailOtpState
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.Eyebrow
 import com.needsvswants.app.ui.theme.GiltButton
 import com.needsvswants.app.ui.theme.GiltRule
+import com.needsvswants.app.ui.theme.LedgerField
 import com.needsvswants.app.ui.theme.MembershipPlan
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
@@ -93,6 +98,7 @@ fun PaywallScreen(
     val pending by viewModel.pendingPurchase.collectAsStateWithLifecycle()
     val needsSignInForPurchase by viewModel.needsSignInForPurchase.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val emailOtp by authViewModel.emailOtp.collectAsStateWithLifecycle()
     val selectedProvider by viewModel.selectedProvider.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val payPalAvailable = viewModel.payPalAvailable
@@ -551,7 +557,27 @@ fun PaywallScreen(
                                 color = palette.textMuted
                             )
                         }
+                        if (authState.emailAvailable) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "Can't use Google? Sign in with an email code",
+                                style = PaywallType.stickyNote,
+                                color = palette.crimson,
+                                modifier = Modifier
+                                    .clickable(enabled = !authState.busy) { authViewModel.openEmailOtp() }
+                                    .padding(vertical = 4.dp)
+                            )
+                        }
                     }
+                }
+
+                if (emailOtp.visible) {
+                    EmailOtpDialog(
+                        state = emailOtp,
+                        onSend = authViewModel::sendEmailCode,
+                        onVerify = authViewModel::verifyEmailCode,
+                        onDismiss = authViewModel::dismissEmailOtp
+                    )
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -885,6 +911,106 @@ private fun ProviderOption(
                             .fillMaxSize()
                             .background(c.gold, RoundedCornerShape(6.dp))
                     )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Email-code sign-in fallback (account recovery — audit gap: Google-only).
+ * Step 1: enter email → send code. Step 2: enter the 6-digit code → verify.
+ * On success the ViewModel closes the dialog and the pending purchase flow
+ * continues exactly as after Google sign-in.
+ */
+@Composable
+private fun EmailOtpDialog(
+    state: EmailOtpState,
+    onSend: (String) -> Unit,
+    onVerify: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val c = AppTheme.colors
+    var email by remember(state.visible) { mutableStateOf(state.email) }
+    var code by remember(state.codeSent) { mutableStateOf("") }
+
+    Dialog(onDismissRequest = { if (!state.busy) onDismiss() }) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = c.surfaceCard,
+            border = BorderStroke(1.dp, c.gold.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                Eyebrow("EMAIL SIGN-IN", color = c.crimson)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (state.codeSent) "Enter your code" else "Sign in with an email code",
+                    style = PaywallType.planTitle,
+                    color = c.textPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (state.codeSent) {
+                        "We emailed a 6-digit code to ${state.email}. It expires in about an hour."
+                    } else {
+                        "Use the email on your account — handy when Google isn't available on this phone."
+                    },
+                    style = PaywallType.planSub,
+                    color = c.textSecondary
+                )
+                Spacer(Modifier.height(16.dp))
+
+                if (!state.codeSent) {
+                    LedgerField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "Email address",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    GiltButton(
+                        onClick = { onSend(email) },
+                        text = if (state.busy) "Sending…" else "Email me a code",
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 48.dp
+                    )
+                } else {
+                    LedgerField(
+                        value = code,
+                        onValueChange = { code = it.filter { ch -> ch.isDigit() }.take(6) },
+                        label = "6-digit code",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    GiltButton(
+                        onClick = { onVerify(code) },
+                        text = if (state.busy) "Verifying…" else "Verify & sign in",
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 48.dp
+                    )
+                    TextButton(
+                        onClick = { onSend(state.email) },
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Send a new code", style = PaywallType.meta, color = c.textSecondary)
+                    }
+                }
+
+                state.error?.let { msg ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(msg, style = PaywallType.stickyNote, color = c.crimson)
+                }
+
+                Spacer(Modifier.height(4.dp))
+                TextButton(
+                    onClick = onDismiss,
+                    enabled = !state.busy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel", style = PaywallType.meta, color = c.textMuted)
                 }
             }
         }

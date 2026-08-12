@@ -26,8 +26,8 @@ android {
         applicationId = "com.needsvswants.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 22
-        versionName = "2.0.14"
+        versionCode = 23
+        versionName = "2.0.15"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // --- Task 3: Pro / Supabase seams -----------------------------------
@@ -63,10 +63,17 @@ android {
         )
         // Web OAuth client ID — serverClientId for Credential Manager Google Sign-In.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")
+        // Sentry crash reporting (privacy-lean; release builds only). Empty DSN
+        // keeps the SDK fully disabled — set SENTRY_DSN in local.properties.
+        buildConfigField("String", "SENTRY_DSN", "\"${localProp("SENTRY_DSN")}\"")
         // ---------------------------------------------------------------------
         // Plain-free test flavor: the deep-link scheme is overridden per flavor so
         // a plain APK installed next to production never steals its checkout return URLs.
         manifestPlaceholders["deepLinkScheme"] = "needsvswants"
+        // Mirrored into BuildConfig so checkout requests can tell the server
+        // which scheme the redirect pages should bounce back to (plain-flavor
+        // deep-link fix — the pages hardcoded needsvswants:// before).
+        buildConfigField("String", "DEEP_LINK_SCHEME", "\"needsvswants\"")
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
@@ -90,6 +97,7 @@ android {
             // clearly beside production and never collides with its checkout URLs.
             resValue("string", "app_name", "Needs vs Wants (Free Test)")
             manifestPlaceholders["deepLinkScheme"] = "needsvswantsplain"
+            buildConfigField("String", "DEEP_LINK_SCHEME", "\"needsvswantsplain\"")
         }
     }
 
@@ -150,7 +158,26 @@ android {
         }
     }
 
+    testOptions {
+        managedDevices {
+            devices {
+                // Gradle-managed emulator for instrumented tests (CI nightly):
+                //   ./gradlew pixel2api33FullDebugAndroidTest
+                maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel2api33").apply {
+                    device = "Pixel 2"
+                    apiLevel = 33
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
     }
+
+    }
+
+// Room schema snapshots (migration policy — see data/db/Migrations.kt).
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -173,15 +200,16 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
 
-    // --- Task 3: Google Play Billing (stub implementation; offline build) --
-    // Uncomment `androidx-billing` in gradle/libs.versions.toml first, then enable:
-    // implementation(libs.androidx.billing)
-    // ------------------------------------------------------------------------
-
     // Google Sign-In via Credential Manager (native ID token → Supabase)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
+
+    // Crash reporting — manual init only (diagnostics/CrashReporting.kt);
+    // disabled in debug builds and whenever SENTRY_DSN is blank.
+    implementation(libs.sentry.android)
+    // SAF tree access for local auto-backup (data/backup/)
+    implementation(libs.androidx.documentfile)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
@@ -191,6 +219,14 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.ui.test.junit4)
+
+    // Instrumented tests (app/src/androidTest — paywall, deep links, backup round-trip)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.ext)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 
     // Phase 2 WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.1")

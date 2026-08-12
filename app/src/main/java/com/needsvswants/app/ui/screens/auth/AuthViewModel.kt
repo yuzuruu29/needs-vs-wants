@@ -24,7 +24,20 @@ data class AuthUiState(
     val busy: Boolean = false,
     val error: String? = null,
     val googleAvailable: Boolean = false,
+    val emailAvailable: Boolean = false,
     val needsSignInForPurchase: Boolean = false
+)
+
+/**
+ * Email-code sign-in fallback (account recovery — audit gap: Google-only).
+ * A tiny two-step machine: enter email → code sent → enter 6-digit code.
+ */
+data class EmailOtpState(
+    val visible: Boolean = false,
+    val email: String = "",
+    val codeSent: Boolean = false,
+    val busy: Boolean = false,
+    val error: String? = null
 )
 
 @HiltViewModel
@@ -48,13 +61,83 @@ class AuthViewModel @Inject constructor(
             busy = busy,
             error = error,
             googleAvailable = authRepository.googleSignInAvailable,
+            emailAvailable = authRepository.emailSignInAvailable,
             needsSignInForPurchase = needsSignIn
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        AuthUiState(googleAvailable = authRepository.googleSignInAvailable)
+        AuthUiState(
+            googleAvailable = authRepository.googleSignInAvailable,
+            emailAvailable = authRepository.emailSignInAvailable
+        )
     )
+
+    private val _emailOtp = MutableStateFlow(EmailOtpState())
+    val emailOtp: StateFlow<EmailOtpState> = _emailOtp.asStateFlow()
+
+    fun openEmailOtp() {
+        _emailOtp.value = EmailOtpState(visible = true)
+    }
+
+    fun dismissEmailOtp() {
+        _emailOtp.value = EmailOtpState()
+    }
+
+    fun sendEmailCode(email: String) {
+        val trimmed = email.trim()
+        if (trimmed.length < 5 || !trimmed.contains("@") || !trimmed.contains(".")) {
+            _emailOtp.value = _emailOtp.value.copy(error = "Enter a valid email address.")
+            return
+        }
+        if (_emailOtp.value.busy) return
+        viewModelScope.launch {
+            _emailOtp.value = _emailOtp.value.copy(busy = true, error = null, email = trimmed)
+            val result = try {
+                authRepository.requestEmailCode(trimmed)
+            } catch (t: CancellationException) {
+                throw t
+            } catch (t: Throwable) {
+                Result.failure(t)
+            }
+            _emailOtp.value = result.fold(
+                onSuccess = { _emailOtp.value.copy(busy = false, codeSent = true, error = null) },
+                onFailure = { _emailOtp.value.copy(busy = false, error = "Couldn't send the code. Check the address and try again.") }
+            )
+        }
+    }
+
+    fun verifyEmailCode(code: String) {
+        val state = _emailOtp.value
+        val trimmedCode = code.trim()
+        if (trimmedCode.length < 6) {
+            _emailOtp.value = state.copy(error = "Enter the 6-digit code from the email.")
+            return
+        }
+        if (state.busy) return
+        viewModelScope.launch {
+            _emailOtp.value = state.copy(busy = true, error = null)
+            val result = try {
+                authRepository.signInWithEmailOtp(state.email, trimmedCode)
+            } catch (t: CancellationException) {
+                throw t
+            } catch (t: Throwable) {
+                Result.failure(t)
+            }
+            result.fold(
+                onSuccess = {
+                    _needsSignInForPurchase.value = false
+                    _emailOtp.value = EmailOtpState() // signed in — close the sheet
+                },
+                onFailure = {
+                    _emailOtp.value = _emailOtp.value.copy(
+                        busy = false,
+                        error = "That code didn't work. Check it or request a new one."
+                    )
+                }
+            )
+        }
+    }
 
     fun signInWithGoogle(context: Context) {
         if (_busy.value) return
