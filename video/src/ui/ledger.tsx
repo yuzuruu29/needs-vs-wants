@@ -6,7 +6,10 @@ const TYPE_W = 72;
 const DEL_W = 40;
 const GAP = 10;
 
-export const LedgerHeader: React.FC<{ pad?: number }> = ({ pad = 0 }) => {
+export const LedgerHeader: React.FC<{ pad?: number; timeW?: number }> = ({
+  pad = 0,
+  timeW = TIME_W,
+}) => {
   const c = (label: string, textAlign: React.CSSProperties["textAlign"] = "left") => (
     <span
       style={{
@@ -23,7 +26,7 @@ export const LedgerHeader: React.FC<{ pad?: number }> = ({ pad = 0 }) => {
   );
   return (
     <div style={{ display: "flex", alignItems: "center", padding: `0 ${pad}px`, width: "100%" }}>
-      <span style={{ width: TIME_W, display: "inline-block" }}>{c("TIME")}</span>
+      <span style={{ width: timeW, display: "inline-block" }}>{c("TIME")}</span>
       <span style={{ flex: 1 }}>{c("ITEM")}</span>
       <span style={{ width: 150, display: "inline-block" }}>{c("COST", "right")}</span>
       <span style={{ width: TYPE_W + GAP, display: "inline-block", textAlign: "center" }}>{c("TYPE")}</span>
@@ -44,8 +47,9 @@ export const LedgerRow: React.FC<{
   row: LedgerRowData;
   showDelete?: boolean;
   card?: boolean;
+  timeW?: number;
   style?: React.CSSProperties;
-}> = ({ row, showDelete = false, card = false, style }) => {
+}> = ({ row, showDelete = false, card = false, timeW = TIME_W, style }) => {
   const typeColor = row.type === "NEED" ? COLORS.green : COLORS.crimson;
   const inner = (
     <div
@@ -59,7 +63,7 @@ export const LedgerRow: React.FC<{
     >
       <span
         style={{
-          width: TIME_W,
+          width: timeW,
           fontSize: 26,
           color: COLORS.muted,
           fontFeatureSettings: '"tnum"',

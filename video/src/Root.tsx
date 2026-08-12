@@ -6,6 +6,28 @@ import { HowItWorks } from "./HowItWorks";
 import { NeedsVsWantsPromo } from "./NeedsVsWantsPromo";
 import { GoogleFlowPromptImpulseTrap } from "./GoogleFlowPromptImpulseTrap";
 import { PROMO_TOTAL_FRAMES } from "./promoTiming";
+import { EssenceAd } from "./essence/EssenceAd";
+import { EssenceReel } from "./essence/EssenceReel";
+import { EssenceSquare } from "./essence/EssenceSquare";
+import { ScenarioPayday } from "./essence/ScenarioPayday";
+import { ScenarioPetsa } from "./essence/ScenarioPetsa";
+import { ScenarioMidnight } from "./essence/ScenarioMidnight";
+import { ScenarioMilkTea } from "./essence/ScenarioMilkTea";
+import { ScenarioStreak } from "./essence/ScenarioStreak";
+import { ScenarioBarkada } from "./essence/ScenarioBarkada";
+import { ScenarioSubs } from "./essence/ScenarioSubs";
+import {
+  AD,
+  BARKADA,
+  MIDNIGHT,
+  MILKTEA,
+  PAYDAY,
+  PETSA,
+  REEL,
+  SQ,
+  STREAK,
+  SUBS,
+} from "./essence/timing";
 
 // Fonts are loaded once at bundle time (delayRender handled by the package).
 export const Inter = loadInter("normal", {
@@ -50,6 +72,89 @@ export const RemotionRoot: React.FC = () => {
         width={1080}
         height={1920}
         defaultProps={{ portrait: true }}
+      />
+      {/* "The Choice" campaign — essence + how-to, three cuts */}
+      <Composition
+        id="EssenceAd"
+        component={EssenceAd}
+        durationInFrames={AD.total}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="EssenceReel"
+        component={EssenceReel}
+        durationInFrames={REEL.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="EssenceSquare"
+        component={EssenceSquare}
+        durationInFrames={SQ.total}
+        fps={30}
+        width={1080}
+        height={1080}
+      />
+      {/* Real-life scenario cuts */}
+      <Composition
+        id="ScenarioPayday"
+        component={ScenarioPayday}
+        durationInFrames={PAYDAY.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ScenarioPetsa"
+        component={ScenarioPetsa}
+        durationInFrames={PETSA.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      {/* Scenario pack 2 — bigger set pieces */}
+      <Composition
+        id="ScenarioMidnight"
+        component={ScenarioMidnight}
+        durationInFrames={MIDNIGHT.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ScenarioMilkTea"
+        component={ScenarioMilkTea}
+        durationInFrames={MILKTEA.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ScenarioStreak"
+        component={ScenarioStreak}
+        durationInFrames={STREAK.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ScenarioBarkada"
+        component={ScenarioBarkada}
+        durationInFrames={BARKADA.total}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ScenarioSubs"
+        component={ScenarioSubs}
+        durationInFrames={SUBS.total}
+        fps={30}
+        width={1080}
+        height={1920}
       />
     </>
   );

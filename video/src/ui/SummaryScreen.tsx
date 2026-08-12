@@ -17,7 +17,7 @@ export type SummaryScreenData = {
   needsMoney: string;
   wantsMoney: string;
   totalMoney: string;
-  period?: "Day" | "Week" | "All (35d)";
+  period?: string;
   streakDays?: number;
   ctaLabel?: string;
   ctaPulse?: number; // 0..1 pulse intensity
@@ -29,6 +29,10 @@ export type SummaryScreenData = {
     remainLabel: string;
   } | null;
   rangeLabel?: string;
+  /** Header eyebrow copy. Defaults to the original "A 35-Day Trainer". */
+  eyebrowText?: string;
+  /** Period rotor labels. Defaults to the original Day/Week/All (35d). */
+  periods?: string[];
 };
 
 export const SummaryScreen: React.FC<{
@@ -56,7 +60,7 @@ export const SummaryScreen: React.FC<{
       {/* Header: editorial serif title + tools */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Eyebrow text="A 35-Day Trainer" size={24} />
+          <Eyebrow text={data.eyebrowText ?? "A 35-Day Trainer"} size={24} />
           <div
             style={{
               marginTop: 10,
@@ -113,7 +117,7 @@ export const SummaryScreen: React.FC<{
           padding: 6,
         }}
       >
-        {(["Day", "Week", "All (35d)"] as const).map((p) => {
+        {(data.periods ?? ["Day", "Week", "All (35d)"]).map((p) => {
           const sel = p === (data.period ?? "Day");
           return (
             <div

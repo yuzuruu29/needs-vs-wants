@@ -21,6 +21,8 @@ export type LogScreenData = {
   wantSelected?: boolean;
   rows: Array<{ row: LedgerRowData; style?: React.CSSProperties }>;
   showSheetHeader?: boolean;
+  /** Width of the ledger TIME column. Defaults to the original 74. */
+  ledgerTimeW?: number;
 };
 
 export const LogScreen: React.FC<{
@@ -90,13 +92,13 @@ export const LogScreen: React.FC<{
       {data.rows.length > 0 ? (
         <div style={{ marginTop: 22, flex: 1, overflow: "hidden" }}>
           <div style={{ padding: "0 14px" }}>
-            <LedgerHeader pad={0} />
+            <LedgerHeader pad={0} timeW={data.ledgerTimeW} />
           </div>
           <div style={{ marginTop: 6, height: 2, background: COLORS.divider }} />
           <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
             {data.rows.map(({ row, style }) => (
               <div key={row.id} style={{ padding: "0 14px" }}>
-                <LedgerRow row={row} card style={style} />
+                <LedgerRow row={row} card timeW={data.ledgerTimeW} style={style} />
               </div>
             ))}
           </div>
