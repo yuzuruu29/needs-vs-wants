@@ -1,96 +1,46 @@
-# GitHub Actions — iOS Build
+# GitHub Actions — CI for Needs vs Wants
 
-This workflow builds the **Needs vs. Wants** iOS app on Apple's macOS runners so you
-don't need your own Mac.
+Three workflows, each path-filtered to the surface it covers. The legacy
+`ios.yml` workflow was removed when the SwiftUI port was archived (the source
+lives on the `archive/ios-swiftui-port` branch).
 
-## What the workflow does
+| Workflow | File | Triggers on | What it runs |
+|---|---|---|---|
+| Android Build | `android.yml` | `app/**`, Gradle files | `:app:testFullDebugUnitTest`, `:app:lintFullDebug`, `:app:assembleFullDebug`; plus a signed `:app:assembleFullRelease` job |
+| Backend (Supabase) | `backend.yml` | `supabase/**` | `deno test supabase/functions/_shared/` (pure helper unit tests) |
+| Website locks | `website.yml` | `website/**` | `node website/_pad-parts/check.js` (locked-decision checks + mirror byte-compare) |
 
-| Job | Trigger | Output |
-|---|---|---|
-| `build` | Push to `main`/`master`, PRs touching `ios/`, or manual | `.app` bundle (Simulator) |
-| `release` | *(commented out — see below)* | Signed `.ipa` for TestFlight |
+All three also support manual runs via **Actions → Run workflow**
+(`workflow_dispatch`).
 
-## How to use it
+## Flavor-qualified Gradle tasks
 
-### 1. Push this repo to GitHub
+The app has an `experience` flavor dimension (`full` = production, `plain` =
+free side-by-side test build), so bare task names like `testDebugUnitTest` no
+longer exist. CI builds the `full` flavor only.
 
-If you haven't already:
+## Release build job (`android.yml` → `release-build`)
 
-```bash
-git init
-git add .
-git commit -m "feat: add iOS source + GitHub Actions CI"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/needs-vs-wants.git
-git push -u origin main
-```
+Runs after `test-and-assemble` on pushes to `main`/`master` and manual runs,
+and **only** when the signing secrets are configured. GitHub does not allow
+`secrets` in a job-level `if:`, so the job exposes the presence check as a job
+env var (`HAS_SIGNING_SECRETS`) and every step gates on it; without secrets
+every step is skipped and the job stays green.
 
-### 2. Run the workflow
+Required repository secrets (Settings → Secrets and variables → Actions):
 
-- Go to **Actions → iOS Build → Run workflow** in your GitHub repo.
-- It builds for the **iPhone 15 Simulator** (~3-4 minutes).
-- Download the artifact `NeedsVsWants-Simulator` when done.
-
-### 3. Test the build without a Mac
-
-#### Option A: Appetize.io (Browser simulator)
-1. Go to [appetize.io/upload](https://appetize.io/upload)
-2. Drag the `.app` folder into the uploader (they accept `.app` bundles)
-3. Run it in your browser — share the link with anyone
-
-> ⚠️ Appetize.io free tier has session limits. Great for quick demos.
-
-#### Option B: BrowserStack / AWS Device Farm
-1. Subscribe to [BrowserStack App Live](https://www.browserstack.com/app-live) or
-   [AWS Device Farm](https://aws.amazon.com/device-farm/)
-2. Upload the `.app` bundle
-3. Interact with it on real iPhones via your browser
-
-#### Option C: Ask a friend with a Mac
-Give them the `.app` bundle; they can drop it into their iOS Simulator and run it.
-
----
-
-## Going further: Build a real `.ipa` for iPhone / TestFlight
-
-The simulator build proves the code compiles. To install on a real iPhone or ship to
-TestFlight, you need an **Apple Developer Program** account ($99/year).
-
-### Steps
-
-1. **Enroll** at [developer.apple.com](https://developer.apple.com)
-2. **Create** an App ID (`com.needsvswants.ios`) + Distribution certificate + Provisioning profile
-3. **Export** your certificate as a `.p12` file with a password
-4. **Base64-encode** the files:
-   ```bash
-   base64 -i Certificates.p12 | pbcopy      # copy to clipboard
-   base64 -i AppStore.mobileprovision | pbcopy
-   ```
-5. **Add GitHub Secrets** (Settings → Secrets and variables → Actions):
-   | Secret | Value |
-   |---|---|
-   | `BUILD_CERTIFICATE_BASE64` | base64 of your `.p12` |
-   | `P12_PASSWORD` | password for the `.p12` |
-   | `BUILD_PROVISION_PROFILE` | base64 of `.mobileprovision` |
-   | `DEVELOPMENT_TEAM` | Your Apple Team ID (10 chars) |
-
-6. **Uncomment** the `release:` job in `.github/workflows/ios.yml` (remove the `#` prefix
-   on lines 69-138).
-
-7. **Push** — the workflow will now produce a signed `.ipa` on every `main` push.
-
-### Upload to TestFlight automatically (optional)
-
-Add the [Apple App Store Connect action](https://github.com/marketplace/actions/upload-to-app-store-connect)
-to the release job and it will upload straight to TestFlight after every successful build.
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
+| Secret | Value |
 |---|---|
-| "XcodeGen not found" | The `brew install xcodegen` step should handle this; re-run the workflow. |
-| Build fails with SwiftData errors | Make sure the runner uses Xcode 15+ (the workflow selects `Xcode_15.4.app`). |
-| `.app` not found after build | Check the `Package .app for artifacts` step logs; the DerivedData path may shift between Xcode versions. |
-| Code signing fails (release) | Double-check your Team ID, certificate expiry, and provisioning profile App ID match `com.needsvswants.ios`. |
+| `RELEASE_KEYSTORE_BASE64` | base64 of the release keystore file |
+| `RELEASE_STORE_PASSWORD` | keystore password |
+| `RELEASE_KEY_ALIAS` | key alias |
+| `RELEASE_KEY_PASSWORD` | key password |
+
+The workflow decodes the keystore to `$RUNNER_TEMP/release.keystore` and passes
+`RELEASE_STORE_FILE` + the three credential vars through the environment — the
+same env-var fallback `app/build.gradle.kts` (`signingConfigs.release`) already
+documents. Never commit the keystore or passwords; see the release-signing
+section of `AGENTS.md` (D86).
+
+The signed APK is uploaded as the `app-full-release` artifact (30-day
+retention) with its SHA-256 in the job summary.

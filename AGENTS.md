@@ -108,7 +108,7 @@ If no graph exists yet for the relevant scope, run a **scoped** graphify build (
 - Production: https://needs-vs-wants.vercel.app — re-alias if needed after deploy
 - Locked decisions: D22 (QR CDN 1.5.1), D23 (CTA red panel only), D32 (notepad flip = native CSS 3D two-face turn, NO `page-flip` library)
 
-Handoff for external planner: `HANDOFF_QWEN_SOFT_LAUNCH_PLAN.md`
+Historical handoffs/plans (incl. the Qwen soft-launch plan) are archived under `docs/archive/` — snapshots only, do not trust for current state.
 
 ---
 

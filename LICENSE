@@ -1,0 +1,31 @@
+Needs vs Wants — Proprietary License (All Rights Reserved)
+
+Copyright (c) 2026 Emmanuel Uzziel Malolos (github.com/yuzuruu29)
+All rights reserved.
+
+The source code in this repository is made publicly visible for transparency
+and reading only. Publication of this repository does NOT grant any license,
+express or implied, to any person.
+
+Except for the limited right to view the source code on GitHub, you may NOT,
+without prior written permission from the copyright holder:
+
+  1. copy, reproduce, or redistribute this software or any part of it;
+  2. modify it or create derivative works from it;
+  3. use it, in whole or in part, in any product or service, commercial or
+     non-commercial;
+  4. sell, sublicense, rent, or otherwise transfer rights to it.
+
+The official Android application packages (APKs) distributed from
+https://needs-vs-wants.vercel.app are licensed to end users for personal use
+of the app only.
+
+Third-party assets and dependencies bundled with or referenced by this project
+remain under their own licenses (e.g. the Kenney UI audio pack under
+tools/sfx-src/).
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.

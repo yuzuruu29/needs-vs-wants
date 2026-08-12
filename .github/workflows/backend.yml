@@ -1,0 +1,34 @@
+name: Backend (Supabase)
+
+# Unit tests for the pure edge-function helpers in supabase/functions/_shared/.
+# They import only pinned deno.land/std asserts + local modules, so no extra
+# permissions or import map are needed (see supabase/README.md, "Local development").
+
+on:
+  push:
+    branches: [main, master, feat/**]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+jobs:
+  deno-tests:
+    name: Deno tests (edge function helpers)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run _shared helper tests
+        run: deno test supabase/functions/_shared/

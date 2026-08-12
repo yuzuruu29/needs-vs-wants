@@ -1,0 +1,35 @@
+name: Website locks
+
+# Runs the soft-launch page lock checker (locked CDN pins, CTA panel, pricing,
+# byte-identical index.html mirror, no em/en dashes in body copy, ...).
+# check.js resolves every path from its own __dirname, so it is safe to run
+# from the repo root without a working-directory override.
+
+on:
+  push:
+    branches: [main, master, feat/**]
+    paths:
+      - 'website/**'
+      - '.github/workflows/website.yml'
+  pull_request:
+    paths:
+      - 'website/**'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+jobs:
+  website-locks:
+    name: Soft-launch page lock checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run lock checks
+        run: node website/_pad-parts/check.js

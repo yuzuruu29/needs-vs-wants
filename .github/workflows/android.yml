@@ -1,5 +1,9 @@
 name: Android Build
 
+# The app has an `experience` flavor dimension (full = production, plain = free
+# side-by-side test build), so every Gradle task name carries the flavor:
+# testFullDebugUnitTest / lintFullDebug / assembleFullDebug / assembleFullRelease.
+
 on:
   push:
     branches: [main, master, feat/**]
@@ -22,7 +26,7 @@ on:
 
 jobs:
   test-and-assemble:
-    name: Unit tests + assembleDebug
+    name: Unit tests + lint + assembleFullDebug
     runs-on: ubuntu-latest
 
     steps:
@@ -39,10 +43,71 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: ./gradlew :app:testFullDebugUnitTest --stacktrace
 
       - name: Lint
-        run: ./gradlew :app:lintDebug --stacktrace
+        run: ./gradlew :app:lintFullDebug --stacktrace
 
       - name: Assemble debug
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleFullDebug --stacktrace
+
+  release-build:
+    name: Signed release APK (skips when signing secrets absent)
+    runs-on: ubuntu-latest
+    needs: test-and-assemble
+    # Never on PRs (fork PRs get no secrets anyway); main pushes + manual runs only.
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    env:
+      # GitHub does not allow the `secrets` context in job-level `if:`, so the
+      # presence check is exposed as a job env var and every step gates on it.
+      # Secret names mirror the env-var fallback in app/build.gradle.kts
+      # signingConfigs.release (RELEASE_STORE_FILE / RELEASE_STORE_PASSWORD /
+      # RELEASE_KEY_ALIAS / RELEASE_KEY_PASSWORD), plus RELEASE_KEYSTORE_BASE64
+      # carrying the keystore file itself (base64 of .local/release.keystore).
+      HAS_SIGNING_SECRETS: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' && secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_ALIAS != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+
+    steps:
+      - name: Signing secrets absent — skipping
+        if: env.HAS_SIGNING_SECRETS != 'true'
+        run: echo 'RELEASE_* signing secrets are not configured for this repo; skipping the signed release build.' | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        run: printf '%s' "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Assemble full release (signed)
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        env:
+          # Consumed by the env-var fallback in app/build.gradle.kts.
+          RELEASE_STORE_FILE: ${{ runner.temp }}/release.keystore
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleFullRelease --stacktrace
+
+      - name: APK checksum
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        run: sha256sum app/build/outputs/apk/full/release/*.apk | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release APK
+        if: env.HAS_SIGNING_SECRETS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-full-release
+          path: app/build/outputs/apk/full/release/*.apk
+          retention-days: 30

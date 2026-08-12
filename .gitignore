@@ -6,6 +6,9 @@ build/
 # Soft-launch site hosts public download APKs (Vercel upload respects gitignore)
 !website/public/downloads/*.apk
 !website/downloads/*.apk
+# One-off build/deploy artifacts
+*.tgz
+build.log
 local.properties
 .idea/
 *.iml
@@ -16,6 +19,8 @@ local.properties
 # Screenshots / design artifacts
 *.png
 *.jpg
+# ...but keep the app-icon brand sources trackable
+!docs/assets/brand/*
 
 # iOS build artifacts
 ios/DerivedData/
@@ -58,6 +63,7 @@ website/graphify-out/
 
 
 # Python caches
+__pycache__/
 docs/**/__pycache__/
 *.pyc
 
@@ -73,6 +79,7 @@ supabase/.temp/
 # Vault-gate daily stamp (written by .claude/hooks/vault-gate.js)
 .claude/.vault-gate
 
-# Local LLM orientation dump (not source of truth — vault + AGENTS.md are)
-CHATGPT_CONTEXT.md
+# Local LLM orientation dump (not source of truth — vault + AGENTS.md are).
+# Root-only: the archived snapshot in docs/archive/ IS tracked.
+/CHATGPT_CONTEXT.md
 .freebuff/
