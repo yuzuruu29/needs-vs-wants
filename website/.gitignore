@@ -1,1 +1,8 @@
 .vercel
+# Re-include the OG image: the root .gitignore blanket-ignores *.png,
+# but this asset must ship with the site (referenced by og:image).
+!public/og-image.png
+# Campaign teaser (EssenceSquare) must ship with the site even if a
+# parent ignore ever blankets *.mp4.
+!public/video/*.mp4
+!public/video/essence-teaser.mp4

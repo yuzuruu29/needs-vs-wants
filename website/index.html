@@ -9,20 +9,52 @@
 <link rel="icon" href="./favicon-48.png" sizes="48x48" type="image/png">
 <link rel="icon" href="./favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 30 days. Optional daily budget. No accounts. No analytics.">
-<link rel="preload" href="./fonts/source-sans3-regular.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="./fonts/caveat-bold.ttf" as="font" type="font/ttf" crossorigin>
+<meta name="description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided in the moment, sealed instantly, kept for 30 days. Optional daily budget. No account needed. No ads, no analytics.">
+<link rel="canonical" href="https://needs-vs-wants.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Needs vs Wants">
+<meta property="og:title" content="Needs vs Wants: Spending Trainer">
+<meta property="og:description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided at the counter. Free Android APK; Pro and Max tiers in the app.">
+<meta property="og:url" content="https://needs-vs-wants.vercel.app/">
+<meta property="og:image" content="https://needs-vs-wants.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Needs vs Wants, a spending trainer. Need or Want, decided at the counter.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Needs vs Wants: Spending Trainer">
+<meta name="twitter:description" content="An offline-first expense trainer. Every purchase is a Need or a Want, decided at the counter. Free Android APK; Pro and Max tiers in the app.">
+<meta name="twitter:image" content="https://needs-vs-wants.vercel.app/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Needs vs Wants",
+  "operatingSystem": "Android",
+  "applicationCategory": "FinanceApplication",
+  "url": "https://needs-vs-wants.vercel.app/",
+  "description": "An offline-first spending trainer. Every purchase is logged as a Need or a Want and sealed in the moment. The diary stays on-device; Pro and Max are optional paid tiers unlocked in the app.",
+  "offers": [
+    {"@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "PHP"},
+    {"@type": "Offer", "name": "Pro monthly", "price": "49", "priceCurrency": "PHP"},
+    {"@type": "Offer", "name": "Pro annual", "price": "490", "priceCurrency": "PHP"},
+    {"@type": "Offer", "name": "Max monthly", "price": "99", "priceCurrency": "PHP"},
+    {"@type": "Offer", "name": "Max annual", "price": "990", "priceCurrency": "PHP"}
+  ]
+}
+</script>
+<link rel="preload" href="./fonts/source-sans3-regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/caveat-bold.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 /* ============ SELF-HOSTED FONTS ============ */
 @font-face{
   font-family:'Caveat';
   font-style:normal;font-weight:400;font-display:swap;
-  src:url('./fonts/caveat-regular.ttf') format('truetype');
+  src:url('./fonts/caveat-regular.woff2') format('woff2');
 }
 @font-face{
   font-family:'Caveat';
   font-style:normal;font-weight:700;font-display:swap;
-  src:url('./fonts/caveat-bold.ttf') format('truetype');
+  src:url('./fonts/caveat-bold.woff2') format('woff2');
 }
 @font-face{
   font-family:'Playfair Display SC';
@@ -32,22 +64,22 @@
 @font-face{
   font-family:'Source Sans 3';
   font-style:normal;font-weight:400;font-display:swap;
-  src:url('./fonts/source-sans3-regular.ttf') format('truetype');
+  src:url('./fonts/source-sans3-regular.woff2') format('woff2');
 }
 @font-face{
   font-family:'Source Sans 3';
   font-style:normal;font-weight:500;font-display:swap;
-  src:url('./fonts/source-sans3-medium.ttf') format('truetype');
+  src:url('./fonts/source-sans3-medium.woff2') format('woff2');
 }
 @font-face{
   font-family:'Source Sans 3';
   font-style:normal;font-weight:600;font-display:swap;
-  src:url('./fonts/source-sans3-semibold.ttf') format('truetype');
+  src:url('./fonts/source-sans3-semibold.woff2') format('woff2');
 }
 @font-face{
   font-family:'Source Sans 3';
   font-style:normal;font-weight:700;font-display:swap;
-  src:url('./fonts/source-sans3-bold.ttf') format('truetype');
+  src:url('./fonts/source-sans3-bold.woff2') format('woff2');
 }
 /* Inter kept as fallback stack only if local Source Sans fails */
 @font-face{
@@ -1205,7 +1237,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 /* ============ PROMO VIDEO ============ */
 .vid-section{padding:60px 0;text-align:center;width:100%}
 .vid-wrap{max-width:640px;margin:0 auto;padding:0 24px}
-.promo-vid{width:100%;border-radius:16px;box-shadow:var(--shadow-card);margin-top:24px}
+.promo-vid{width:100%;max-width:480px;margin-inline:auto;aspect-ratio:1/1;height:auto;display:block;object-fit:cover;border-radius:16px;box-shadow:var(--shadow-card);margin-top:24px}
 
 /* ============ SIDELOADING ============ */
 .sideload-guide{margin-top:24px;text-align:left;background:var(--raised);border:1px solid var(--divider);border-radius:var(--r-s);padding:14px;max-width:420px}
@@ -1217,6 +1249,10 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .trust-note{font-size:12.5px;color:var(--green-soft);margin-top:8px}
 .upgrade-note{font-size:12.5px;color:var(--ink);margin-top:8px;line-height:1.5}
 .upgrade-note strong{color:var(--crimson);font-weight:600}
+.verify-note{font-size:12.5px;color:var(--ink);margin-top:8px;line-height:1.5}
+.hash-line{display:block;font:500 11px/1.5 ui-monospace,'Cascadia Mono',Consolas,monospace;color:var(--sub);word-break:break-all;background:var(--sunken);border:1px solid var(--divider);border-radius:var(--r-xs);padding:6px 8px;margin-top:4px}
+.verify-how{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5}
+.verify-how code{font:500 11px/1.4 ui-monospace,'Cascadia Mono',Consolas,monospace;background:var(--sunken);border:1px solid var(--divider);border-radius:4px;padding:1px 4px}
 
 /* ============ EMAIL CAPTURE ============ */
 .notify-form{max-width:420px;margin:48px auto 0;text-align:center}
@@ -1226,6 +1262,10 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .notify-btn{background:var(--crimson);color:#fff;border:0;padding:12px 20px;border-radius:var(--r-s);font:600 14px/1 var(--body)}
 .notify-btn:hover{background:var(--crimson-deep)}
 .privacy-note{font-size:12px;color:var(--muted);margin-top:12px}
+.privacy-note a{color:var(--sub);text-decoration:underline;text-underline-offset:2px}
+.privacy-note a:hover{color:var(--crimson)}
+.hp-field{position:absolute !important;width:1px;height:1px;margin:-1px;padding:0;border:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+.notify-btn:disabled{opacity:.55;cursor:default}
 
 /* ============ SOCIAL PROOF ============ */
 .social-proof{text-align:center}
@@ -1296,7 +1336,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
       Needs <b>vs</b> Wants
     </a>
-    <span class="chip-soft" title="Official launch · Version 2.0.14"><i aria-hidden="true"></i>Official</span>
+    <span class="chip-soft" title="Official launch · Version 2.0.15"><i aria-hidden="true"></i>Official</span>
     <nav class="nav-links" aria-label="Primary">
       <a href="#rule">The Rule</a>
       <a href="#how">How It Works</a>
@@ -1316,9 +1356,9 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <h1 class="display hero-in hero-in-2">Needs <span class="vs">vs</span><br>Wants</h1>
       <p class="kicker hero-in hero-in-3">A Spending Trainer</p>
       <div class="rule-sweep hero-in" aria-hidden="true"></div>
-      <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong>, and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
+      <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong>, and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No account needed, no ads, no analytics. Just you, your money, and an honest line down the page.</p>
       <div class="hero-cta hero-in hero-in-5">
-        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-2.0.14.apk" download>Download Android APK</a>
+        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-2.0.15.apk" download>Download Android APK</a>
         <button class="btn btn--ghost sec" id="heroCta" type="button">Try Live Demo ↓</button>
       </div>
       <a class="ios-notify-link hero-in hero-in-5" href="#get">iOS coming soon. Get notified</a>
@@ -1368,7 +1408,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </span>
     <div class="pro-notice-copy reveal">
       <h3>Free trainer on device. Pro and Max via PayPal or PayMongo in the app, monthly or annually.</h3>
-      <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (AI Advisor) are available in the app: PayPal or PayMongo checkout, no store needed.</p>
+      <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (Financial Advisor coach) are available in the app: PayPal or PayMongo checkout, no store needed.</p>
     </div>
     <div class="pro-notice-cta reveal">
       <a class="btn btn--primary btn-arr" href="#get">
@@ -1497,10 +1537,10 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 <!-- ================= PROMO VIDEO ================= -->
 <section class="vid-section reveal" id="demo-video">
   <div class="vid-wrap">
-    <p class="eyebrow">SEE IT IN ACTION</p>
-    <h3>How It Works in 15 Seconds</h3>
+    <p class="eyebrow">CAMPAIGN TEASER</p>
+    <h3>See the trainer in 15 seconds</h3>
     <video class="promo-vid" controls playsinline preload="metadata" poster="" muted>
-      <source src="./video/how-it-works-15s.mp4" type="video/mp4">
+      <source src="./video/essence-teaser.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
   </div>
@@ -1533,15 +1573,30 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 </section>
 
 <!-- ================= RECENT ================= -->
-<section id="updates" aria-label="Recent changes in 2.0.14">
+<section id="updates" aria-label="Recent changes in 2.0.15">
   <div class="wrap">
     <div class="recent-rail reveal">
       <aside class="recent-mast">
-        <span class="recent-stamp" aria-hidden="true">v2.0.14</span>
+        <span class="recent-stamp" aria-hidden="true">v2.0.15</span>
         <h2>Just shipped.</h2>
-        <p>The last few builds, stripped of the filler. Membership follows your account, annual plans are live, and the diary has a TikTok home.</p>
+        <p>This build carries annual PayPal plans, a local diary backup, and the campaign teaser on this page.</p>
       </aside>
       <div class="recent-ledger">
+        <article class="recent-line">
+          <p class="recent-meta"><b>Billing</b> · 2.0.15</p>
+          <h3>Annual PayPal in this APK</h3>
+          <p>Pro P49/mo or P490/yr, Max P99/mo or P990/yr. Monthly and annual PayPal plan IDs ship in this build. Pick the period on the paywall.</p>
+        </article>
+        <article class="recent-line">
+          <p class="recent-meta"><b>Diary</b> · 2.0.15</p>
+          <h3>Local backup and restore</h3>
+          <p>Export or restore your sealed diary from Settings. Privacy and terms pages are live, plus an in-app update check and optional crash reporting you can turn off.</p>
+        </article>
+        <article class="recent-line">
+          <p class="recent-meta"><b>Site</b> · 2.0.15</p>
+          <h3>Campaign teaser</h3>
+          <p>The homepage 15-second clip is now the EssenceSquare campaign teaser: Need or Want, decided at the counter.</p>
+        </article>
         <article class="recent-line">
           <p class="recent-meta"><b>Membership</b> · 2.0.14</p>
           <h3>Annual plans live</h3>
@@ -1574,7 +1629,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div>
         <h2 class="title">Five pages. One honest habit.</h2>
       </div>
-      <p>A summary, a sheet, a history, an AI advisor, and a settings page. Set your optional daily budget on Log; enlarge text, switch themes, and set an evening reminder in Settings. Nothing else to learn, nothing else to manage.</p>
+      <p>A summary, a sheet, a history, a cited advisor coach, and a settings page. Set your optional daily budget on Log; enlarge text, switch themes, and set an evening reminder in Settings. Nothing else to learn, nothing else to manage.</p>
     </div>
 
     <div class="bento">
@@ -1722,7 +1777,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               </button>
               <p class="grp">About</p>
               <p class="about-name">Needs vs. Wants</p>
-              <p class="about-v">Version 2.0.14</p>
+              <p class="about-v">Version 2.0.15</p>
               <p class="about-d">An offline-first trainer for honest spenders.</p>
             </div>
           </div>
@@ -1737,23 +1792,23 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <div class="phone-status"><span>9:41</span><span class="pill" aria-hidden="true"></span><span>100%</span></div>
             <div class="phone-body app-inner">
               <span class="app-tag" style="background:var(--gold-soft);color:#1a1a1a">Max Tier</span>
-              <p class="eyebrow" style="color:var(--gold-soft)">Advisor · NotebookLM</p>
+              <p class="eyebrow" style="color:var(--gold-soft)">Advisor · Cited coach</p>
               <h3 style="margin-top:4px">Source of Truth</h3>
-              <p class="app-cap">Google NotebookLM (Max Feature)</p>
+              <p class="app-cap">Offline rule-based coach (Max feature)</p>
               <div class="card" style="background:#fff;border:1px solid var(--gold-soft);padding:12px;border-radius:10px;margin-top:10px">
                 <p class="eyebrow" style="font-size:10px;color:var(--crimson)">ADVISOR RECOMMENDATION</p>
                 <b style="display:block;font-size:12px;margin:4px 0">Needs lead the ledger today</b>
-                <p style="font-size:11px;color:var(--advisor-muted);line-height:1.4">From your Economic Study notebook: keep Needs ahead of Wants before you seal another line.</p>
+                <p style="font-size:11px;color:var(--advisor-muted);line-height:1.4">From the bundled study library: keep Needs ahead of Wants before you seal another line.</p>
                 <div style="border-top:1px solid rgba(0,0,0,.08);margin-top:8px;padding-top:6px">
                   <span style="font-size:9px;font-weight:700;color:var(--gold-soft);letter-spacing:1px;display:block">CITATIONS</span>
-                  <span style="font-size:10px;font-weight:600;display:block">• Notebook #1: Equilibrium</span>
-                  <span style="font-size:9px;color:var(--advisor-soft)">NotebookLM Section 1.2</span>
+                  <span style="font-size:10px;font-weight:600;display:block">• Study #1: Consumer Equilibrium</span>
+                  <span style="font-size:9px;color:var(--advisor-soft)">Bundled study library · 1.2</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Financial Advisor</b> (Max) A cited coach on your sealed diary. Today's insight, quick protocols, and chat answers with study citations. Unlocks with Max.</p>
+        <p class="phone-cap"><b>Financial Advisor</b> (Max) An offline, rule-based coach on your sealed diary. Today's insight, quick protocols, and answers with curated citations from economic studies, bundled so it works without internet. Unlocks with Max.</p>
         <div style="max-width:460px;margin:14px auto 0;text-align:left">
           <p class="eyebrow eyebrow--gold" style="margin-bottom:10px">How the Max coach works</p>
           <ol class="rule-steps">
@@ -1770,21 +1825,21 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 <!-- ================= SOCIAL PROOF ================= -->
 <section class="social-proof reveal" id="voices">
   <div class="wrap">
-    <p class="eyebrow">WHY PEOPLE LOG</p>
-    <h3>A daily habit that changes how you spend</h3>
+    <p class="eyebrow">FRESH FROM THE SOFT LAUNCH</p>
+    <h3>Be one of the first to train your spending</h3>
     <div class="quote-grid">
-      <blockquote class="voice-card">
-        <p>"I didn't realize how much I was spending on coffee until I had to tap 'Want' every single time."</p>
-        <cite>Daily commuter, 14-day streak</cite>
-      </blockquote>
-      <blockquote class="voice-card">
-        <p>"The binary choice is what makes it work. No categories to fuss over. Just: did I need this?"</p>
-        <cite>Freelancer, using since Day 1</cite>
-      </blockquote>
-      <blockquote class="voice-card">
-        <p>"My Want percentage dropped from 68% to 41% in three weeks. The numbers don't lie."</p>
-        <cite>Student, budget mode user</cite>
-      </blockquote>
+      <div class="voice-card">
+        <p>Needs vs Wants launched softly in August 2026. No paid reviews and no invented praise here; the ledger speaks for itself.</p>
+        <cite>The honest-launch note</cite>
+      </div>
+      <div class="voice-card">
+        <p>What early users practice: tapping Need or Want at the counter, watching the Want share move on the donut, and keeping today inside an optional budget.</p>
+        <cite>What to expect in week one</cite>
+      </div>
+      <div class="voice-card">
+        <p>Your first 30 days build the habit. Log it, seal it, review the split, and let the diary show you where the money went.</p>
+        <cite>The 30-day window</cite>
+      </div>
     </div>
   </div>
 </section>
@@ -1823,7 +1878,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
                 Download free
                 <span class="arr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
               </a>
-              <p class="pri-cta-note">No account · Sideload APK · Not on Play Store yet</p>
+              <p class="pri-cta-note">No account needed · Sideload APK · Not on Play Store yet</p>
             </div>
           </div>
         </div>
@@ -1870,14 +1925,14 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <span class="pri-tag">Subscribe in the app</span>
             <p class="pri-price">₱99<small> / mo</small></p>
             <p class="pri-annual">Annual · ₱990 / yr · 2 months free</p>
-            <p class="pri-sub">Everything in Pro, plus the AI Financial Advisor.</p>
+            <p class="pri-sub">Everything in Pro, plus the Financial Advisor coach.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Everything in Pro</b> · unlimited &amp; lifetime</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Live insight card from your sealed ledger</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Offline coach: insight card from your sealed ledger</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Pre-seal Want coach + hold suggestions</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>3-day overspend recovery plans</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Grounded citations on every answer</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Curated citations from economic studies, bundled offline</li>
             </ul>
             <div class="pri-cta">
               <a class="btn btn--outline btn-arr" href="#get">
@@ -1889,6 +1944,17 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           </div>
         </div>
       </article>
+
+      <div class="reveal" style="max-width:640px;margin:28px auto 0;text-align:left">
+        <p class="eyebrow eyebrow--gold" style="margin-bottom:10px">How to subscribe, and how to get it back</p>
+        <ol class="rule-steps">
+          <li><b>Open the paywall in the app.</b> Free needs no account. Tap Pro or Max and the app asks you to sign in first, so the membership has somewhere to live.</li>
+          <li><b>Sign in.</b> Use Google, or tap <b>Can't use Google? Sign in with an email code</b> and type the 6-digit code we email you. That code expires in about an hour.</li>
+          <li><b>Pick the period, then the payment.</b> Monthly or Annual, then <b>PayPal</b> for an auto-renewing subscription (Pro opens with a 3-day free trial) or <b>PayMongo</b> for a one-time pass by GCash, card, PayMaya, GrabPay, or QR PH that never charges you again.</li>
+          <li><b>Come back to the app.</b> After you pay, the checkout page hands you back to the diary and the tier unlocks. If it has not unlocked, open the paywall and tap <b>Restore purchases</b>.</li>
+          <li><b>New phone, same membership.</b> Install the app, sign in with the same account, and your tier comes back. Cancel a PayPal subscription in your PayPal account. Refunds follow the <a href="./terms.html">7-day window in the terms</a>.</li>
+        </ol>
+      </div>
 
     </div>
   </div>
@@ -1904,7 +1970,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <circle cx="60" cy="60" r="57" fill="none" stroke="var(--gold-soft)" stroke-width="1.4"/>
           <circle cx="60" cy="60" r="33" fill="none" stroke="var(--gold-soft)" stroke-width="1" stroke-dasharray="2 3"/>
           <text fill="var(--gold-soft)" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" letter-spacing="2.6">
-            <textPath href="#stampPath">OFFICIAL · VERSION 2.0.14 · NEEDS VS WANTS ·</textPath>
+            <textPath href="#stampPath">OFFICIAL · VERSION 2.0.15 · NEEDS VS WANTS ·</textPath>
           </text>
         </g>
         <g class="stamp-pulse">
@@ -1916,7 +1982,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <h2>Start tracking today.</h2>
           <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 30 days, with an optional daily budget on today.</p>
           <div class="cta-btns">
-            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.14.apk" download="needs-vs-wants-2.0.14.apk">
+            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.15.apk" download="needs-vs-wants-2.0.15.apk">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
               Get the app</a>
             <button class="btn btn--outline" id="apkQrToggle" type="button" aria-expanded="false" aria-controls="apkQrPanel">
@@ -1928,25 +1994,55 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <details class="sideload-guide">
             <summary>Need help installing? ▾</summary>
             <ol class="sideload-steps">
-              <li><strong>Tap Download</strong> and your browser saves the APK file</li>
-              <li><strong>Open the file</strong> and tap "Install" when Android prompts you</li>
-              <li><strong>If asked</strong>, allow "Install unknown apps" for your browser, then tap Install again</li>
+              <li><strong>Tap Get the app.</strong> Your browser downloads <strong>needs-vs-wants-2.0.15.apk</strong>. You need Android 7.0 or newer.</li>
+              <li><strong>Open the file</strong> from the download notification, or from your Downloads folder, then tap <strong>Install</strong>.</li>
+              <li><strong>If Android blocks it,</strong> tap <strong>Settings</strong> in that prompt, turn on <strong>Allow from this source</strong> for your browser, then go back and tap <strong>Install</strong>.</li>
+              <li><strong>If Play Protect warns you</strong> that the developer is unknown, choose <strong>Install anyway</strong>. Confirm the file and the signer first under <strong>Verify your download</strong> below.</li>
+              <li><strong>Open the app.</strong> There is no account and no setup: a short walkthrough explains the method, then you can log your first purchase.</li>
             </ol>
-            <p class="trust-note">✓ Verified safe: no ads, no tracking, no network calls. 100% offline.</p>
+            <p class="trust-note">✓ No ads, no tracking. The diary itself is fully offline and stays on your device; internet is used only for optional sign-in, paid-tier checkout, and entitlement checks.</p>
           </details>
           <details class="sideload-guide">
             <summary>Upgrading from an older version? ▾</summary>
-            <p class="upgrade-note">Versions 1.0.0&ndash;1.5.0 were signed with a different key. If you have one of those installed, Android will refuse to install 2.0.14 over it. <strong>Export/back up your data, then uninstall the old version first</strong>, then install 2.0.14.</p>
+            <p class="upgrade-note"><strong>Already on 2.0.0 or newer?</strong> Install 2.0.15 straight over it. Your diary, your daily budget, and your settings all stay put.</p>
+            <p class="upgrade-note">Versions 1.0.0&ndash;1.5.0 were signed with a different key. If you have one of those installed, Android will refuse to install 2.0.15 over it. <strong>Export/back up your data, then uninstall the old version first</strong>, then install 2.0.15.</p>
+          </details>
+          <details class="sideload-guide">
+            <summary>Keeping the app updated ▾</summary>
+            <ol class="sideload-steps">
+              <li><strong>No store, no silent updates.</strong> A sideloaded app does not update itself, so every new version comes from this page.</li>
+              <li><strong>The app watches for you.</strong> About once a day it checks this site for a newer build. When one exists, <strong>Settings</strong> shows <strong>Update available</strong> with a link to download it. You can also tap <strong>Check for updates</strong> there whenever you like.</li>
+              <li><strong>Install over the old build.</strong> Download the new APK, open it, tap Install. Nothing is erased: entries, budget, and settings carry over.</li>
+            </ol>
+          </details>
+          <details class="sideload-guide">
+            <summary>Backing up your diary ▾</summary>
+            <ol class="sideload-steps">
+              <li><strong>Pick a folder.</strong> In the app open <strong>Settings</strong>, go to <strong>BACKUP</strong>, and set a <strong>Backup folder</strong>. Any folder works, including a Google Drive folder.</li>
+              <li><strong>Leave auto-backup on.</strong> <strong>Auto-backup daily</strong> writes one file a day to that folder and keeps the last 10. Tap <strong>Back up now</strong> whenever you want an immediate copy.</li>
+              <li><strong>Restore when you need it.</strong> <strong>Restore from backup file</strong> adds your entries back. Duplicates are skipped and nothing is deleted, so it is safe to run on a phone that already has entries.</li>
+            </ol>
+            <p class="trust-note">✓ Backups are plain JSON files in the folder you picked. They never reach us, so choose somewhere you could still open if this phone were lost.</p>
+          </details>
+          <details class="sideload-guide">
+            <summary>Verify your download ▾</summary>
+            <p class="verify-note">APK SHA-256 (needs-vs-wants-2.0.15.apk)
+              <code class="hash-line" id="apkSha256">b3b4085e9606139160c665602fe5fee0c109411b6d38fcc020e9a143d1006fbc</code>
+            </p>
+            <p class="verify-note">Release signing certificate SHA-256
+              <code class="hash-line" id="apkCertSha256">5fc43fb6e3a4d8e72123895d4b05d5f83082d8c6b242f1a8f8fd3039d551c961</code>
+            </p>
+            <p class="verify-how">To verify: hash the downloaded file with <code>certutil -hashfile needs-vs-wants-2.0.15.apk SHA256</code> (Windows) or <code>sha256sum</code> (Linux/Mac), and check the signer with <code>apksigner verify --print-certs</code>; both values must match the ones above.</p>
           </details>
           <p class="cta-note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
-            No accounts · No analytics · No network, your diary never leaves your device.
+            No account needed · No ads · No analytics · Your diary stays on your device; the app goes online only for optional sign-in, checkout, and entitlement checks.
           </p>
         </div>
         <div class="apk-qr-panel" id="apkQrPanel" hidden>
           <div class="apk-qr-card">
             <canvas id="apkQrCanvas" width="200" height="200" role="img" aria-label="QR code linking to the Android APK download"></canvas>
-            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-2.0.14.apk</strong></p>
+            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-2.0.15.apk</strong></p>
             <p class="apk-qr-url" id="apkQrUrl"></p>
           </div>
         </div>
@@ -1957,10 +2053,11 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <p class="eyebrow">GET NOTIFIED</p>
       <h4>Know when we launch on iOS & Google Play</h4>
       <form class="email-capture" action="#" method="POST">
-        <input type="email" name="email" placeholder="your@email.com" required class="email-input">
+        <input type="email" name="email" placeholder="your@email.com" required class="email-input" autocomplete="email">
+        <input type="text" name="website" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button type="submit" class="notify-btn">Notify me</button>
       </form>
-      <p class="privacy-note">We'll email you once. No spam. No tracking.</p>
+      <p class="privacy-note">We store your email only to send one launch note. No spam. Details in the <a href="./privacy.html">privacy policy</a>.</p>
     </div>
   </div>
 </section>
@@ -1996,7 +2093,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <div class="foot-grid">
       <div>
         <span class="wordmark">Needs <b>vs</b> Wants</span>
-        <p class="foot-tag">A 30-day spending trainer for honest spenders. Official launch · v2.0.14.</p>
+        <p class="foot-tag">A 30-day spending trainer for honest spenders. Official launch · v2.0.15.</p>
       </div>
       <div>
         <p class="foot-h">Explore</p>
@@ -2010,7 +2107,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div>
         <p class="foot-h">Details</p>
         <p class="foot-meta">
-          Version 2.0.14<br>
+          Version 2.0.15<br>
           <span class="money">₱ $ € ¥ S$</span> · currency-aware<br>
           <span id="footDate">Friday, July 31, 2026</span>
         </p>
@@ -2025,6 +2122,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <small class="foot-credit">Follow on
           <a href="https://www.tiktok.com/@expenseneedswants" target="_blank" rel="noopener noreferrer">TikTok · @expenseneedswants</a>
         </small>
+        <small class="foot-credit"><a href="./privacy.html">Privacy Policy</a> · <a href="./terms.html">Terms &amp; Refunds</a></small>
       </div>
       <span class="motto">Every expense counts.</span>
     </div>
@@ -3143,10 +3241,35 @@ $('#arcWant').setAttribute('stroke-dashoffset','0');
 /* ---------- Notify Form ---------- */
 const emailForm = $('.email-capture');
 if (emailForm) {
+  const NOTIFY_URL = 'https://xpwcrloarciomikfudln.supabase.co/functions/v1/notify_signup';
+  const notifyBtn = emailForm.querySelector('.notify-btn');
+  let sending = false;
   emailForm.addEventListener('submit', e => {
     e.preventDefault();
-    toast("Thanks! We'll notify you when we launch.");
-    emailForm.reset();
+    if (sending) return;
+    const email = (emailForm.elements.email.value || '').trim();
+    if (!email) { toast('Enter your email first.'); return; }
+    const hp = emailForm.elements.website ? emailForm.elements.website.value : '';
+    sending = true;
+    notifyBtn.disabled = true;
+    const prevLabel = notifyBtn.textContent;
+    notifyBtn.textContent = 'Sending…';
+    fetch(NOTIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, website: hp })
+    })
+    .then(res => {
+      if (res.ok) { toast("You're on the list."); emailForm.reset(); }
+      else if (res.status === 429) { toast('Too many attempts. Try again in a minute.'); }
+      else { toast("Couldn't subscribe. Try again."); }
+    })
+    .catch(() => { toast("Couldn't subscribe. Try again."); })
+    .finally(() => {
+      sending = false;
+      notifyBtn.disabled = false;
+      notifyBtn.textContent = prevLabel;
+    });
   });
 }
 })();

@@ -50,6 +50,12 @@
     // works and carries the query params too.
     (function () {
       var query = window.location.search;
+      // Which app build gets the return: the checkout function forwards a
+      // whitelisted `scheme` param for the plain test flavor; re-validate here
+      // so a hand-crafted URL can only ever pick one of the two known builds.
+      var params = new URLSearchParams(query);
+      var scheme = params.get("scheme") === "needsvswantsplain" ? "needsvswantsplain" : "needsvswants";
+      var pkg = scheme === "needsvswantsplain" ? "com.needsvswants.app.plain" : "com.needsvswants.app";
       var ua = navigator.userAgent || "";
       var androidChrome = /Android/i.test(ua) && /Chrome\//i.test(ua) &&
         !/Edg\//i.test(ua) && !/OPR\//i.test(ua) && !/SamsungBrowser/i.test(ua);
@@ -57,14 +63,14 @@
         var fallback = encodeURIComponent("https://needs-vs-wants.vercel.app/");
         window.location.replace(
           "intent://paymongo/return" + query +
-          "#Intent;scheme=needsvswants;package=com.needsvswants.app;S.browser_fallback_url=" +
+          "#Intent;scheme=" + scheme + ";package=" + pkg + ";S.browser_fallback_url=" +
           fallback + ";end"
         );
       } else {
-        window.location.replace("needsvswants://paymongo/return" + query);
+        window.location.replace(scheme + "://paymongo/return" + query);
       }
       var link = document.getElementById("fallback-link");
-      if (link && query) link.href = "needsvswants://paymongo/return" + query;
+      if (link && query) link.href = scheme + "://paymongo/return" + query;
     })();
   </script>
 </head>
