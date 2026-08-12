@@ -12,9 +12,19 @@
 // Session. There is no auto-subscription. The grant (is_pro, tier, +30 days)
 // is applied by paymongo_webhook when PayMongo reports
 // `checkout_session.payment.paid`.
+//
+// Soft per-user rate limit: max 10 checkout creations per user per hour
+// (rate_limit_events counter, shared with paypal_create_subscription).
 
+import { sanitizeScheme, withSchemeParam } from "../_shared/deeplink.ts";
 import { error, handleOptions, ok, requireEnv } from "../_shared/http.ts";
 import { expectedAmountCentavos } from "../_shared/paymongo.ts";
+import {
+  CHECKOUT_MAX_PER_HOUR,
+  rateLimitKey,
+  shouldRateLimit,
+  windowStartIso,
+} from "../_shared/rate_limit.ts";
 import {
   createClient,
 } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -85,7 +95,43 @@ Deno.serve(async (req: Request) => {
       return error("Server not configured", 500);
     }
 
-    let body: { tier?: string; period?: string } = {};
+    // Soft per-user rate limit (service role: rate_limit_events has no client
+    // policies). Fails OPEN - a broken counter must never block checkout.
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (serviceRoleKey) {
+      const admin = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { persistSession: false },
+      });
+      const key = rateLimitKey("checkout", userId);
+      const { count, error: countErr } = await admin
+        .from("rate_limit_events")
+        .select("id", { count: "exact", head: true })
+        .eq("key", key)
+        .gte("created_at", windowStartIso(Date.now()));
+      if (countErr) {
+        console.error(
+          "paymongo_create_checkout rate-limit count error:",
+          countErr,
+        );
+      } else if (shouldRateLimit(count ?? 0, CHECKOUT_MAX_PER_HOUR)) {
+        return error("Too many checkout attempts. Try again later.", 429);
+      }
+      const { error: attemptErr } = await admin
+        .from("rate_limit_events")
+        .insert({ key });
+      if (attemptErr) {
+        console.error(
+          "paymongo_create_checkout rate-limit insert error:",
+          attemptErr,
+        );
+      }
+    } else {
+      console.error(
+        "paymongo_create_checkout: SUPABASE_SERVICE_ROLE_KEY missing; rate limit skipped",
+      );
+    }
+
+    let body: { tier?: string; period?: string; scheme?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -101,10 +147,20 @@ Deno.serve(async (req: Request) => {
     // Server-authoritative amount. Client-supplied amounts are ignored.
     const amountCentavos = expectedAmountCentavos(tier, period);
 
-    const successUrl = Deno.env.get("PAYMONGO_SUCCESS_URL") ??
-      "https://needs-vs-wants.vercel.app/paymongo-return.html";
-    const cancelUrl = Deno.env.get("PAYMONGO_CANCEL_URL") ??
-      "https://needs-vs-wants.vercel.app/paymongo-cancel.html";
+    // Whitelisted deep-link scheme forwarded to the redirect pages so the
+    // plain test flavor receives its checkout returns (see _shared/deeplink.ts).
+    const scheme = sanitizeScheme(body.scheme);
+
+    const successUrl = withSchemeParam(
+      Deno.env.get("PAYMONGO_SUCCESS_URL") ??
+        "https://needs-vs-wants.vercel.app/paymongo-return.html",
+      scheme,
+    );
+    const cancelUrl = withSchemeParam(
+      Deno.env.get("PAYMONGO_CANCEL_URL") ??
+        "https://needs-vs-wants.vercel.app/paymongo-cancel.html",
+      scheme,
+    );
 
     const paymentMethods = (
       Deno.env.get("PAYMONGO_PAYMENT_METHODS") ??
@@ -211,10 +267,9 @@ Deno.serve(async (req: Request) => {
       amount_centavos: amountCentavos,
     });
   } catch (err) {
-    const detail = err instanceof Error
-      ? err.message + (err.cause ? ` (cause: ${String(err.cause)})` : "")
-      : String(err);
+    // Detail stays server-side only: internal messages can leak config or
+    // upstream response fragments to clients.
     console.error("paymongo_create_checkout error:", err);
-    return error(`Internal error: ${detail}`, 500);
+    return error("Internal error", 500);
   }
 });

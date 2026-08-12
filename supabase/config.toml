@@ -57,6 +57,12 @@ verify_jwt = true
 [functions.paymongo_webhook]
 verify_jwt = false
 
+# notify_signup is called by the public website (visitors have no Supabase
+# session). Abuse controls live in the function: honeypot, email validation,
+# per-IP rate limit, CORS locked to the production origin.
+[functions.notify_signup]
+verify_jwt = false
+
 [auth]
 enabled = true
 site_url = "http://localhost:3000"

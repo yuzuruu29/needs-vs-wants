@@ -11,8 +11,31 @@
 //     /v1/notifications/verify-webhook-signature with an OAuth bearer token.
 //   - Only a verification_status === "SUCCESS" is accepted.
 //
-// Idempotent: each webhook event maps to an idempotent upsert keyed by
-// user_id (with on_conflict), so replays do not double-grant.
+// custom_id trust (closes the D46 caveat): the webhook signature only
+// authenticates PayPal, not the buyer, and custom_id is client-controlled at
+// checkout. paypal_create_subscription now mints an HMAC-signed custom_id
+// (`v1.<user_id>.<issued_at>.<sig>`, secret PAYPAL_CUSTOM_ID_SECRET) and this
+// webhook verifies it before granting:
+//   - fresh valid signature        -> grant (any event type)
+//   - valid but >24h old           -> grant only when the subscription is
+//                                     already linked to the same user (ledger
+//                                     row or paypal entitlement) - renewals
+//                                     replay the same custom_id for the life
+//                                     of the subscription
+//   - tampered signature           -> never grant
+//   - legacy raw uuid (pre-cutover)-> renew/extend/status events only, and
+//                                     only for users already linked to
+//                                     PayPal; NEVER first-time ACTIVATED /
+//                                     CREATED grants
+//
+// Idempotency: processed events are recorded in the payment_events ledger
+// keyed on the PayPal event id (provider 'paypal'; checkout_session_id
+// stores the PayPal subscription id). A replayed delivery is acked as
+// already_applied without re-granting. Unlike the PayMongo webhook (which
+// must ledger-first because its grants STACK +30/+365 days), PayPal grants
+// are absolute (paid_until = next_billing_time), so we grant first and
+// ledger after: a transient grant failure stays retryable and a rare
+// double-apply writes identical values.
 //
 // NOTE: deployed with `--no-verify-jwt` (PayPal is not an authenticated
 // Supabase client). Signature verification is the only auth gate.
@@ -22,6 +45,12 @@ import {
   grantToRowFields,
   mapPayPalWebhookEvent,
 } from "../_shared/entitlements.ts";
+import {
+  candidateUserIdFor,
+  classifyPayPalEventForTrust,
+  decideGrantAcceptance,
+  verifySignedCustomId,
+} from "../_shared/paypal_custom_id.ts";
 import {
   createClient,
 } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -147,6 +176,25 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true, ignored: true });
     }
 
+    const envelope = event as Record<string, unknown>;
+    const resource = (envelope.resource ?? {}) as Record<string, unknown>;
+    const eventId = typeof envelope.id === "string" && envelope.id
+      ? envelope.id
+      : null;
+    const eventType = typeof envelope.event_type === "string"
+      ? envelope.event_type
+      : "";
+    const subscriptionId = typeof resource.id === "string" && resource.id
+      ? resource.id
+      : null;
+    // Same precedence as mapPayPalWebhookEvent (real events only carry
+    // custom_id; user_id is scaffold-era leniency).
+    const rawCustomId = typeof resource.user_id === "string"
+      ? resource.user_id
+      : typeof resource.custom_id === "string"
+        ? resource.custom_id
+        : "";
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
@@ -157,12 +205,102 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
+    // Step 1 - Idempotency. Replayed deliveries of an already-processed
+    // event are logged in the ledger under the PayPal event id; ack them
+    // without re-granting.
+    if (eventId) {
+      const { data: existingEvent, error: ledgerReadErr } = await supabase
+        .from("payment_events")
+        .select("id")
+        .eq("id", eventId)
+        .maybeSingle();
+
+      if (ledgerReadErr) {
+        console.error("payment_events read error:", ledgerReadErr);
+        return error("Failed to verify payment ledger", 500);
+      }
+      if (existingEvent) {
+        return jsonResponse({ success: true, already_applied: true });
+      }
+    }
+
+    // Step 2 - custom_id trust decision. Missing PAYPAL_CUSTOM_ID_SECRET is
+    // a degraded mode: signed tokens fail verification (rejected) while
+    // legacy uuids still follow the legacy fallback rules. Log loudly.
+    const customIdSecret = Deno.env.get("PAYPAL_CUSTOM_ID_SECRET") ?? "";
+    if (!customIdSecret) {
+      console.error("paypal_webhook: PAYPAL_CUSTOM_ID_SECRET is not set");
+    }
+    const verification = await verifySignedCustomId(
+      rawCustomId,
+      customIdSecret,
+    );
+
+    // Linkage lookup, only needed for the expired / legacy paths: is this
+    // subscription (or at least this user) already linked to PayPal?
+    const candidate = candidateUserIdFor(verification, rawCustomId);
+    let hasPriorPayPalGrant = false;
+    if (!verification.ok && candidate) {
+      if (subscriptionId) {
+        const { data: ledgerLink, error: linkErr } = await supabase
+          .from("payment_events")
+          .select("id")
+          .eq("provider", "paypal")
+          .eq("checkout_session_id", subscriptionId)
+          .eq("user_id", candidate)
+          .limit(1)
+          .maybeSingle();
+        if (linkErr) {
+          console.error("payment_events link read error:", linkErr);
+          return error("Failed to verify payment ledger", 500);
+        }
+        hasPriorPayPalGrant = !!ledgerLink;
+      }
+      if (!hasPriorPayPalGrant) {
+        // Pre-cutover subscribers have no ledger rows yet; their entitlement
+        // row (provider 'paypal') is the linkage that keeps renewals working.
+        const { data: entRow, error: entErr } = await supabase
+          .from("entitlements")
+          .select("provider")
+          .eq("user_id", candidate)
+          .maybeSingle();
+        if (entErr) {
+          console.error("entitlements link read error:", entErr);
+          return error("Failed to load entitlement", 500);
+        }
+        hasPriorPayPalGrant = entRow?.provider === "paypal";
+      }
+    }
+
+    const decision = decideGrantAcceptance({
+      verification,
+      rawCustomId,
+      eventClass: classifyPayPalEventForTrust(eventType),
+      hasPriorPayPalGrant,
+    });
+
+    if (!decision.accept || !decision.user_id) {
+      // Ack with 200: PayPal retries cannot change this outcome, and the
+      // event is fully logged server-side for reconciliation.
+      console.error(
+        `paypal_webhook: grant refused (${decision.reason})`,
+        { eventId, eventType, subscriptionId },
+      );
+      return jsonResponse({
+        success: true,
+        ignored: true,
+        reason: decision.reason,
+      });
+    }
+
+    // Step 3 - Apply the grant to the VERIFIED user (never the raw
+    // custom_id string, which for signed tokens is the whole token).
     const fields = grantToRowFields(mapped.grant);
     const { error: upsertError } = await supabase
       .from("entitlements")
       .upsert(
         {
-          user_id: mapped.user_id,
+          user_id: decision.user_id,
           ...fields,
           updated_at: new Date().toISOString(),
         },
@@ -172,6 +310,43 @@ Deno.serve(async (req: Request) => {
     if (upsertError) {
       console.error("entitlements upsert error:", upsertError);
       return error("Failed to apply grant", 500);
+    }
+
+    // Step 4 - Record the processed event in the ledger (replay guard +
+    // subscription-to-user linkage for future legacy/expired decisions).
+    // PayPal rows: id = event id, checkout_session_id = subscription id,
+    // amount_centavos = 0 (amounts live in PayPal reports, not events).
+    if (eventId) {
+      const { error: ledgerError } = await supabase
+        .from("payment_events")
+        .insert({
+          id: eventId,
+          user_id: decision.user_id,
+          tier: mapped.grant.tier ?? "pro",
+          amount_centavos: 0,
+          currency: "PHP",
+          provider: "paypal",
+          checkout_session_id: subscriptionId,
+          status: eventType.toLowerCase(),
+          raw_reference: typeof envelope.create_time === "string"
+            ? envelope.create_time
+            : null,
+        });
+      if (ledgerError) {
+        // 23505 = a concurrent delivery raced us; both wrote identical
+        // absolute grant values, so this is safe to ignore.
+        if (
+          !(typeof ledgerError.code === "string" &&
+            ledgerError.code === "23505")
+        ) {
+          console.error("payment_events insert error:", ledgerError);
+        }
+      }
+    } else {
+      console.error("paypal_webhook: event without id; ledger row skipped", {
+        eventType,
+        subscriptionId,
+      });
     }
 
     return jsonResponse({ success: true, applied: mapped.grant.mode });
