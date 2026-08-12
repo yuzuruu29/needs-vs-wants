@@ -5,6 +5,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   expectedAmountCentavos,
+  grantDaysFor,
   mapCheckoutPaidEvent,
   nextPaidUntil,
   resolveGrantTier,
@@ -74,9 +75,18 @@ Deno.test("verifyPaymongoSignature: malformed (non-hex / wrong length) header fa
 // expectedAmountCentavos
 // ---------------------------------------------------------------------------
 
-Deno.test("expectedAmountCentavos: pro 19900, max 39900 (server-authoritative)", () => {
-  assertEquals(expectedAmountCentavos("pro"), 19900);
-  assertEquals(expectedAmountCentavos("max"), 39900);
+Deno.test("expectedAmountCentavos: pro 4900 / max 9900 monthly, pro 49000 / max 99000 annual (server-authoritative)", () => {
+  assertEquals(expectedAmountCentavos("pro"), 4900);
+  assertEquals(expectedAmountCentavos("max"), 9900);
+  assertEquals(expectedAmountCentavos("pro", "monthly"), 4900);
+  assertEquals(expectedAmountCentavos("max", "monthly"), 9900);
+  assertEquals(expectedAmountCentavos("pro", "annual"), 49000);
+  assertEquals(expectedAmountCentavos("max", "annual"), 99000);
+});
+
+Deno.test("grantDaysFor: monthly 30, annual 365", () => {
+  assertEquals(grantDaysFor("monthly"), 30);
+  assertEquals(grantDaysFor("annual"), 365);
 });
 
 // ---------------------------------------------------------------------------
@@ -114,6 +124,17 @@ Deno.test("nextPaidUntil: custom days honored", () => {
   assertEquals(Date.parse(result), NOW_MS + 7 * DAY_MS);
 });
 
+Deno.test("nextPaidUntil: annual grant stacks +365 days on existing future paid_until", () => {
+  const future = new Date(NOW_MS + 5 * DAY_MS).toISOString();
+  const result = nextPaidUntil(NOW, future, grantDaysFor("annual"));
+  assertEquals(Date.parse(result), Date.parse(future) + 365 * DAY_MS);
+});
+
+Deno.test("nextPaidUntil: annual grant from now when no existing paid_until", () => {
+  const result = nextPaidUntil(NOW, null, grantDaysFor("annual"));
+  assertEquals(Date.parse(result), NOW_MS + 365 * DAY_MS);
+});
+
 // ---------------------------------------------------------------------------
 // mapCheckoutPaidEvent
 // ---------------------------------------------------------------------------
@@ -123,7 +144,7 @@ const FULL_PAID_EVENT = {
     type: "checkout_session.payment.paid",
     id: "evt_123",
     attributes: {
-      amount: 19900,
+      amount: 4900,
       billing: { address: {} },
       checkout_session: {
         id: "cs_abc",
@@ -137,12 +158,12 @@ const FULL_PAID_EVENT = {
           {
             id: "pay_ignore",
             status: "pending",
-            amount: 19900,
+            amount: 4900,
           },
           {
             id: "pay_granted",
             status: "paid",
-            amount: 19900,
+            amount: 4900,
           },
         ],
       },
@@ -157,11 +178,41 @@ Deno.test("mapCheckoutPaidEvent: full paid event maps to a Grant", () => {
   assertEquals(grant, {
     user_id: "a1b2c3d4-1111-2222-3333-444455556666",
     tier: "pro",
+    period: "monthly",
     payment_id: "pay_granted",
-    amount_centavos: 19900,
+    amount_centavos: 4900,
     checkout_session_id: "cs_abc",
     paid_at: "2026-08-08T12:00:00.000Z",
   });
+});
+
+Deno.test("mapCheckoutPaidEvent: annual metadata period maps to annual grant", () => {
+  const payload = {
+    data: {
+      type: "checkout_session.payment.paid",
+      id: "evt_annual",
+      attributes: {
+        checkout_session: {
+          id: "cs_annual",
+          metadata: {
+            user_id: "a1b2c3d4-1111-2222-3333-444455556666",
+            tier: "max",
+            period: "annual",
+            product: "nvw_manual_annual",
+            app: "needs-vs-wants",
+          },
+          payments: [
+            { id: "pay_annual", status: "paid", amount: 99000 },
+          ],
+        },
+      },
+      paid_at: "2026-08-08T12:00:00.000Z",
+    },
+  };
+  const grant = mapCheckoutPaidEvent(payload);
+  assertEquals(grant?.tier, "max");
+  assertEquals(grant?.period, "annual");
+  assertEquals(grant?.amount_centavos, 99000);
 });
 
 Deno.test("mapCheckoutPaidEvent: ignores non-paid payments (no paid found -> null)", () => {
@@ -173,8 +224,8 @@ Deno.test("mapCheckoutPaidEvent: ignores non-paid payments (no paid found -> nul
           id: "cs_abc",
           metadata: { user_id: "user-1", tier: "max" },
           payments: [
-            { id: "pay_1", status: "pending", amount: 39900 },
-            { id: "pay_2", status: "failed", amount: 39900 },
+            { id: "pay_1", status: "pending", amount: 9900 },
+            { id: "pay_2", status: "failed", amount: 9900 },
           ],
         },
         payments: [],
@@ -191,7 +242,7 @@ Deno.test("mapCheckoutPaidEvent: missing user_id -> null", () => {
       attributes: {
         checkout_session: {
           metadata: { tier: "pro" },
-          payments: [{ id: "pay_1", status: "paid", amount: 19900 }],
+          payments: [{ id: "pay_1", status: "paid", amount: 4900 }],
         },
       },
     },
@@ -206,7 +257,7 @@ Deno.test("mapCheckoutPaidEvent: missing tier -> null", () => {
       attributes: {
         checkout_session: {
           metadata: { user_id: "user-1" },
-          payments: [{ id: "pay_1", status: "paid", amount: 19900 }],
+          payments: [{ id: "pay_1", status: "paid", amount: 4900 }],
         },
       },
     },
@@ -221,7 +272,7 @@ Deno.test("mapCheckoutPaidEvent: invalid tier -> null", () => {
       attributes: {
         checkout_session: {
           metadata: { user_id: "user-1", tier: "gold" },
-          payments: [{ id: "pay_1", status: "paid", amount: 19900 }],
+          payments: [{ id: "pay_1", status: "paid", amount: 4900 }],
         },
       },
     },
@@ -250,9 +301,9 @@ Deno.test("mapCheckoutPaidEvent: REAL shape - resource at data.data (outer envel
         attributes: {
           metadata: { user_id: "user-resource-data", tier: "pro" },
           payments: [
-            { id: "pay_777", status: "paid", amount: 19900 },
+            { id: "pay_777", status: "paid", amount: 4900 },
           ],
-          line_items: [{ name: "Pro", amount: 19900 }],
+          line_items: [{ name: "Pro", amount: 4900 }],
           paid_at: "2026-08-08T00:00:00.000Z",
         },
       },
@@ -262,8 +313,9 @@ Deno.test("mapCheckoutPaidEvent: REAL shape - resource at data.data (outer envel
   assertEquals(grant, {
     user_id: "user-resource-data",
     tier: "pro",
+    period: "monthly",
     payment_id: "pay_777",
-    amount_centavos: 19900,
+    amount_centavos: 4900,
     checkout_session_id: "cs_777",
     paid_at: "2026-08-08T00:00:00.000Z",
   });
@@ -283,9 +335,9 @@ Deno.test("mapCheckoutPaidEvent: REAL shape - resource at data.attributes.data",
           attributes: {
             metadata: { user_id: "user-attr-data", tier: "max" },
             payments: [
-              { id: "pay_888", status: "paid", amount: 39900 },
+              { id: "pay_888", status: "paid", amount: 9900 },
             ],
-            line_items: [{ name: "Max", amount: 39900 }],
+            line_items: [{ name: "Max", amount: 9900 }],
             paid_at: "2026-08-08T00:00:00.000Z",
           },
         },
@@ -296,8 +348,9 @@ Deno.test("mapCheckoutPaidEvent: REAL shape - resource at data.attributes.data",
   assertEquals(grant, {
     user_id: "user-attr-data",
     tier: "max",
+    period: "monthly",
     payment_id: "pay_888",
-    amount_centavos: 39900,
+    amount_centavos: 9900,
     checkout_session_id: "cs_888",
     paid_at: "2026-08-08T00:00:00.000Z",
   });
@@ -311,7 +364,7 @@ Deno.test("mapCheckoutPaidEvent: payments at envelope level (no nested checkout_
       attributes: {
         id: "cs_xyz",
         metadata: { user_id: "user-9", tier: "max" },
-        payments: [{ id: "pay_99", status: "paid", amount: 39900 }],
+        payments: [{ id: "pay_99", status: "paid", amount: 9900 }],
         paid_at: "2026-08-08T00:00:00.000Z",
       },
     },
@@ -320,7 +373,7 @@ Deno.test("mapCheckoutPaidEvent: payments at envelope level (no nested checkout_
   assertEquals(grant?.user_id, "user-9");
   assertEquals(grant?.tier, "max");
   assertEquals(grant?.payment_id, "pay_99");
-  assertEquals(grant?.amount_centavos, 39900);
+  assertEquals(grant?.amount_centavos, 9900);
   assertEquals(grant?.checkout_session_id, "cs_xyz");
 });
 

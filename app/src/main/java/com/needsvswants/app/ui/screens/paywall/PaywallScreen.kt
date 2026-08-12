@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Intent
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.billing.PaymentProvider
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
@@ -92,6 +94,7 @@ fun PaywallScreen(
     val needsSignInForPurchase by viewModel.needsSignInForPurchase.collectAsStateWithLifecycle()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val selectedProvider by viewModel.selectedProvider.collectAsStateWithLifecycle()
+    val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val payPalAvailable = viewModel.payPalAvailable
     val payMongoAvailable = viewModel.payMongoAvailable
     val context = LocalContext.current
@@ -106,6 +109,23 @@ fun PaywallScreen(
         !payPalAvailable && payMongoAvailable -> PaymentProvider.PAYMONGO
         !payMongoAvailable && payPalAvailable -> PaymentProvider.PAYPAL
         else -> selectedProvider
+    }
+
+    /** Billing cycle shorthand for the copy matrix below (₱49/₱99 monthly, ₱490/₱990 annual). */
+    val isAnnual = selectedPeriod == BillingPeriod.ANNUAL
+    val proTag = when {
+        effectiveProvider == PaymentProvider.PAYPAL && !isAnnual -> "3-day free trial"
+        effectiveProvider == PaymentProvider.PAYPAL -> "Billed yearly"
+        !isAnnual -> "One-time ₱49"
+        else -> "One-time ₱490"
+    }
+    val proPriceSuffix = when (effectiveProvider) {
+        PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo after trial"
+        PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
+    }
+    val maxPriceSuffix = when (effectiveProvider) {
+        PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo"
+        PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
     }
 
     var selected by remember {
@@ -249,6 +269,13 @@ fun PaywallScreen(
         }
     }
 
+    fun selectPeriod(period: BillingPeriod) {
+        if (period != selectedPeriod) {
+            haptics.tick()
+            viewModel.selectPeriod(period)
+        }
+    }
+
     val ctaEnabled = !busy && !authState.busy
     val retryEnabled = !busy && when (selected) {
         MembershipPlan.Free -> false
@@ -275,14 +302,20 @@ fun PaywallScreen(
         MembershipPlan.Free -> "No account. No network. 20 entries per sheet · 30-day trainer."
         MembershipPlan.Pro -> when (effectiveProvider) {
             PaymentProvider.PAYPAL ->
-                "3-day free trial on PayPal if enabled on the plan, then ₱199/mo. Cancel anytime in PayPal."
+                if (isAnnual) {
+                    "3-day free trial on PayPal if enabled on the plan, then ₱490/yr. Cancel anytime in PayPal."
+                } else {
+                    "3-day free trial on PayPal if enabled on the plan, then ₱49/mo. Cancel anytime in PayPal."
+                }
             PaymentProvider.PAYMONGO ->
-                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
+                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each period when ready — access ends on your expiry date. No auto-charge."
         }
         MembershipPlan.Max -> when (effectiveProvider) {
-            PaymentProvider.PAYPAL -> "₱399/mo via PayPal. Cancel anytime in PayPal."
+            PaymentProvider.PAYPAL ->
+                if (isAnnual) "₱990/yr via PayPal. Cancel anytime in PayPal."
+                else "₱99/mo via PayPal. Cancel anytime in PayPal."
             PaymentProvider.PAYMONGO ->
-                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each month when ready — access ends on your expiry date. No auto-charge."
+                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each period when ready — access ends on your expiry date. No auto-charge."
         }
     }
     /** Payment-method selector is meaningful only when both providers are configured. */
@@ -389,9 +422,9 @@ fun PaywallScreen(
                     onClick = { selectPlan(MembershipPlan.Pro) },
                     eyebrow = "Pro",
                     title = "Unlimited",
-                    tag = if (effectiveProvider == PaymentProvider.PAYPAL) "3-day free trial" else "One-time ₱199",
-                    price = "₱199",
-                    priceSuffix = if (effectiveProvider == PaymentProvider.PAYPAL) "/ mo after trial" else "/ mo · renewed manually",
+                    tag = proTag,
+                    price = if (isAnnual) "₱490" else "₱49",
+                    priceSuffix = proPriceSuffix,
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
                         "Unlimited entries per log sheet" to true,
@@ -412,8 +445,8 @@ fun PaywallScreen(
                     eyebrow = "Max",
                     title = "AI Advisor",
                     tag = "Includes Pro",
-                    price = "₱399",
-                    priceSuffix = if (effectiveProvider == PaymentProvider.PAYPAL) "/ mo" else "/ mo · renewed manually",
+                    price = if (isAnnual) "₱990" else "₱99",
+                    priceSuffix = maxPriceSuffix,
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
                         "Everything in Pro" to true,
@@ -427,11 +460,20 @@ fun PaywallScreen(
 
                 Spacer(Modifier.height(12.dp))
 
+                if (selected == MembershipPlan.Pro || selected == MembershipPlan.Max) {
+                    BillingPeriodSelector(
+                        period = selectedPeriod,
+                        onSelect = ::selectPeriod
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 if (showProviderSelector) {
                     PaymentMethodSelector(
                         provider = effectiveProvider,
                         onSelect = ::selectProvider,
-                        forMax = selected == MembershipPlan.Max
+                        forMax = selected == MembershipPlan.Max,
+                        period = selectedPeriod
                     )
                     Spacer(Modifier.height(14.dp))
                 }
@@ -443,7 +485,8 @@ fun PaywallScreen(
                 ) {
                     TrialTimelineCard(
                         forMax = selected == MembershipPlan.Max,
-                        provider = effectiveProvider
+                        provider = effectiveProvider,
+                        period = selectedPeriod
                     )
                 }
 
@@ -698,16 +741,20 @@ private fun RetryCheckoutButton(onRetry: () -> Unit, enabled: Boolean, color: Co
 private fun PaymentMethodSelector(
     provider: PaymentProvider,
     onSelect: (PaymentProvider) -> Unit,
-    forMax: Boolean
+    forMax: Boolean,
+    period: BillingPeriod
 ) {
     val c = AppTheme.colors
+    val isAnnual = period == BillingPeriod.ANNUAL
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ProviderOption(
             title = "PayPal",
             detail = if (forMax) {
-                "₱399/mo. Cancel anytime in PayPal."
+                if (isAnnual) "₱990/yr. Cancel anytime in PayPal."
+                else "₱99/mo. Cancel anytime in PayPal."
             } else {
-                "3-day free trial, then ₱199/mo. Cancel anytime in PayPal."
+                if (isAnnual) "3-day free trial, then ₱490/yr. Cancel anytime in PayPal."
+                else "3-day free trial, then ₱49/mo. Cancel anytime in PayPal."
             },
             selected = provider == PaymentProvider.PAYPAL,
             onClick = { onSelect(PaymentProvider.PAYPAL) }
@@ -715,13 +762,88 @@ private fun PaymentMethodSelector(
         ProviderOption(
             title = "PayMongo",
             detail = if (forMax) {
-                "One-time ₱399 · 30 days · no auto-charge"
+                if (isAnnual) "One-time ₱990 · 365 days · no auto-charge"
+                else "One-time ₱99 · 30 days · no auto-charge"
             } else {
-                "One-time ₱199 · 30 days · no auto-charge"
+                if (isAnnual) "One-time ₱490 · 365 days · no auto-charge"
+                else "One-time ₱49 · 30 days · no auto-charge"
             },
             selected = provider == PaymentProvider.PAYMONGO,
             onClick = { onSelect(PaymentProvider.PAYMONGO) }
         )
+    }
+}
+
+/** Monthly/Annual billing-period picker (12-for-10 annual price point). */
+@Composable
+private fun BillingPeriodSelector(
+    period: BillingPeriod,
+    onSelect: (BillingPeriod) -> Unit
+) {
+    val c = AppTheme.colors
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = c.surfaceSunken,
+        border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            PeriodOption(
+                title = "Monthly",
+                detail = "flexible",
+                selected = period == BillingPeriod.MONTHLY,
+                onClick = { onSelect(BillingPeriod.MONTHLY) },
+                modifier = Modifier.weight(1f)
+            )
+            PeriodOption(
+                title = "Annual",
+                detail = "2 months free",
+                selected = period == BillingPeriod.ANNUAL,
+                onClick = { onSelect(BillingPeriod.ANNUAL) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PeriodOption(
+    title: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val c = AppTheme.colors
+    Surface(
+        shape = RoundedCornerShape(9.dp),
+        color = if (selected) c.surfaceCard else Color.Transparent,
+        border = BorderStroke(1.dp, if (selected) c.gold else c.gold.copy(alpha = 0.18f)),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                title,
+                style = PaywallType.planFeatureEmph,
+                color = if (selected) c.textPrimary else c.textMuted
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(
+                detail,
+                style = PaywallType.planSub,
+                color = if (selected) c.gilt else c.textMuted.copy(alpha = 0.7f)
+            )
+        }
     }
 }
 

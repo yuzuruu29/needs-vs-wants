@@ -246,6 +246,65 @@ Deno.test("activated event with REGULAR tenure still grants paid (no trial)", ()
   assertEquals(mapped?.grant.tier, "max");
 });
 
+// Annual plan ids (D147: annual billing). Annual ids are checked BEFORE the
+// /max/i heuristic so an opaque annual Max plan id never degrades to pro.
+Deno.test("annual Pro plan id maps to pro paid grant", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-PRO-ANNUAL",
+      billing_info: {
+        next_billing_time: "2027-08-12T00:00:00Z",
+        cycle_executions: [
+          { tenure_type: "REGULAR", sequence: 1, cycles_completed: 0, cycles_remaining: 1 },
+        ],
+      },
+    },
+  }, "P-PRO", "P-MAX", "P-PRO-ANNUAL", "P-MAX-ANNUAL");
+  assertEquals(mapped?.grant.mode, "paid");
+  assertEquals(mapped?.grant.tier, "pro");
+  assertEquals(mapped?.grant.paid_until, "2027-08-12T00:00:00Z");
+});
+
+Deno.test("annual Max plan id maps to max paid grant (no heuristic fallback)", () => {
+  const mapped = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-MAX-ANNUAL",
+      billing_info: {
+        next_billing_time: "2027-08-12T00:00:00Z",
+        cycle_executions: [
+          { tenure_type: "REGULAR", sequence: 1, cycles_completed: 0, cycles_remaining: 1 },
+        ],
+      },
+    },
+  }, "P-PRO", "P-MAX", "P-PRO-ANNUAL", "P-MAX-ANNUAL");
+  assertEquals(mapped?.grant.mode, "paid");
+  assertEquals(mapped?.grant.tier, "max");
+  assertEquals(mapped?.grant.paid_until, "2027-08-12T00:00:00Z");
+});
+
+Deno.test("annual plan id without annual env ids falls back to heuristic", () => {
+  // No annual secrets configured: an unknown annual Pro id defaults to pro
+  // (legacy behavior).
+  const mappedPro = mapPayPalWebhookEvent({
+    event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+    resource: {
+      custom_id: "user-abc",
+      plan_id: "P-PRO-ANNUAL",
+      billing_info: {
+        next_billing_time: "2027-08-12T00:00:00Z",
+        cycle_executions: [
+          { tenure_type: "REGULAR", sequence: 1, cycles_completed: 0, cycles_remaining: 1 },
+        ],
+      },
+    },
+  }, "P-PRO", "P-MAX");
+  assertEquals(mappedPro?.grant.tier, "pro");
+});
+
 Deno.test("activated event with a completed trial (cycles_remaining 0) grants paid", () => {
   const mapped = mapPayPalWebhookEvent({
     event_type: "BILLING.SUBSCRIPTION.ACTIVATED",

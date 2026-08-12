@@ -349,7 +349,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "₱399 / mo · $6.99 · includes everything in Pro",
+                text = "₱99 / mo · includes everything in Pro",
                 style = AppType.bodySm,
                 color = palette.textMuted,
                 textAlign = TextAlign.Center

@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -522,6 +524,24 @@ fun SettingsScreen(
                     )
                     Spacer(Modifier.height(2.dp))
                 }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Follow on TikTok · @expenseneedswants",
+                    style = AppType.caption,
+                    color = palette.textSecondary,
+                    modifier = Modifier
+                        .clickable {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://www.tiktok.com/@expenseneedswants")
+                                    )
+                                )
+                            }
+                        }
+                        .padding(vertical = 4.dp)
+                )
             }
         }
     }

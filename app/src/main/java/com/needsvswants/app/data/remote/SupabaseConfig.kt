@@ -13,7 +13,9 @@ data class SupabaseConfig(
     val proTrialProductId: String,
     val proMonthlyProductId: String,
     val maxMonthlyProductId: String = "",
-    val googleWebClientId: String = ""
+    val googleWebClientId: String = "",
+    val proAnnualProductId: String = "",
+    val maxAnnualProductId: String = ""
 ) {
     val enabled: Boolean get() = url.isNotBlank() && anonKey.isNotBlank()
 
@@ -27,7 +29,9 @@ data class SupabaseConfig(
             proTrialProductId = "",
             proMonthlyProductId = "",
             maxMonthlyProductId = "",
-            googleWebClientId = ""
+            googleWebClientId = "",
+            proAnnualProductId = "",
+            maxAnnualProductId = ""
         )
     }
 }

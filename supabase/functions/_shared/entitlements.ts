@@ -95,13 +95,20 @@ export function buildTrialGrant(
 /**
  * Resolve paid tier from a PayPal plan id using env plan ids.
  * Defaults to "pro" when plan is unknown (legacy / single-plan setups).
+ *
+ * Annual plan ids are checked first so an annual Max plan never falls through
+ * the "/max/i" heuristic to "pro" by accident (ids are opaque P- strings).
  */
 export function tierFromPayPalPlanId(
   planId: string | null | undefined,
   proPlanId?: string | null,
   maxPlanId?: string | null,
+  proAnnualPlanId?: string | null,
+  maxAnnualPlanId?: string | null,
 ): "pro" | "max" {
   if (!planId) return "pro";
+  if (maxAnnualPlanId && planId === maxAnnualPlanId) return "max";
+  if (proAnnualPlanId && planId === proAnnualPlanId) return "pro";
   if (maxPlanId && planId === maxPlanId) return "max";
   if (proPlanId && planId === proPlanId) return "pro";
   // Heuristic: plan id / name often contains "max"
@@ -142,12 +149,15 @@ export function hasActiveTrialTenure(
  * client embedded when creating the subscription). We never trust the caller's
  * identity in the webhook; the mapping is derived from verified event data.
  *
- * Optional env plan ids (PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX) map plan_id → tier.
+ * Optional env plan ids (PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX and the annual
+ * PAYPAL_PLAN_PRO_ANNUAL / PAYPAL_PLAN_MAX_ANNUAL) map plan_id → tier.
  */
 export function mapPayPalWebhookEvent(
   payload: unknown,
   proPlanId?: string | null,
   maxPlanId?: string | null,
+  proAnnualPlanId?: string | null,
+  maxAnnualPlanId?: string | null,
 ): {
   user_id: string;
   grant: GrantState;
@@ -170,7 +180,13 @@ export function mapPayPalWebhookEvent(
     typeof resource.plan_id === "string"
       ? resource.plan_id
       : null;
-  const tier = tierFromPayPalPlanId(planId, proPlanId, maxPlanId);
+  const tier = tierFromPayPalPlanId(
+    planId,
+    proPlanId,
+    maxPlanId,
+    proAnnualPlanId,
+    maxAnnualPlanId,
+  );
 
   const billingInfo =
     typeof resource.billing_info === "object" && resource.billing_info !== null

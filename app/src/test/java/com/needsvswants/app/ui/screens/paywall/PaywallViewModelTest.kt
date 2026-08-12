@@ -6,6 +6,7 @@ import com.needsvswants.app.data.auth.AuthSessionStore
 import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.auth.GoogleIdTokenResult
 import com.needsvswants.app.data.billing.BillingController
+import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.billing.CheckoutProvider
 import com.needsvswants.app.data.billing.PaymentProvider
@@ -1482,6 +1483,143 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun subscribePro_annualRoutesToStartTrial_withAnnualProductId() = runTest(dispatcher) {
+        // Annual PayPal Pro: the plan carries the trial — startTrial with the
+        // annual plan id and the ANNUAL period riding through.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(listOf("startTrial" to "annual_x"), payPal.calls)
+        assertEquals(listOf("startTrial" to BillingPeriod.ANNUAL), payPal.periods)
+        assertEquals(emptyList<Pair<String, String>>(), payMongo.calls)
+    }
+
+    @Test
+    fun subscribeMax_annualRoutesToPurchase_withMaxAnnualProductId() = runTest(dispatcher) {
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        vm.subscribeMax()
+        advanceUntilIdle()
+
+        assertEquals(listOf("purchase" to "max_annual_x"), payPal.calls)
+        assertEquals(listOf("purchase" to BillingPeriod.ANNUAL), payPal.periods)
+        assertEquals(emptyList<Pair<String, String>>(), payMongo.calls)
+    }
+
+    @Test
+    fun subscribePro_annualPayMongoRoutesToPurchase_withAnnualPeriod() = runTest(dispatcher) {
+        // PayMongo annual: one-time checkout with the annual period; the VM
+        // passes the annual product-id hint (PayMongo uses it for tier mapping).
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Pair<String, String>>(), payPal.calls)
+        assertEquals(listOf("purchase" to "annual_x"), payMongo.calls)
+        assertEquals(listOf("purchase" to BillingPeriod.ANNUAL), payMongo.periods)
+    }
+
+    @Test
+    fun selectPeriod_whileSignedInPending_clearsPending() = runTest(dispatcher) {
+        // Mirror of selectProvider (D108): a signed-in deferred intent must
+        // never cross a period change — it is cleared and the user re-taps
+        // the CTA to start fresh with the new period.
+        val billing = FakeBilling(BillingResult.Failed("timeout"))
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            billing,
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(billing)
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        store.save(AuthSession("at", "rt", "u1", "user@example.com", null))
+        advanceUntilIdle()
+        vm.onSignedInForPurchase()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
+        assertEquals(PendingPurchase.None, vm.pendingPurchase.first())
+        assertFalse(vm.needsSignInForPurchase.first())
+        assertNull(vm.lastResult.first())
+    }
+
+    @Test
+    fun selectPeriod_whileSignedOutPending_reassertsForCurrentPlan() = runTest(dispatcher) {
+        // Signed out: the deferred intent is re-asserted so sign-in completes
+        // the purchase with the period just picked.
+        val store = FakeSessionStore(null)
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            authForStore(store),
+            SupabaseConfig.Disabled,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(FakeBilling(BillingResult.Success))
+        )
+        vm.subscribeMax()
+        advanceUntilIdle()
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
+
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
+        assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
+        assertTrue(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
     fun onSignedInForPurchase_pendingUsesCurrentProvider() = runTest(dispatcher) {
         // The deferred intent is provider-agnostic in storage: after a provider
         // switch the sign-in auto-continue routes via the CURRENT provider.
@@ -1638,15 +1776,17 @@ class PaywallViewModelTest {
         anonKey = "",
         proTrialProductId = "trial_x",
         proMonthlyProductId = "monthly_x",
-        maxMonthlyProductId = "max_x"
+        maxMonthlyProductId = "max_x",
+        proAnnualProductId = "annual_x",
+        maxAnnualProductId = "max_annual_x"
     )
 
     private class FakeBilling(private val result: BillingResult) : BillingController {
         var restoreCalls = 0
         val purchaseIds = mutableListOf<String>()
         override val isPlayAvailable: Boolean = false
-        override suspend fun startTrial(productId: String): BillingResult = result
-        override suspend fun purchase(productId: String): BillingResult {
+        override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult = result
+        override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
             purchaseIds.add(productId)
             return result
         }
@@ -1658,8 +1798,8 @@ class PaywallViewModelTest {
 
     private class ThrowingBilling : BillingController {
         override val isPlayAvailable: Boolean = false
-        override suspend fun startTrial(productId: String): BillingResult = throw RuntimeException("boom")
-        override suspend fun purchase(productId: String): BillingResult = throw RuntimeException("boom")
+        override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult = throw RuntimeException("boom")
+        override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult = throw RuntimeException("boom")
         override suspend fun restorePurchases(): BillingResult = throw RuntimeException("boom")
     }
 
@@ -1668,15 +1808,18 @@ class PaywallViewModelTest {
         private val result: BillingResult = BillingResult.Success
     ) : BillingController {
         val calls = mutableListOf<Pair<String, String>>()
+        val periods = mutableListOf<Pair<String, BillingPeriod>>()
         var restoreCalls = 0
             private set
         override val isPlayAvailable: Boolean = false
-        override suspend fun startTrial(productId: String): BillingResult {
+        override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult {
             calls.add("startTrial" to productId)
+            periods.add("startTrial" to period)
             return result
         }
-        override suspend fun purchase(productId: String): BillingResult {
+        override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
             calls.add("purchase" to productId)
+            periods.add("purchase" to period)
             return result
         }
         override suspend fun restorePurchases(): BillingResult {
@@ -1863,8 +2006,8 @@ class PaywallViewModelTest {
     private class GatedBilling(private val gate: CompletableDeferred<Unit>) : BillingController {
         val purchaseIds = mutableListOf<String>()
         override val isPlayAvailable: Boolean = false
-        override suspend fun startTrial(productId: String): BillingResult = BillingResult.Pending
-        override suspend fun purchase(productId: String): BillingResult {
+        override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult = BillingResult.Pending
+        override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
             purchaseIds.add(productId)
             gate.await()
             return BillingResult.OpenCheckout("https://paypal.test/approve")

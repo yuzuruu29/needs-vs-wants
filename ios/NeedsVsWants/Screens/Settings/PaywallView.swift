@@ -57,7 +57,7 @@ public struct PaywallView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.91, green: 0.66, blue: 0.16))
                     
-                    Text("≈ US$4.99 / month after trial")
+                    Text("₱49 / month after trial")
                         .font(.headline)
                 }
                 .padding()
@@ -77,7 +77,7 @@ public struct PaywallView: View {
                         handleResult(res)
                     }
                 }) {
-                    Text(storeKit.isPro ? "You're Pro" : "Start Pro Trial (₱249/mo)")
+                    Text(storeKit.isPro ? "You're Pro" : "Start Pro Trial (₱49/mo)")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -93,7 +93,7 @@ public struct PaywallView: View {
                         handleResult(res)
                     }
                 }) {
-                    Text(storeKit.isMax ? "You're Max" : "Upgrade to Max (₱499/mo · AI Advisor)")
+                    Text(storeKit.isMax ? "You're Max" : "Upgrade to Max (₱99/mo · AI Advisor)")
                         .font(.subheadline)
                         .fontWeight(.bold)
                         .foregroundColor(Color(red: 0.78, green: 0.06, blue: 0.18))

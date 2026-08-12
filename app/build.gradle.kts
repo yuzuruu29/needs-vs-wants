@@ -26,8 +26,8 @@ android {
         applicationId = "com.needsvswants.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 21
-        versionName = "2.0.13"
+        versionCode = 22
+        versionName = "2.0.14"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // --- Task 3: Pro / Supabase seams -----------------------------------
@@ -50,6 +50,16 @@ android {
             "String",
             "PRO_MAX_MONTHLY_PRODUCT_ID",
             "\"${localProp("PRO_MAX_MONTHLY_PRODUCT_ID", "max_monthly")}\""
+        )
+        buildConfigField(
+            "String",
+            "PRO_ANNUAL_PRODUCT_ID",
+            "\"${localProp("PRO_ANNUAL_PRODUCT_ID")}\""
+        )
+        buildConfigField(
+            "String",
+            "PRO_MAX_ANNUAL_PRODUCT_ID",
+            "\"${localProp("PRO_MAX_ANNUAL_PRODUCT_ID")}\""
         )
         // Web OAuth client ID — serverClientId for Credential Manager Google Sign-In.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProp("GOOGLE_WEB_CLIENT_ID")}\"")

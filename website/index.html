@@ -1158,6 +1158,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 .pri-price{font:700 clamp(30px,3.4vw,40px)/1 var(--display);letter-spacing:1px;margin-top:18px;color:var(--ink)}
 .pri-price small{font:600 13px/1 var(--body);color:var(--muted);letter-spacing:0}
 .pri-sub{font-size:13px;color:var(--sub);margin-top:6px}
+.pri-annual{font:600 12px/1.5 var(--body);color:var(--gold-deep);margin-top:6px;letter-spacing:.2px}
 .pri-divider{height:1px;background:var(--divider);margin:20px 0 16px}
 .pri-list{list-style:none;display:grid;gap:11px;margin:0 0 22px}
 .pri-list li{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:var(--ink);line-height:1.5}
@@ -1295,7 +1296,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="10.6" stroke-dasharray="2 3.4" opacity=".6"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
       Needs <b>vs</b> Wants
     </a>
-    <span class="chip-soft" title="Official launch · Version 2.0.13"><i aria-hidden="true"></i>Official</span>
+    <span class="chip-soft" title="Official launch · Version 2.0.14"><i aria-hidden="true"></i>Official</span>
     <nav class="nav-links" aria-label="Primary">
       <a href="#rule">The Rule</a>
       <a href="#how">How It Works</a>
@@ -1317,7 +1318,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div class="rule-sweep hero-in" aria-hidden="true"></div>
       <p class="lede hero-in hero-in-4">Every purchase is either a <strong>need</strong> or a <strong>want</strong>, and this diary makes you choose at the counter, not at month-end. Set an optional daily budget and today's line keeps you honest. No accounts, no analytics, no reckoning. Just you, your money, and an honest line down the page.</p>
       <div class="hero-cta hero-in hero-in-5">
-        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-2.0.13.apk" download>Download Android APK</a>
+        <a class="btn btn--primary dl-hero" href="./downloads/needs-vs-wants-2.0.14.apk" download>Download Android APK</a>
         <button class="btn btn--ghost sec" id="heroCta" type="button">Try Live Demo ↓</button>
       </div>
       <a class="ios-notify-link hero-in hero-in-5" href="#get">iOS coming soon. Get notified</a>
@@ -1366,7 +1367,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       Free now
     </span>
     <div class="pro-notice-copy reveal">
-      <h3>Free trainer on device. Pro and Max via PayPal or PayMongo in the app.</h3>
+      <h3>Free trainer on device. Pro and Max via PayPal or PayMongo in the app, monthly or annually.</h3>
       <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (AI Advisor) are available in the app: PayPal or PayMongo checkout, no store needed.</p>
     </div>
     <div class="pro-notice-cta reveal">
@@ -1532,15 +1533,25 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 </section>
 
 <!-- ================= RECENT ================= -->
-<section id="updates" aria-label="Recent changes in 2.0.13">
+<section id="updates" aria-label="Recent changes in 2.0.14">
   <div class="wrap">
     <div class="recent-rail reveal">
       <aside class="recent-mast">
-        <span class="recent-stamp" aria-hidden="true">v2.0.13</span>
+        <span class="recent-stamp" aria-hidden="true">v2.0.14</span>
         <h2>Just shipped.</h2>
-        <p>The last few builds, stripped of the filler. Membership follows your account, and the trial path stops dropping the diary.</p>
+        <p>The last few builds, stripped of the filler. Membership follows your account, annual plans are live, and the diary has a TikTok home.</p>
       </aside>
       <div class="recent-ledger">
+        <article class="recent-line">
+          <p class="recent-meta"><b>Membership</b> · 2.0.14</p>
+          <h3>Annual plans live</h3>
+          <p>Pro P49/mo or P490/yr, Max P99/mo or P990/yr. Pick Monthly or Annual on the paywall; the annual rate is two months free.</p>
+        </article>
+        <article class="recent-line">
+          <p class="recent-meta"><b>Social</b> · 2.0.14</p>
+          <h3>The diary on TikTok</h3>
+          <p>The trainer is now on TikTok at @expenseneedswants. The About screen and this footer link straight to the profile.</p>
+        </article>
         <article class="recent-line">
           <p class="recent-meta"><b>Accounts</b> · 2.0.13</p>
           <h3>Sign out stops Pro</h3>
@@ -1550,16 +1561,6 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <p class="recent-meta"><b>Security</b> · 2.0.13</p>
           <h3>No stale grants</h3>
           <p>A signed-out device never keeps showing the previous account's Pro, even if a late payment check lands mid-sign-out.</p>
-        </article>
-        <article class="recent-line">
-          <p class="recent-meta"><b>Stability</b> · 2.0.12</p>
-          <h3>The trial starts clean</h3>
-          <p>Tapping the free-trial CTA no longer force-closes the app when a payment step hiccups. Failures surface as a clear retryable message with the paywall still open.</p>
-        </article>
-        <article class="recent-line">
-          <p class="recent-meta"><b>Returns</b> · 2.0.12</p>
-          <h3>Back in one tap</h3>
-          <p>Approving on PayPal now launches the app directly on Android Chrome. Durable sync unlocks your tier even if the app was closed in between.</p>
         </article>
       </div>
     </div>
@@ -1721,7 +1722,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               </button>
               <p class="grp">About</p>
               <p class="about-name">Needs vs. Wants</p>
-              <p class="about-v">Version 2.0.13</p>
+              <p class="about-v">Version 2.0.14</p>
               <p class="about-d">An offline-first trainer for honest spenders.</p>
             </div>
           </div>
@@ -1796,7 +1797,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <p class="pro-note">Free now · Pro &amp; Max in the app</p>
         <h2 class="title">Start free. Grow when you are ready.</h2>
       </div>
-      <p>Download the free Android APK from this site. Pro and Max are live inside the app: subscribe with PayPal or PayMongo (GCash/card). This page does not charge you.</p>
+      <p>Download the free Android APK from this site. Pro and Max are live inside the app: subscribe with PayPal or PayMongo (GCash/card), monthly or annually. This page does not charge you.</p>
     </div>
     <div class="pri-grid reveal">
 
@@ -1836,7 +1837,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <p class="pri-eyebrow">Pro · Available now</p>
             <h3 class="pri-title">Unlimited</h3>
             <span class="pri-tag">Subscribe in the app</span>
-            <p class="pri-price">₱199<small> / mo · $3.49</small></p>
+            <p class="pri-price">₱49<small> / mo</small></p>
+            <p class="pri-annual">Annual · ₱490 / yr · 2 months free</p>
             <p class="pri-sub">Unlimited logging, lifetime history, full analytics.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
@@ -1866,7 +1868,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <p class="pri-eyebrow">Max · Available now</p>
             <h3 class="pri-title">Complete Intelligence</h3>
             <span class="pri-tag">Subscribe in the app</span>
-            <p class="pri-price">₱399<small> / mo · $6.99</small></p>
+            <p class="pri-price">₱99<small> / mo</small></p>
+            <p class="pri-annual">Annual · ₱990 / yr · 2 months free</p>
             <p class="pri-sub">Everything in Pro, plus the AI Financial Advisor.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
@@ -1901,7 +1904,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <circle cx="60" cy="60" r="57" fill="none" stroke="var(--gold-soft)" stroke-width="1.4"/>
           <circle cx="60" cy="60" r="33" fill="none" stroke="var(--gold-soft)" stroke-width="1" stroke-dasharray="2 3"/>
           <text fill="var(--gold-soft)" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" letter-spacing="2.6">
-            <textPath href="#stampPath">OFFICIAL · VERSION 2.0.13 · NEEDS VS WANTS ·</textPath>
+            <textPath href="#stampPath">OFFICIAL · VERSION 2.0.14 · NEEDS VS WANTS ·</textPath>
           </text>
         </g>
         <g class="stamp-pulse">
@@ -1913,7 +1916,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           <h2>Start tracking today.</h2>
           <p class="desc">Start the diary. Seal the choice. Every line is Need or Want, kept for 30 days, with an optional daily budget on today.</p>
           <div class="cta-btns">
-            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.13.apk" download="needs-vs-wants-2.0.13.apk">
+            <a class="btn btn--invert" id="apkDownload" href="./downloads/needs-vs-wants-2.0.14.apk" download="needs-vs-wants-2.0.14.apk">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg>
               Get the app</a>
             <button class="btn btn--outline" id="apkQrToggle" type="button" aria-expanded="false" aria-controls="apkQrPanel">
@@ -1933,7 +1936,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
           </details>
           <details class="sideload-guide">
             <summary>Upgrading from an older version? ▾</summary>
-            <p class="upgrade-note">Versions 1.0.0&ndash;1.5.0 were signed with a different key. If you have one of those installed, Android will refuse to install 2.0.13 over it. <strong>Export/back up your data, then uninstall the old version first</strong>, then install 2.0.13.</p>
+            <p class="upgrade-note">Versions 1.0.0&ndash;1.5.0 were signed with a different key. If you have one of those installed, Android will refuse to install 2.0.14 over it. <strong>Export/back up your data, then uninstall the old version first</strong>, then install 2.0.14.</p>
           </details>
           <p class="cta-note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M8.6 12.3l2.3 2.3 4.6-4.7"/></svg>
@@ -1943,7 +1946,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <div class="apk-qr-panel" id="apkQrPanel" hidden>
           <div class="apk-qr-card">
             <canvas id="apkQrCanvas" width="200" height="200" role="img" aria-label="QR code linking to the Android APK download"></canvas>
-            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-2.0.13.apk</strong></p>
+            <p class="apk-qr-cap">Scan with your phone camera to download <strong>needs-vs-wants-2.0.14.apk</strong></p>
             <p class="apk-qr-url" id="apkQrUrl"></p>
           </div>
         </div>
@@ -1993,7 +1996,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     <div class="foot-grid">
       <div>
         <span class="wordmark">Needs <b>vs</b> Wants</span>
-        <p class="foot-tag">A 30-day spending trainer for honest spenders. Official launch · v2.0.13.</p>
+        <p class="foot-tag">A 30-day spending trainer for honest spenders. Official launch · v2.0.14.</p>
       </div>
       <div>
         <p class="foot-h">Explore</p>
@@ -2007,7 +2010,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
       <div>
         <p class="foot-h">Details</p>
         <p class="foot-meta">
-          Version 2.0.13<br>
+          Version 2.0.14<br>
           <span class="money">₱ $ € ¥ S$</span> · currency-aware<br>
           <span id="footDate">Friday, July 31, 2026</span>
         </p>
@@ -2018,6 +2021,9 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <small>© 2026 Needs vs Wants. Offline-first. Android APK is a direct download, not yet on Google Play or the App Store.</small>
         <small class="foot-credit">Developed by
           <a href="https://aceu-ai-solutions-portfolio.netlify.app" target="_blank" rel="noopener noreferrer">ACEU AI Solutions</a>
+        </small>
+        <small class="foot-credit">Follow on
+          <a href="https://www.tiktok.com/@expenseneedswants" target="_blank" rel="noopener noreferrer">TikTok · @expenseneedswants</a>
         </small>
       </div>
       <span class="motto">Every expense counts.</span>

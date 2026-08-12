@@ -9,11 +9,13 @@
 // Idempotency: the payment_events ledger is keyed on the PayMongo payment id
 // (pay_xxx). We INSERT the payment_events row FIRST; if the insert conflicts
 // the payment has already been applied and we do NOT re-grant. This prevents
-// webhook retries from double-granting +30 days.
+// webhook retries from double-granting access.
 //
-// Grant: one-time, manual-renewal. paid_until = max(now, existing.paid_until)
-// + 30 days (stacks when renewing early). Max always upgrades to max; a Pro
-// renewal while Max is still active keeps max tier (extends paid_until).
+// Grant: one-time, manual-renewal. Grant length comes from the checkout
+// metadata period (monthly = 30 days, annual = 365 days). paid_until =
+// max(now, existing.paid_until) + grant days (stacks when renewing early).
+// Max always upgrades to max; a Pro renewal while Max is still active keeps
+// max tier (extends paid_until).
 
 import {
   error,
@@ -22,6 +24,7 @@ import {
   requireEnv,
 } from "../_shared/http.ts";
 import {
+  grantDaysFor,
   mapCheckoutPaidEvent,
   nextPaidUntil,
   resolveGrantTier,
@@ -141,6 +144,7 @@ Deno.serve(async (req: Request) => {
     const paidUntil = nextPaidUntil(
       serverNow,
       currentRow?.paid_until ?? null,
+      grantDaysFor(grant.period),
     );
 
     // Step 3 - Apply the grant (service role bypasses RLS). We compute the

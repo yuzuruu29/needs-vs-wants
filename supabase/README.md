@@ -83,10 +83,11 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
 - Auth: `Authorization: Bearer <supabase access token>` (JWT verified by the
   gateway; `verify_jwt = true`). Also decodes `sub` and re-validates via
   `supabase.auth.getUser()` (same pattern as `paypal_create_subscription`).
-- Body: `{ "tier": "pro" | "max" }`. Amounts are **server-authoritative**
-  only: Pro `19900` / Max `39900` centavos. Client-supplied amounts are
-  ignored.
-- Returns `{ success, data: { checkout_url, checkout_session_id, tier,
+- Body: `{ "tier": "pro" | "max", "period": "monthly" | "annual" }` (period
+  defaults to `monthly`). Amounts are **server-authoritative** only: monthly
+  Pro `4900` / Max `9900` centavos; annual Pro `49000` / Max `99000` centavos.
+  Client-supplied amounts are ignored.
+- Returns `{ success, data: { checkout_url, checkout_session_id, tier, period,
   amount_centavos } }`. `checkout_url` is the PayMongo Hosted Checkout page to
   open in a browser; `success_url` / `cancel_url` default to
   `needsvswants://paymongo/return` / `needsvswants://paymongo/cancel`.
@@ -109,14 +110,16 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
   unique violation on a racing insert is treated the same way.
 - Grant (one-time, manual renewal):
   - `is_pro = true`, `tier = <final tier>`,
-    `paid_until = max(now, existing.paid_until) + 30 days` (stacks when
-    renewing early).
+    `paid_until = max(now, existing.paid_until) + grant days` (stacks when
+    renewing early). Grant days come from the checkout `metadata.period`:
+    monthly = 30, annual = 365.
   - `provider = 'paymongo'`, `source = 'checkout_session'`, `status = 'paid'`,
     `trial_started_at = null`, `trial_ends_at = null`.
   - Tier rule: paying Max always upgrades to max. Paying Pro while Max is
     still active keeps max tier and extends `paid_until` (no downgrade).
-- User id / tier come from `metadata.user_id` / `metadata.tier` set at
-  checkout-creation time from the verified JWT — never from client-only fields.
+- User id / tier / period come from `metadata.user_id` / `metadata.tier` /
+  `metadata.period` set at checkout-creation time from the verified JWT —
+  never from client-only fields.
 
 ### google_play_verify
 - Auth: user access token (JWT). Body:
@@ -150,8 +153,10 @@ RLS: users may SELECT and UPDATE only their own row; no INSERT/DELETE policy
 | PAYPAL_CLIENT_ID                      | yes      | paypal_*            | REST API app credential                  |
 | PAYPAL_CLIENT_SECRET                  | yes      | paypal_*            | REST API app credential                  |
 | PAYPAL_WEBHOOK_ID                     | yes      | paypal_webhook      | from the PayPal dashboard                |
-| PAYPAL_PLAN_PRO                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Pro       |
-| PAYPAL_PLAN_MAX                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Max       |
+| PAYPAL_PLAN_PRO                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Pro (monthly) |
+| PAYPAL_PLAN_MAX                       | yes*     | create + webhook    | Live/Sandbox plan id `P-…` for Max (monthly) |
+| PAYPAL_PLAN_PRO_ANNUAL                | no       | create + webhook    | plan id `P-…` for Pro annual (yearly cycle)  |
+| PAYPAL_PLAN_MAX_ANNUAL                | no       | create + webhook    | plan id `P-…` for Max annual (yearly cycle)  |
 | PAYPAL_RETURN_URL                     | no       | create_subscription | default `needsvswants://paypal/return`   |
 | PAYPAL_CANCEL_URL                     | no       | create_subscription | default `needsvswants://paypal/cancel`   |
 | PAYMONGO_SECRET_KEY                   | yes*     | paymongo_create_checkout | PayMongo secret key `sk_test_…` / `sk_live_…` |

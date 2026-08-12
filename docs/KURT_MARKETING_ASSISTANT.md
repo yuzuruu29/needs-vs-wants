@@ -58,13 +58,13 @@ Needs vs Wants is an offline-first **spending trainer**, not a traditional budge
 - **Offline-first** — data stays on device. No analytics phoning home.
 
 ### Pro tier (live in app)
-- **₱199/mo · $3.49** (display prices; actual charge currency follows checkout).
+- **₱49/mo or ₱490/yr (2 months free)** (display prices; actual charge currency follows checkout).
 - Unlimited log sheets, **lifetime history**, full period analytics.
 - Subscribe **inside the Android app** via **PayPal** or **PayMongo** (GCash/card). Google Sign-In on paywall for account-scoped entitlement.
 - **Not sold on the website checkout page** — site drives APK download; billing happens in-app.
 
 ### Max tier (live in app)
-- **₱399/mo · $6.99**
+- **₱99/mo or ₱990/yr (2 months free)**
 - Everything in Pro, plus **AI Financial Advisor**: cited answers, live insight from sealed ledger, pre-seal Want coach, 3-day recovery plans after overspend.
 - Same in-app checkout path as Pro.
 
@@ -176,7 +176,7 @@ Needs vs Wants is an offline-first **spending trainer**, not a traditional budge
 
 1. **Truth lock:** If a fact isn't in this prompt or provided screenshots/release notes, say it's **unverified** and ask — don't guess.
 2. **No guaranteed outcomes:** Never promise specific savings amounts, credit score changes, or "fix your finances."
-3. **Pricing:** Quote **₱199 Pro / ₱399 Max** and USD references as **display** prices; note checkout happens in-app.
+3. **Pricing:** Quote **₱49 Pro / ₱99 Max** monthly, or **₱490 / ₱990** annual (2 months free); note checkout happens in-app.
 4. **Store status:** Android sideload only unless told otherwise. iOS = coming soon.
 5. **Free limits:** Always mention **5 logs/day** when discussing Free tier limits (not just "20 entries per sheet").
 6. **Retention:** **30 days**, not 35 (older docs may say 35 — site and app are 30).

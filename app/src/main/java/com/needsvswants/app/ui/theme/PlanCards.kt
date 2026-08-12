@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.fillMaxSize
+import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.PaymentProvider
 
 /**
@@ -493,7 +494,8 @@ fun NeedWantSealMark(modifier: Modifier = Modifier) {
 fun TrialTimelineCard(
     modifier: Modifier = Modifier,
     forMax: Boolean = false,
-    provider: PaymentProvider = PaymentProvider.PAYMONGO
+    provider: PaymentProvider = PaymentProvider.PAYMONGO,
+    period: BillingPeriod = BillingPeriod.MONTHLY
 ) {
     val c = AppTheme.colors
     val planWord = if (forMax) "Max" else "Pro"
@@ -507,16 +509,34 @@ fun TrialTimelineCard(
     ) {
         when (provider) {
             PaymentProvider.PAYPAL -> if (forMax) {
-                Eyebrow("BILLED MONTHLY", color = c.gilt, size = 10)
+                Eyebrow(
+                    if (period == BillingPeriod.ANNUAL) "BILLED ANNUALLY" else "BILLED MONTHLY",
+                    color = c.gilt,
+                    size = 10
+                )
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "Max unlocks after PayPal approval.")
-                TimelineRow("Monthly", "PayPal charges ₱399 each month until you cancel.")
+                TimelineRow(
+                    if (period == BillingPeriod.ANNUAL) "Yearly" else "Monthly",
+                    if (period == BillingPeriod.ANNUAL) {
+                        "PayPal charges ₱990 each year until you cancel."
+                    } else {
+                        "PayPal charges ₱99 each month until you cancel."
+                    }
+                )
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             } else {
                 Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 10)
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "After PayPal approval, Pro unlocks on this device.")
-                TimelineRow("Day 3", "Trial ends. PayPal charges the monthly rate unless you cancel.")
+                TimelineRow(
+                    "Day 3",
+                    if (period == BillingPeriod.ANNUAL) {
+                        "Trial ends. PayPal charges the annual rate unless you cancel."
+                    } else {
+                        "Trial ends. PayPal charges the monthly rate unless you cancel."
+                    }
+                )
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             }
             PaymentProvider.PAYMONGO -> {

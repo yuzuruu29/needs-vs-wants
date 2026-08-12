@@ -12,8 +12,8 @@ class PlayBillingControllerTest {
     fun withoutBillingLibrary_allActionsUnavailable() = runTest {
         val controller = PlayBillingController(SupabaseConfig.Disabled)
         assertFalse(controller.isPlayAvailable)
-        assertEquals(BillingResult.Unavailable, controller.startTrial("pro_trial_3day"))
-        assertEquals(BillingResult.Unavailable, controller.purchase("pro_monthly"))
+        assertEquals(BillingResult.Unavailable, controller.startTrial("pro_trial_3day", BillingPeriod.MONTHLY))
+        assertEquals(BillingResult.Unavailable, controller.purchase("pro_monthly", BillingPeriod.MONTHLY))
         assertEquals(BillingResult.Unavailable, controller.restorePurchases())
     }
 

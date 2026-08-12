@@ -37,20 +37,24 @@ class PayPalBillingController @Inject constructor(
         get() = config.enabled &&
             (config.proMonthlyProductId.isNotBlank() || config.maxMonthlyProductId.isNotBlank())
 
-    override suspend fun startTrial(productId: String): BillingResult {
+    override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult {
         // Pro trial is configured on the PayPal plan; same create path as Pro.
-        return createSubscription(tier = "pro", planIdHint = productId.ifBlank { config.proMonthlyProductId })
+        return createSubscription(
+            tier = "pro",
+            planIdHint = productId.ifBlank { planIdFor("pro", period) },
+            period = period
+        )
     }
 
-    override suspend fun purchase(productId: String): BillingResult {
-        val hint = productId.ifBlank { config.maxMonthlyProductId }
+    override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
+        val hint = productId.ifBlank { planIdFor("max", period) }
         val tier = when {
-            hint == config.maxMonthlyProductId -> "max"
-            hint == config.proMonthlyProductId -> "pro"
+            hint == config.maxMonthlyProductId || hint == config.maxAnnualProductId -> "max"
+            hint == config.proMonthlyProductId || hint == config.proAnnualProductId -> "pro"
             hint.contains("max", ignoreCase = true) -> "max"
             else -> "max" // paywall upgrade() is Max
         }
-        return createSubscription(tier = tier, planIdHint = hint)
+        return createSubscription(tier = tier, planIdHint = hint, period = period)
     }
 
     override suspend fun restorePurchases(): BillingResult {
@@ -62,23 +66,34 @@ class PayPalBillingController @Inject constructor(
         return BillingResult.Success
     }
 
-    private suspend fun createSubscription(tier: String, planIdHint: String): BillingResult {
+    private suspend fun createSubscription(
+        tier: String,
+        planIdHint: String,
+        period: BillingPeriod
+    ): BillingResult {
         if (!config.enabled) return BillingResult.Unavailable
-        val planPro = config.proMonthlyProductId
-        val planMax = config.maxMonthlyProductId
+        val planPro = planIdFor("pro", period)
+        val planMax = planIdFor("max", period)
         val planId = when (tier) {
             "max" -> planMax.ifBlank { planIdHint }
             else -> planPro.ifBlank { planIdHint }
         }
         if (planId.isBlank() || !planId.startsWith("P-")) {
-            return BillingResult.Failed("PayPal plans not configured on this build.")
+            return BillingResult.Failed(
+                if (period == BillingPeriod.ANNUAL) {
+                    "Annual PayPal plan not configured on this build."
+                } else {
+                    "PayPal plans not configured on this build."
+                }
+            )
         }
 
         val accessToken = auth.ensureFreshAccessToken()
             ?: return BillingResult.Failed("Sign in required.")
 
         val url = "${config.url.trimEnd('/')}/functions/v1/paypal_create_subscription"
-        val body = """{"tier":"${tier.escapeJson()}","plan_id":"${planId.escapeJson()}"}"""
+        val periodName = if (period == BillingPeriod.ANNUAL) "annual" else "monthly"
+        val body = """{"tier":"${tier.escapeJson()}","plan_id":"${planId.escapeJson()}","period":"$periodName"}"""
         val result = HttpJsonClient.request(
             url = url,
             method = "POST",
@@ -112,6 +127,13 @@ class PayPalBillingController @Inject constructor(
         val apiError = PayPalCheckoutJson.parseErrorMessage(body)
         if (!apiError.isNullOrBlank()) return apiError
         return "PayPal checkout failed (HTTP ${match.groupValues[1]}). Please try again."
+    }
+
+    private fun planIdFor(tier: String, period: BillingPeriod): String = when {
+        period == BillingPeriod.ANNUAL && tier == "max" -> config.maxAnnualProductId
+        period == BillingPeriod.ANNUAL -> config.proAnnualProductId
+        tier == "max" -> config.maxMonthlyProductId
+        else -> config.proMonthlyProductId
     }
 
     private fun String.escapeJson(): String =

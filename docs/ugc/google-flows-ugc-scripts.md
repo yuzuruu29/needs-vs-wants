@@ -68,7 +68,7 @@ PRODUCT FACTS (locked):
 - Retention/feel: a streak counter, a share button, a satisfying seal-stamp on every log.
 - Offline-first: no account required, no cloud, no analytics phoning home. Data stays
   on the device.
-- Pricing: Free tier (core trainer), Pro ~₱249/mo (unlimited, trial offered), Max ~₱499/mo
+- Pricing: Free tier (core trainer), Pro ₱49/mo or ₱490/yr (unlimited, trial offered), Max ₱99/mo or ₱990/yr
   (adds an AI Financial Advisor). Website: needs-vs-wants.vercel.app. Android download.
 - Brand voice: warm, honest, slightly witty, zero lecture-y finance jargon. Empowering,
   not shaming. "Trainer, not a ledger."

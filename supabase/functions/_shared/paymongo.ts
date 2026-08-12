@@ -1,13 +1,14 @@
 // Needs vs Wants - shared PayMongo helpers
 //
-// PayMongo manual-renewal Pro (₱199/mo) / Max (₱399/mo) checkout.
+// PayMongo manual-renewal checkout: Pro (₱49/mo or ₱490/yr) / Max (₱99/mo or
+// ₱990/yr). Monthly grants 30 days; annual grants 365 days.
 //
 // This module is intentionally dependency-free so it can be unit-tested with
 // `deno test` (no supabase-js, no external imports). Edge Functions import it
 // alongside the Supabase client.
 //
-// Amounts are server-authoritative: Pro 19900 / Max 39900 centavos. A client
-// may never supply an amount.
+// Amounts are server-authoritative: Pro 4900 / Max 9900 centavos monthly,
+// Pro 49000 / Max 99000 centavos annual. A client may never supply an amount.
 
 import {
   isEntitlementActive,
@@ -18,13 +19,32 @@ import {
 // Amounts (cents / centavos, server-authoritative)
 // ---------------------------------------------------------------------------
 
-export const PAYMONGO_AMOUNT_PRO = 19900;
-export const PAYMONGO_AMOUNT_MAX = 39900;
+export const PAYMONGO_AMOUNT_PRO = 4900;
+export const PAYMONGO_AMOUNT_MAX = 9900;
+export const PAYMONGO_AMOUNT_PRO_ANNUAL = 49000;
+export const PAYMONGO_AMOUNT_MAX_ANNUAL = 99000;
 export const PAYMONGO_GRANT_DAYS = 30;
+export const PAYMONGO_GRANT_DAYS_ANNUAL = 365;
 
-/** Server-authoritative checkout amount in centavos for a tier. */
-export function expectedAmountCentavos(tier: "pro" | "max"): number {
+/** Billing period for a manual-renewal checkout. */
+export type BillingPeriod = "monthly" | "annual";
+
+/** Server-authoritative checkout amount in centavos for a tier + period. */
+export function expectedAmountCentavos(
+  tier: "pro" | "max",
+  period: BillingPeriod = "monthly",
+): number {
+  if (period === "annual") {
+    return tier === "max"
+      ? PAYMONGO_AMOUNT_MAX_ANNUAL
+      : PAYMONGO_AMOUNT_PRO_ANNUAL;
+  }
   return tier === "max" ? PAYMONGO_AMOUNT_MAX : PAYMONGO_AMOUNT_PRO;
+}
+
+/** Grant length in days for a billing period. */
+export function grantDaysFor(period: BillingPeriod): number {
+  return period === "annual" ? PAYMONGO_GRANT_DAYS_ANNUAL : PAYMONGO_GRANT_DAYS;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +139,7 @@ export function nextPaidUntil(
 export interface Grant {
   user_id: string;
   tier: "pro" | "max";
+  period: BillingPeriod;
   payment_id: string;
   amount_centavos: number;
   checkout_session_id: string | null;
@@ -161,6 +182,9 @@ export function mapCheckoutPaidEvent(payload: unknown): Grant | null {
   const tier: "pro" | "max" | null =
     tierRaw === "pro" || tierRaw === "max" ? tierRaw : null;
   if (!user_id || !tier) return null;
+  // Billing period rides in checkout metadata; absent metadata means monthly.
+  const period: BillingPeriod =
+    metadata.period === "annual" ? "annual" : "monthly";
 
   const checkoutSessionId = found.checkoutSessionId;
   const paidAt = found.paidAt;
@@ -208,6 +232,7 @@ export function mapCheckoutPaidEvent(payload: unknown): Grant | null {
   return {
     user_id,
     tier,
+    period,
     payment_id: paymentId,
     amount_centavos: amountCentavos,
     checkout_session_id: checkoutSessionId,

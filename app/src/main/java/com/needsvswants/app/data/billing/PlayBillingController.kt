@@ -36,13 +36,13 @@ class PlayBillingController @Inject constructor(
     override val isPlayAvailable: Boolean
         get() = clientConnected && isBillingLibraryOnClasspath()
 
-    override suspend fun startTrial(productId: String): BillingResult {
+    override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult {
         connectIfNeeded()
         if (!isPlayAvailable) return BillingResult.Unavailable
         return launchPurchase(productId.ifBlank { trialProductId })
     }
 
-    override suspend fun purchase(productId: String): BillingResult {
+    override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
         connectIfNeeded()
         if (!isPlayAvailable) return BillingResult.Unavailable
         return launchPurchase(productId.ifBlank { monthlyProductId })

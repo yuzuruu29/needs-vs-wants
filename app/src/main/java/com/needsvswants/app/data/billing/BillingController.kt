@@ -29,7 +29,7 @@ interface BillingController {
     val isPayPalAvailable: Boolean
         get() = false
 
-    suspend fun startTrial(productId: String): BillingResult
-    suspend fun purchase(productId: String): BillingResult
+    suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult
+    suspend fun purchase(productId: String, period: BillingPeriod): BillingResult
     suspend fun restorePurchases(): BillingResult
 }

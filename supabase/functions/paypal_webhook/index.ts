@@ -138,6 +138,8 @@ Deno.serve(async (req: Request) => {
       event,
       Deno.env.get("PAYPAL_PLAN_PRO"),
       Deno.env.get("PAYPAL_PLAN_MAX"),
+      Deno.env.get("PAYPAL_PLAN_PRO_ANNUAL"),
+      Deno.env.get("PAYPAL_PLAN_MAX_ANNUAL"),
     );
     if (!mapped) {
       // Known event types we ignore (payment, auth, etc.) - ack so PayPal

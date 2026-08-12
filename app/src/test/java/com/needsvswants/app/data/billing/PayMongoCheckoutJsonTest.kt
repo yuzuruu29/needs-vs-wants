@@ -9,7 +9,7 @@ class PayMongoCheckoutJsonTest {
     @Test
     fun parseCheckoutUrl_nestedData() {
         val json = """
-            {"success":true,"data":{"checkout_url":"https://checkout.paymongo.com/checkout/abc123","checkout_session_id":"cs_123","tier":"pro","amount_centavos":19900}}
+            {"success":true,"data":{"checkout_url":"https://checkout.paymongo.com/checkout/abc123","checkout_session_id":"cs_123","tier":"pro","amount_centavos":4900}}
         """.trimIndent()
         assertEquals(
             "https://checkout.paymongo.com/checkout/abc123",

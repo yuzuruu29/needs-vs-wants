@@ -3,8 +3,13 @@
 // Authenticated: creates a PayPal subscription for the caller and returns the
 // PayPal approval URL so the Android app (or website) can open checkout.
 //
-// Body: { "tier": "pro" | "max" }  OR  { "plan_id": "P-..." }
+// Body: { "tier": "pro" | "max", "period": "monthly" | "annual" }  OR
+//       { "plan_id": "P-..." }
 // custom_id on the subscription is always the Supabase user id (for webhooks).
+//
+// Plan ids come from secrets: monthly PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX;
+// annual PAYPAL_PLAN_PRO_ANNUAL / PAYPAL_PLAN_MAX_ANNUAL (optional). The
+// billing interval itself lives on the PayPal plan in the dashboard.
 
 import { error, handleOptions, ok } from "../_shared/http.ts";
 import {
@@ -68,24 +73,35 @@ async function getOAuthToken(
 }
 
 function resolvePlanId(
-  body: { tier?: string; plan_id?: string },
-): { planId: string; tier: "pro" | "max" } | null {
+  body: { tier?: string; plan_id?: string; period?: string },
+): { planId: string; tier: "pro" | "max"; period: "monthly" | "annual" } | null {
+  const period = body.period === "annual" ? "annual" : "monthly";
   const proPlan = Deno.env.get("PAYPAL_PLAN_PRO") ?? "";
   const maxPlan = Deno.env.get("PAYPAL_PLAN_MAX") ?? "";
+  const proAnnualPlan = Deno.env.get("PAYPAL_PLAN_PRO_ANNUAL") ?? "";
+  const maxAnnualPlan = Deno.env.get("PAYPAL_PLAN_MAX_ANNUAL") ?? "";
 
   if (typeof body.plan_id === "string" && body.plan_id.startsWith("P-")) {
     const planId = body.plan_id;
-    if (maxPlan && planId === maxPlan) return { planId, tier: "max" };
-    if (proPlan && planId === proPlan) return { planId, tier: "pro" };
-    if (/max/i.test(planId)) return { planId, tier: "max" };
-    return { planId, tier: "pro" };
+    if (maxAnnualPlan && planId === maxAnnualPlan) {
+      return { planId, tier: "max", period: "annual" };
+    }
+    if (proAnnualPlan && planId === proAnnualPlan) {
+      return { planId, tier: "pro", period: "annual" };
+    }
+    if (maxPlan && planId === maxPlan) return { planId, tier: "max", period };
+    if (proPlan && planId === proPlan) return { planId, tier: "pro", period };
+    if (/max/i.test(planId)) return { planId, tier: "max", period };
+    return { planId, tier: "pro", period };
   }
 
   const tier = body.tier === "max" ? "max" : body.tier === "pro" ? "pro" : null;
   if (!tier) return null;
-  const planId = tier === "max" ? maxPlan : proPlan;
+  const planId = period === "annual"
+    ? (tier === "max" ? maxAnnualPlan : proAnnualPlan)
+    : (tier === "max" ? maxPlan : proPlan);
   if (!planId) return null;
-  return { planId, tier };
+  return { planId, tier, period };
 }
 
 Deno.serve(async (req: Request) => {
@@ -122,7 +138,7 @@ Deno.serve(async (req: Request) => {
     const clientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
     if (!clientId || !clientSecret) return error("PayPal not configured", 500);
 
-    let body: { tier?: string; plan_id?: string } = {};
+    let body: { tier?: string; plan_id?: string; period?: string } = {};
     try {
       body = await req.json();
     } catch {
@@ -131,8 +147,11 @@ Deno.serve(async (req: Request) => {
 
     const resolved = resolvePlanId(body);
     if (!resolved) {
+      const wantsAnnual = body.period === "annual";
       return error(
-        "Unknown plan. Set PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX secrets and pass tier pro|max.",
+        wantsAnnual
+          ? "Annual PayPal plan not configured. Set PAYPAL_PLAN_PRO_ANNUAL / PAYPAL_PLAN_MAX_ANNUAL secrets."
+          : "Unknown plan. Set PAYPAL_PLAN_PRO / PAYPAL_PLAN_MAX secrets and pass tier pro|max.",
         400,
       );
     }
@@ -191,6 +210,7 @@ Deno.serve(async (req: Request) => {
       subscription_id: createJson.id ?? null,
       status: createJson.status ?? null,
       tier: resolved.tier,
+      period: resolved.period,
       plan_id: resolved.planId,
       approval_url: approve,
     });

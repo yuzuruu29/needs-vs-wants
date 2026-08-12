@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.auth.AuthRepository
 import com.needsvswants.app.data.billing.BillingController
+import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.billing.CheckoutProvider
 import com.needsvswants.app.data.billing.PaymentProvider
@@ -79,6 +80,8 @@ class PaywallViewModel @Inject constructor(
 
     val monthlyProductId: String = config.proMonthlyProductId.ifBlank { "pro_monthly" }
     val maxProductId: String = config.maxMonthlyProductId.ifBlank { "max_monthly" }
+    val annualProductId: String = config.proAnnualProductId.ifBlank { "pro_annual" }
+    val maxAnnualProductId: String = config.maxAnnualProductId.ifBlank { "max_annual" }
 
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
@@ -94,6 +97,10 @@ class PaywallViewModel @Inject constructor(
         if (checkoutProvider.payPalAvailable) PaymentProvider.PAYPAL else PaymentProvider.PAYMONGO
     )
     val selectedProvider: StateFlow<PaymentProvider> = _selectedProvider.asStateFlow()
+
+    /** Billing cycle used for the next checkout (monthly 30d / annual 365d). */
+    private val _selectedPeriod = MutableStateFlow(BillingPeriod.MONTHLY)
+    val selectedPeriod: StateFlow<BillingPeriod> = _selectedPeriod.asStateFlow()
 
     /** Static per-build availability of each checkout provider (config-driven). */
     val payPalAvailable: Boolean = checkoutProvider.payPalAvailable
@@ -170,6 +177,34 @@ class PaywallViewModel @Inject constructor(
                     } else {
                         // Signed out: re-assert the deferred intent for the NEW
                         // selection so sign-in completes the purchase just picked.
+                        when (_pendingPurchase.value) {
+                            PendingPurchase.ProSubscribe -> subscribePro()
+                            PendingPurchase.MaxSubscribe -> subscribeMax()
+                            PendingPurchase.None -> Unit
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Switches the billing period (monthly / annual) used for the next checkout.
+     * Mirrors [selectProvider]: a deferred intent is cleared for a signed-in
+     * user (fresh CTA) or re-asserted for a signed-out user so sign-in
+     * completes the purchase with the period just picked.
+     */
+    fun selectPeriod(period: BillingPeriod) {
+        if (period == _selectedPeriod.value) return
+        _selectedPeriod.value = period
+        consumeResult()
+        viewModelScope.launch {
+            when (_pendingPurchase.value) {
+                PendingPurchase.None -> Unit
+                else -> {
+                    if (signedInSafe()) {
+                        cancelPendingSignIn()
+                    } else {
                         when (_pendingPurchase.value) {
                             PendingPurchase.ProSubscribe -> subscribePro()
                             PendingPurchase.MaxSubscribe -> subscribeMax()
@@ -377,24 +412,42 @@ class PaywallViewModel @Inject constructor(
     /**
      * Routes a Pro intent to the currently selected provider's controller:
      * PayPal starts the plan-carrying 3-day trial; PayMongo charges the
-     * monthly one-time checkout.
+     * one-time checkout. Both honor the selected billing period.
      */
-    private suspend fun routeProCheckout(): BillingResult = when (_selectedProvider.value) {
-        PaymentProvider.PAYPAL ->
-            checkoutProvider.controllerFor(PaymentProvider.PAYPAL).startTrial(monthlyProductId)
-        PaymentProvider.PAYMONGO ->
-            checkoutProvider.controllerFor(PaymentProvider.PAYMONGO).purchase(monthlyProductId)
+    private suspend fun routeProCheckout(): BillingResult {
+        val period = _selectedPeriod.value
+        return when (_selectedProvider.value) {
+            PaymentProvider.PAYPAL ->
+                checkoutProvider.controllerFor(PaymentProvider.PAYPAL)
+                    .startTrial(productIdFor("pro", period), period)
+            PaymentProvider.PAYMONGO ->
+                checkoutProvider.controllerFor(PaymentProvider.PAYMONGO)
+                    .purchase(productIdFor("pro", period), period)
+        }
     }
 
     /**
      * Routes a Max intent to the currently selected provider's controller
-     * (no trial on Max — both providers charge the max checkout directly).
+     * (no trial on Max — both providers charge the checkout directly).
      */
-    private suspend fun routeMaxCheckout(): BillingResult = when (_selectedProvider.value) {
-        PaymentProvider.PAYPAL ->
-            checkoutProvider.controllerFor(PaymentProvider.PAYPAL).purchase(maxProductId)
-        PaymentProvider.PAYMONGO ->
-            checkoutProvider.controllerFor(PaymentProvider.PAYMONGO).purchase(maxProductId)
+    private suspend fun routeMaxCheckout(): BillingResult {
+        val period = _selectedPeriod.value
+        return when (_selectedProvider.value) {
+            PaymentProvider.PAYPAL ->
+                checkoutProvider.controllerFor(PaymentProvider.PAYPAL)
+                    .purchase(productIdFor("max", period), period)
+            PaymentProvider.PAYMONGO ->
+                checkoutProvider.controllerFor(PaymentProvider.PAYMONGO)
+                    .purchase(productIdFor("max", period), period)
+        }
+    }
+
+    /** Product-id hint for a tier + period; PayPal annual uses the annual ids. */
+    private fun productIdFor(tier: String, period: BillingPeriod): String = when {
+        period == BillingPeriod.ANNUAL && tier == "max" -> maxAnnualProductId
+        period == BillingPeriod.ANNUAL -> annualProductId
+        tier == "max" -> maxProductId
+        else -> monthlyProductId
     }
 
     private suspend fun runBilling(block: suspend () -> BillingResult) {

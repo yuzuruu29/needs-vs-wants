@@ -39,14 +39,14 @@ class PayMongoBillingController @Inject constructor(
     override val isPayPalAvailable: Boolean
         get() = config.enabled
 
-    override suspend fun startTrial(productId: String): BillingResult {
+    override suspend fun startTrial(productId: String, period: BillingPeriod): BillingResult {
         // Trial is a product choice here; the same pro checkout path is used.
-        return createCheckout(tier = "pro")
+        return createCheckout(tier = "pro", period = period)
     }
 
-    override suspend fun purchase(productId: String): BillingResult {
+    override suspend fun purchase(productId: String, period: BillingPeriod): BillingResult {
         // A blank product id must never fall through to a checkout: mapping it
-        // to Max would silently bill ₱399 on a misconfigured build.
+        // to Max would silently bill on a misconfigured build.
         if (productId.isBlank()) return BillingResult.Failed("Checkout not configured on this build.")
         // productId is config.maxMonthlyProductId for Max, anything else is Pro.
         val hint = productId.ifBlank { config.maxMonthlyProductId }
@@ -56,7 +56,7 @@ class PayMongoBillingController @Inject constructor(
             hint.contains("max", ignoreCase = true) -> "max"
             else -> "pro"
         }
-        return createCheckout(tier = tier)
+        return createCheckout(tier = tier, period = period)
     }
 
     override suspend fun restorePurchases(): BillingResult {
@@ -68,14 +68,15 @@ class PayMongoBillingController @Inject constructor(
         return BillingResult.Success
     }
 
-    private suspend fun createCheckout(tier: String): BillingResult {
+    private suspend fun createCheckout(tier: String, period: BillingPeriod): BillingResult {
         if (!config.enabled) return BillingResult.Unavailable
 
         val accessToken = auth.ensureFreshAccessToken()
             ?: return BillingResult.Failed("Sign in required.")
 
         val url = "${config.url.trimEnd('/')}/functions/v1/paymongo_create_checkout"
-        val body = """{"tier":"${tier.escapeJson()}"}"""
+        val periodName = if (period == BillingPeriod.ANNUAL) "annual" else "monthly"
+        val body = """{"tier":"${tier.escapeJson()}","period":"$periodName"}"""
         val result = HttpJsonClient.request(
             url = url,
             method = "POST",
