@@ -1128,9 +1128,20 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 /* Double-bezel bento pricing grid */
 .pri-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px;align-items:stretch}
 /* Subscribe/restore steps: a sibling of .pri-grid, never a grid item, so it
-   keeps a readable measure instead of collapsing into one 1fr column. */
-.pri-guide{max-width:640px;margin:30px auto 0;text-align:left}
-.pri-guide .eyebrow{margin-bottom:10px}
+   keeps a readable measure instead of collapsing into one 1fr column. The
+   panel is what stops it reading as loose text stranded under the bento. */
+.pri-guide{position:relative;max-width:720px;margin:clamp(34px,4vw,48px) auto 0;
+  padding:clamp(24px,3vw,32px);text-align:left;background:var(--card);
+  border:1px solid var(--divider);border-radius:var(--r-m);
+  box-shadow:var(--shadow-card);overflow:hidden}
+.pri-guide::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold-soft),transparent)}
+.pri-guide h3{font:700 clamp(19px,2.2vw,23px)/1.25 var(--display);letter-spacing:.6px;margin:6px 0 0}
+.pri-guide .rule-steps{margin-top:18px}
+/* Fill the panel: the 60ch cap is tuned for the wide How It Works column and
+   would leave this one visually off-centre. */
+.pri-guide .rule-steps li{max-width:none}
+@media (max-width:560px){.pri-guide{padding:22px 18px}}
 .pri{position:relative;display:flex;flex-direction:column}
 /* Outer shell + inner core (double-bezel) */
 .pri-shell{
@@ -1952,7 +1963,8 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </div>
 
     <div class="pri-guide reveal">
-      <p class="eyebrow eyebrow--gold">How to subscribe, and how to get it back</p>
+      <p class="eyebrow eyebrow--gold">Membership</p>
+      <h3>How to subscribe, and how to get it back</h3>
       <ol class="rule-steps">
         <li><b>Open the paywall in the app.</b> Free needs no account. Tap Pro or Max and the app asks you to sign in first, so the membership has somewhere to live.</li>
         <li><b>Sign in.</b> Use Google, or tap <b>Can't use Google? Sign in with an email code</b> and type the 6-digit code we email you. That code expires in about an hour.</li>
