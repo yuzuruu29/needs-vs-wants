@@ -90,22 +90,34 @@ class AppPreferencesTest {
     @Test
     fun quotaState_roundTripsDay_logsCreated_andCarriedLogs() = runTest {
         val prefs = buildPrefs()
-        val state = QuotaState(day = "2026-08-10", logsCreated = 3, carriedLogs = 2)
+        val state = QuotaState(
+            day = "2026-08-10",
+            logsCreated = 3,
+            carriedLogs = 2,
+            bonusLogs = 8,
+            adsWatched = 1
+        )
         prefs.setQuotaState(state)
         val read = prefs.quotaState.first()
         assertEquals("2026-08-10", read.day)
         assertEquals(3, read.logsCreated)
         assertEquals(2, read.carriedLogs)
+        assertEquals(8, read.bonusLogs)
+        assertEquals(1, read.adsWatched)
     }
 
     @Test
     fun resetQuotaForDay_zeroesCountersAndCarry() = runTest {
         val prefs = buildPrefs()
-        prefs.setQuotaState(QuotaState(day = "2026-08-10", logsCreated = 3, carriedLogs = 2))
+        prefs.setQuotaState(
+            QuotaState(day = "2026-08-10", logsCreated = 3, carriedLogs = 2, bonusLogs = 8, adsWatched = 1)
+        )
         prefs.resetQuotaForDay("2026-08-11")
         val read = prefs.quotaState.first()
         assertEquals("2026-08-11", read.day)
         assertEquals(0, read.logsCreated)
         assertEquals(0, read.carriedLogs)
+        assertEquals(0, read.bonusLogs)
+        assertEquals(0, read.adsWatched)
     }
 }

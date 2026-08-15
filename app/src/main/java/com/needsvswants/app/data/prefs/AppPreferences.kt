@@ -90,6 +90,8 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val QUOTA_DAY = stringPreferencesKey("quota_day")
         private val QUOTA_LOGS_CREATED = intPreferencesKey("quota_logs_created")
         private val QUOTA_CARRIED_LOGS = intPreferencesKey("quota_carried_logs")
+        private val QUOTA_BONUS_LOGS = intPreferencesKey("quota_bonus_logs")
+        private val QUOTA_ADS_WATCHED = intPreferencesKey("quota_ads_watched")
         private val PAYPAL_RETURN_PENDING_AT = longPreferencesKey("paypal_return_pending_at")
         private val SPENDING_GOAL = stringPreferencesKey("spending_goal")
         private val BUDGET_NUDGE_PENDING = booleanPreferencesKey("budget_nudge_pending")
@@ -381,7 +383,9 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         QuotaState(
             day = prefs[QUOTA_DAY] ?: "",
             logsCreated = prefs[QUOTA_LOGS_CREATED] ?: 0,
-            carriedLogs = prefs[QUOTA_CARRIED_LOGS] ?: 0
+            carriedLogs = prefs[QUOTA_CARRIED_LOGS] ?: 0,
+            bonusLogs = prefs[QUOTA_BONUS_LOGS] ?: 0,
+            adsWatched = prefs[QUOTA_ADS_WATCHED] ?: 0
         )
     }
 
@@ -390,6 +394,8 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
             it[QUOTA_DAY] = state.day
             it[QUOTA_LOGS_CREATED] = state.logsCreated
             it[QUOTA_CARRIED_LOGS] = state.carriedLogs
+            it[QUOTA_BONUS_LOGS] = state.bonusLogs
+            it[QUOTA_ADS_WATCHED] = state.adsWatched
         }
     }
 
