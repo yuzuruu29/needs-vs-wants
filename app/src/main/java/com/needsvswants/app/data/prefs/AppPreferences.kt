@@ -97,6 +97,7 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val BUDGET_NUDGE_PENDING = booleanPreferencesKey("budget_nudge_pending")
         private val CRASH_REPORTS_ENABLED = booleanPreferencesKey("crash_reports_enabled")
         private val BACKUP_FOLDER_URI = stringPreferencesKey("backup_folder_uri")
+        private val BACKUP_NUDGE_SEEN = booleanPreferencesKey("backup_nudge_seen")
         private val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
         private val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
         private val LAST_UPDATE_CHECK_AT = longPreferencesKey("last_update_check_at")
@@ -311,6 +312,13 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
     /** Persisted SAF tree URI of the user-chosen backup folder; null = not set. */
     val backupFolderUri: Flow<String?> = dataStore.data.map {
         it[BACKUP_FOLDER_URI]?.takeIf { uri -> uri.isNotBlank() }
+    }
+
+    /** One-shot first-backup nudge flag (dismissed = never shown again). */
+    val backupNudgeSeen: Flow<Boolean> = dataStore.data.map { it[BACKUP_NUDGE_SEEN] ?: false }
+
+    suspend fun setBackupNudgeSeen(seen: Boolean) {
+        dataStore.edit { it[BACKUP_NUDGE_SEEN] = seen }
     }
 
     suspend fun setBackupFolderUri(uri: String?) {
