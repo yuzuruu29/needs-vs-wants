@@ -13,13 +13,13 @@ class DailyLogQuotaTest {
     @Test
     fun fresh_state_on_new_day_can_log_free_count() {
         val state = QuotaState("2026-08-07", 0, 0)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(state, "2026-08-07"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(state, "2026-08-07"))
         assertTrue(DailyLogQuota.canLog(state, "2026-08-07"))
     }
 
     @Test
     fun after_free_count_canLog_false() {
-        val state = QuotaState("2026-08-07", FreeQuotaConfig.FREE_DAILY_LOGS, 0)
+        val state = QuotaState("2026-08-07", AdsConfig.FREE_DAILY_LOGS, 0)
         assertEquals(0, DailyLogQuota.remaining(state, "2026-08-07"))
         assertFalse(DailyLogQuota.canLog(state, "2026-08-07"))
     }
@@ -39,7 +39,7 @@ class DailyLogQuotaTest {
         assertEquals("2026-08-07", rolled.day)
         assertEquals(0, rolled.logsCreated)
         assertEquals(0, rolled.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-07"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-07"))
     }
 
     @Test
@@ -74,7 +74,7 @@ class DailyLogQuotaTest {
         assertEquals(0, rolled.logsCreated)
         assertEquals(3, rolled.carriedLogs)
         // Next day allowance = base 5 + carried 3.
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS + 3, DailyLogQuota.remaining(rolled, "2026-08-11"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS + 3, DailyLogQuota.remaining(rolled, "2026-08-11"))
     }
 
     @Test
@@ -83,7 +83,7 @@ class DailyLogQuotaTest {
         val day1 = QuotaState(day = "2026-08-10", logsCreated = 5, carriedLogs = 0)
         val rolled = DailyLogQuota.rollDayIfNeeded(day1, "2026-08-11")
         assertEquals(0, rolled.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-11"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-11"))
     }
 
     @Test
@@ -93,7 +93,7 @@ class DailyLogQuotaTest {
         val day2 = QuotaState(day = "2026-08-11", logsCreated = 6, carriedLogs = 3)
         val rolled = DailyLogQuota.rollDayIfNeeded(day2, "2026-08-12")
         assertEquals(2, rolled.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS + 2, DailyLogQuota.remaining(rolled, "2026-08-12"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS + 2, DailyLogQuota.remaining(rolled, "2026-08-12"))
     }
 
     @Test
@@ -102,7 +102,7 @@ class DailyLogQuotaTest {
         val day1 = QuotaState(day = "2026-08-10", logsCreated = 2, carriedLogs = 0)
         val rolled = DailyLogQuota.rollDayIfNeeded(day1, "2026-08-12")
         assertEquals(0, rolled.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-12"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-12"))
     }
 
     @Test
@@ -111,7 +111,7 @@ class DailyLogQuotaTest {
         val day1 = QuotaState(day = "2026-08-10", logsCreated = 0, carriedLogs = 0)
         val rolled = DailyLogQuota.rollDayIfNeeded(day1, "2026-08-11")
         assertEquals(0, rolled.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-11"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-11"))
     }
 
     @Test
@@ -122,7 +122,7 @@ class DailyLogQuotaTest {
         val day2AfterSealing = DailyLogQuota.incrementCreated(day2, "2026-08-11")
         val day2AfterSealing2 = DailyLogQuota.incrementCreated(day2AfterSealing, "2026-08-11")
         assertEquals(4, day2.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS + 4 - 2, DailyLogQuota.remaining(day2AfterSealing2, "2026-08-11"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS + 4 - 2, DailyLogQuota.remaining(day2AfterSealing2, "2026-08-11"))
     }
 
     @Test
@@ -131,6 +131,46 @@ class DailyLogQuotaTest {
         val dayA = QuotaState(day = "2026-08-14", logsCreated = 3, carriedLogs = 0)
         val afterGap = DailyLogQuota.rollDayIfNeeded(dayA, "2026-08-17")
         assertEquals(0, afterGap.carriedLogs)
-        assertEquals(FreeQuotaConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(afterGap, "2026-08-17"))
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(afterGap, "2026-08-17"))
+    }
+    // --- Rewarded-ad bonus (Wave A) ---------------------------------------
+
+    @Test
+    fun grantBonus_addsEightAndCountsAnAd() {
+        val state = QuotaState("2026-08-15", logsCreated = 5, carriedLogs = 0)
+        val granted = DailyLogQuota.grantBonus(state, "2026-08-15")
+        assertEquals(8, granted.bonusLogs)
+        assertEquals(1, granted.adsWatched)
+        assertEquals(8, DailyLogQuota.remaining(granted, "2026-08-15"))
+        assertTrue(DailyLogQuota.canLog(granted, "2026-08-15"))
+    }
+
+    @Test
+    fun grantBonus_capsAtThreeAds() {
+        var state = QuotaState("2026-08-15", 0, 0)
+        repeat(3) { state = DailyLogQuota.grantBonus(state, "2026-08-15") }
+        assertEquals(3, state.adsWatched)
+        assertEquals(24, state.bonusLogs)
+        val blocked = DailyLogQuota.grantBonus(state, "2026-08-15")
+        assertEquals(3, blocked.adsWatched)
+        assertEquals(24, blocked.bonusLogs)
+        assertFalse(DailyLogQuota.canWatchAd(blocked, "2026-08-15"))
+    }
+
+    @Test
+    fun unused_bonus_does_not_carry() {
+        // 5 created + 8 bonus -> remaining 8 same day; next day carry is only unused BASE (0).
+        val day1 = QuotaState("2026-08-15", logsCreated = 5, carriedLogs = 0, bonusLogs = 8, adsWatched = 1)
+        val rolled = DailyLogQuota.rollDayIfNeeded(day1, "2026-08-16")
+        assertEquals(0, rolled.carriedLogs)
+        assertEquals(0, rolled.bonusLogs)
+        assertEquals(0, rolled.adsWatched)
+        assertEquals(AdsConfig.FREE_DAILY_LOGS, DailyLogQuota.remaining(rolled, "2026-08-16"))
+    }
+
+    @Test
+    fun remaining_includes_bonus_and_carry() {
+        val state = QuotaState("2026-08-15", logsCreated = 2, carriedLogs = 3, bonusLogs = 8, adsWatched = 1)
+        assertEquals(5 + 3 + 8 - 2, DailyLogQuota.remaining(state, "2026-08-15"))
     }
 }

@@ -15,7 +15,7 @@ import com.needsvswants.app.data.update.UpdateChecker
 import com.needsvswants.app.diagnostics.CrashReporting
 import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.Entitlement
-import com.needsvswants.app.domain.FreeQuotaConfig
+import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.QuotaState
 import com.needsvswants.app.domain.ThemeId
@@ -153,7 +153,7 @@ class SettingsViewModel @Inject constructor(
             null
         } else {
             DailyFreeLogsInfo(
-                allowancePerDay = FreeQuotaConfig.FREE_DAILY_LOGS,
+                allowancePerDay = AdsConfig.FREE_DAILY_LOGS,
                 remainingToday = DailyLogQuota.remaining(quota, todayString()),
                 carriedLogs = quota.carriedLogs
             )
