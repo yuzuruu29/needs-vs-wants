@@ -16,6 +16,11 @@
         <!-- Sentry never auto-starts; CrashReporting.applyState() decides at
              runtime (release build + DSN configured + user opt-in). -->
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
+        <!-- AdMob App ID. TEST id by default (manifestPlaceholder fed from
+             local.properties); the ads/ package + AdsConfig.ENABLED gate usage. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

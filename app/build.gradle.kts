@@ -66,6 +66,23 @@ android {
         // Sentry crash reporting (privacy-lean; release builds only). Empty DSN
         // keeps the SDK fully disabled — set SENTRY_DSN in local.properties.
         buildConfigField("String", "SENTRY_DSN", "\"${localProp("SENTRY_DSN")}\"")
+        // --- Rewarded ads (ads/ package) ------------------------------------
+        // Google TEST ids by default; override ADMOB_APP_ID / ADMOB_REWARDED_UNIT_ID
+        // in local.properties with production values before a real release.
+        buildConfigField(
+            "String",
+            "ADMOB_APP_ID",
+            "\"${localProp("ADMOB_APP_ID", "ca-app-pub-3940256099942544~3347511713")}\""
+        )
+        buildConfigField(
+            "String",
+            "ADMOB_REWARDED_UNIT_ID",
+            "\"${localProp("ADMOB_REWARDED_UNIT_ID", "ca-app-pub-3940256099942544/5224354917")}\""
+        )
+        manifestPlaceholders["admobAppId"] = localProp(
+            "ADMOB_APP_ID",
+            "ca-app-pub-3940256099942544~3347511713"
+        )
         // ---------------------------------------------------------------------
         // Plain-free test flavor: the deep-link scheme is overridden per flavor so
         // a plain APK installed next to production never steals its checkout return URLs.
@@ -210,6 +227,12 @@ dependencies {
     implementation(libs.sentry.android)
     // SAF tree access for local auto-backup (data/backup/)
     implementation(libs.androidx.documentfile)
+
+    // Rewarded ads for the Free tier (ads/ package). Kill switch is
+    // AdsConfig.ENABLED — a disabled config compiles the SDK in but never
+    // inits it and never requests ads.
+    implementation(libs.play.services.ads)
+    implementation(libs.user.messaging.platform)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

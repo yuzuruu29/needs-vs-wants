@@ -15,6 +15,8 @@ credentials = "1.3.0"
 googleid = "1.1.1"
 sentry = "8.53.0"
 documentfile = "1.0.1"
+play-services-ads = "23.6.0"
+ump = "2.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
@@ -45,6 +47,10 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
 # SAF tree access for local auto-backup (data/backup/)
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+# Rewarded ads for the Free tier (ads/ package). Keep 23.x / 2.x with
+# compileSdk 34 — newer lines require compileSdk 35.
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "play-services-ads" }
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
 
 # Testing
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }

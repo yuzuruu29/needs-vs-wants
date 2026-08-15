@@ -22,3 +22,6 @@
 -dontwarn android.os.ProfilingManager
 -dontwarn android.os.ProfilingResult
 
+# Google Mobile Ads / UMP ship consumer ProGuard rules in their AARs;
+# nothing extra is required for play-services-ads 23.x / UMP 2.x.
+
