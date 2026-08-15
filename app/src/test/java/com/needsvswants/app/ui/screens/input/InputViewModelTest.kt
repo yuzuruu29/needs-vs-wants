@@ -1,14 +1,18 @@
 package com.needsvswants.app.ui.screens.input
 
+import android.app.Activity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.needsvswants.app.ads.NoOpRewardedAdGateway
+import com.needsvswants.app.ads.RewardedAdGateway
 import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.domain.DailyBudgetUseCase
+import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
@@ -90,10 +94,13 @@ class InputViewModelTest {
         dataStoreFile?.let { runCatching { it.delete() } }
     }
 
-    private fun buildViewModel(): InputViewModel = InputViewModel(
+    private fun buildViewModel(
+        rewardedAds: RewardedAdGateway = NoOpRewardedAdGateway()
+    ): InputViewModel = InputViewModel(
         entries = repository,
         preferences = prefs,
         dailyBudgetUseCase = DailyBudgetUseCase(dao, prefs),
+        rewardedAds = rewardedAds,
         appContext = null
     )
 
@@ -298,6 +305,113 @@ class InputViewModelTest {
         assertEquals("Sneakers", sealed.item)
         assertEquals(300_000L, sealed.costCents)
         assertEquals(EntryType.WANT, sealed.type)
+    }
+
+    // --- Rewarded ad bonus (Wave A) -------------------------------------------
+
+    private class FakeRewardedAdGateway : RewardedAdGateway {
+        var loadAndShowCalls = 0
+        var resetCalls = 0
+        private var onUserEarnedReward: (() -> Unit)? = null
+        private var onClosed: ((earned: Boolean, error: String?) -> Unit)? = null
+
+        override fun isReady(): Boolean = false
+
+        override fun loadAndShow(
+            activity: Activity,
+            onUserEarnedReward: () -> Unit,
+            onClosed: (earned: Boolean, error: String?) -> Unit
+        ) {
+            loadAndShowCalls++
+            this.onUserEarnedReward = onUserEarnedReward
+            this.onClosed = onClosed
+        }
+
+        override fun reset() {
+            resetCalls++
+        }
+
+        /** Simulates the ad being watched to completion (reward granted). */
+        fun earnReward() {
+            onUserEarnedReward?.invoke()
+        }
+
+        /** Simulates the ad closing without a reward (e.g. dismissed). */
+        fun closeWithoutReward() {
+            onClosed?.invoke(false, null)
+        }
+    }
+
+    @Test
+    fun watchAd_grantsBonus_andRetriesBlockedSeal() = runTest(dispatcher) {
+        val gateway = FakeRewardedAdGateway()
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, carriedLogs = 0))
+        val vm = buildViewModel(rewardedAds = gateway)
+        advanceUntilIdle()
+
+        fillForm(vm)
+        vm.trySeal()
+        assertNotNull(vm.quotaBlocked.value)
+        assertTrue(dao.entries.value.isEmpty())
+
+        vm.onWatchAd(Activity())
+        assertEquals(AdState.Loading, vm.adState.value)
+        assertEquals(1, gateway.loadAndShowCalls)
+
+        gateway.earnReward()
+        advanceUntilIdle()
+
+        // Bonus granted (5 base used + 8 bonus), pending seal re-ran through
+        // the normal pipeline and inserted the row (now 6 of 13 used).
+        assertEquals(7, DailyLogQuota.remaining(vm.quotaState.value, today()))
+        assertEquals(8, vm.quotaState.value.bonusLogs)
+        assertEquals(1, vm.quotaState.value.adsWatched)
+        assertEquals(6, vm.quotaState.value.logsCreated)
+        assertEquals(1, dao.entries.value.size)
+        assertEquals("Coffee", dao.entries.value.single().item)
+        assertNull(vm.quotaBlocked.value)
+        assertEquals(AdState.Idle, vm.adState.value)
+    }
+
+    @Test
+    fun dismissQuotaBlocked_resetsGateway_withoutGranting() = runTest(dispatcher) {
+        val gateway = FakeRewardedAdGateway()
+        prefs.setQuotaState(QuotaState(today(), logsCreated = 5, carriedLogs = 0))
+        val vm = buildViewModel(rewardedAds = gateway)
+        advanceUntilIdle()
+
+        fillForm(vm)
+        vm.trySeal()
+        assertNotNull(vm.quotaBlocked.value)
+
+        vm.dismissQuotaBlocked()
+
+        assertEquals(1, gateway.resetCalls)
+        assertNull(vm.quotaBlocked.value)
+        assertEquals(0, vm.quotaState.value.bonusLogs)
+        assertEquals(0, vm.quotaState.value.adsWatched)
+        assertTrue(dao.entries.value.isEmpty())
+    }
+
+    @Test
+    fun watchAd_capReached_doesNotLoadAd() = runTest(dispatcher) {
+        val gateway = FakeRewardedAdGateway()
+        // All 5 base + all 24 bonus used, and all 3 ads watched → quota gate
+        // blocks, but the Watch-ad affordance must not load another ad.
+        prefs.setQuotaState(
+            QuotaState(today(), logsCreated = 29, carriedLogs = 0, bonusLogs = 24, adsWatched = 3)
+        )
+        val vm = buildViewModel(rewardedAds = gateway)
+        advanceUntilIdle()
+
+        fillForm(vm)
+        vm.trySeal()
+        assertNotNull(vm.quotaBlocked.value)
+
+        vm.onWatchAd(Activity())
+
+        assertEquals(0, gateway.loadAndShowCalls)
+        assertEquals(AdState.Idle, vm.adState.value)
     }
 
     private class FakeEntryDao : EntryDao {
