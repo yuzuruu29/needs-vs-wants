@@ -65,7 +65,8 @@ class FinancialAdvisorViewModel @Inject constructor(
             entries = inputs.entries,
             dailyBudgetCents = inputs.dailyBudgetCents,
             spendingGoal = spendingGoal,
-            nowEpochMs = now
+            nowEpochMs = now,
+            currencySymbol = inputs.currencySymbol
         )
         AdvisorUiState(
             insight = FinancialAdvisorEngine.generateInsight(context),

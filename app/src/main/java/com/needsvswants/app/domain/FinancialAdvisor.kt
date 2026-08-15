@@ -51,7 +51,8 @@ data class AdvisorContextPack(
     val remainingCents: Long,
     val streakDays: Int,
     val topWantItems: List<String>,
-    val spendingGoal: String
+    val spendingGoal: String,
+    val currencySymbol: String = "₱"
 ) {
     companion object {
         const val DEFAULT_SPENDING_GOAL = "track"
@@ -62,7 +63,8 @@ data class AdvisorContextPack(
             entries: List<Entry>,
             dailyBudgetCents: Long?,
             spendingGoal: String = DEFAULT_SPENDING_GOAL,
-            nowEpochMs: Long = System.currentTimeMillis()
+            nowEpochMs: Long = System.currentTimeMillis(),
+            currencySymbol: String = "₱"
         ): AdvisorContextPack {
             val todayStart = startOfDayMs(nowEpochMs)
             val weekStart = todayStart - 6 * dayMs
@@ -108,7 +110,8 @@ data class AdvisorContextPack(
                 remainingCents = remainingCents,
                 streakDays = streakDays,
                 topWantItems = topWantItems,
-                spendingGoal = spendingGoal
+                spendingGoal = spendingGoal,
+                currencySymbol = currencySymbol
             )
         }
 
@@ -368,7 +371,7 @@ object FinancialAdvisorEngine {
         if (context.spendingGoal == "analyze" && context.weekTotalCents > 0) {
             return AdvisorInsight(
                 headline = "Analyze Goal: Weekly Comparison",
-                advice = "Your 7-day ledger is ${pct(context.needsPct)}% Needs and ${pct(context.wantsPct)}% Wants, with today at ${context.todayTotalCents} of ${context.weekTotalCents} total cents. Compare this week against the next to spot the shift.",
+                advice = "Your 7-day ledger is ${pct(context.needsPct)}% Needs and ${pct(context.wantsPct)}% Wants, with today at ${context.todayTotalCents.toMoney(context.currencySymbol)} of ${context.weekTotalCents.toMoney(context.currencySymbol)} total. Compare this week against the next to spot the shift.",
                 citation = AdvisorCitation(
                     title = "Notebook #1: Budgetary Equilibrium",
                     section = "NotebookLM Section 1.2 — Binary Classification Dynamics"
@@ -381,7 +384,7 @@ object FinancialAdvisorEngine {
         if (context.budgetOn && context.remainingCents >= 0) {
             return AdvisorInsight(
                 headline = "Budget Health: Within Daily Limit",
-                advice = "Today's spending is within your daily budget with ${context.remainingCents} cents remaining. Keep logging every purchase to preserve the friction your study notebooks recommend.",
+                advice = "Today's spending is within your daily budget with ${context.remainingCents.toMoney(context.currencySymbol)} remaining. Keep logging every purchase to preserve the friction your study notebooks recommend.",
                 citation = AdvisorCitation(
                     title = "Notebook #2: Behavioral Friction",
                     section = CITATION_SECTION_31
@@ -467,7 +470,7 @@ object FinancialAdvisorEngine {
                     )
                 } else if (context.budgetOn) {
                     Triple(
-                        "Your budget health is green: today is within the daily limit with ${context.remainingCents} cents remaining. Keep real-time log friction on Want items.",
+                        "Your budget health is green: today is within the daily limit with ${context.remainingCents.toMoney(context.currencySymbol)} remaining. Keep real-time log friction on Want items.",
                         AdvisorCitation("Notebook #2: Behavioral Friction", CITATION_SECTION_31),
                         false
                     )
