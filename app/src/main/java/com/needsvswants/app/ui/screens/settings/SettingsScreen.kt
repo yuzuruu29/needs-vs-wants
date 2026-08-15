@@ -51,6 +51,7 @@ import com.needsvswants.app.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
@@ -384,6 +385,22 @@ fun SettingsScreen(
                             label = "Carried in",
                             value = "+${freeLogs.carriedLogs}",
                             valueColor = palette.gilt
+                        )
+                    }
+                    if (AdsConfig.ENABLED) {
+                        if (freeLogs.bonusLogs > 0) {
+                            HorizontalDivider(color = palette.inkDivider)
+                            QuotaStatRow(
+                                label = "Bonus from ads",
+                                value = "+${freeLogs.bonusLogs}",
+                                valueColor = palette.gilt
+                            )
+                        }
+                        HorizontalDivider(color = palette.inkDivider)
+                        QuotaStatRow(
+                            label = "Ads watched today",
+                            value = "${freeLogs.adsWatched} / ${AdsConfig.MAX_REWARDED_ADS_PER_DAY}",
+                            valueColor = palette.textSecondary
                         )
                     }
                     Spacer(Modifier.height(6.dp))

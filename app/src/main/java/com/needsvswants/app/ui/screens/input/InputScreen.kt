@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.screens.input
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
@@ -53,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailyBudgetMath
 import com.needsvswants.app.domain.toInputAmount
@@ -94,6 +97,8 @@ fun InputScreen(
     val type by viewModel.activeType.collectAsStateWithLifecycle()
     val pendingOverspendCost by viewModel.overspendConfirmCostCents.collectAsStateWithLifecycle()
     val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
+    val canWatchAdToday by viewModel.canWatchAdToday.collectAsStateWithLifecycle()
+    val adState by viewModel.adState.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
@@ -117,6 +122,7 @@ fun InputScreen(
     val sfx = rememberAppSfx()
     val listState = rememberLazyListState()
     val palette = AppTheme.colors
+    val context = LocalContext.current
 
     LaunchedEffect(dailyBudgetCents) {
         val cents = dailyBudgetCents
@@ -484,6 +490,27 @@ fun InputScreen(
                             color = palette.textSecondary,
                             style = AppType.body
                         )
+                        if (AdsConfig.ENABLED && canWatchAdToday) {
+                            Spacer(Modifier.height(14.dp))
+                            when (val state = adState) {
+                                is AdState.Failed -> {
+                                    Text(
+                                        state.message,
+                                        color = palette.danger,
+                                        style = AppType.caption
+                                    )
+                                    Spacer(Modifier.height(10.dp))
+                                }
+                                else -> Unit
+                            }
+                            val activity = context as? Activity
+                            GiltButton(
+                                onClick = { activity?.let(viewModel::onWatchAd) },
+                                enabled = adState !is AdState.Loading && activity != null,
+                                text = if (adState is AdState.Loading) "Loading ad…" else "Watch ad",
+                                height = 48.dp
+                            )
+                        }
                     }
                 },
                 confirmLabel = "Go Pro/Max",

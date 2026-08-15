@@ -60,7 +60,9 @@ val themeOptions = listOf(
 data class DailyFreeLogsInfo(
     val allowancePerDay: Int,
     val remainingToday: Int,
-    val carriedLogs: Int
+    val carriedLogs: Int,
+    val bonusLogs: Int,
+    val adsWatched: Int
 )
 
 @HiltViewModel
@@ -155,7 +157,9 @@ class SettingsViewModel @Inject constructor(
             DailyFreeLogsInfo(
                 allowancePerDay = AdsConfig.FREE_DAILY_LOGS,
                 remainingToday = DailyLogQuota.remaining(quota, todayString()),
-                carriedLogs = quota.carriedLogs
+                carriedLogs = quota.carriedLogs,
+                bonusLogs = quota.bonusLogs,
+                adsWatched = quota.adsWatched
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
