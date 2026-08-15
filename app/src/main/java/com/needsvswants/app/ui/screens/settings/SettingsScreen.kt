@@ -27,7 +27,7 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Today
-import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +40,7 @@ import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -56,6 +57,7 @@ import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
+import com.needsvswants.app.ui.screens.summary.InstructionsOverlay
 import com.needsvswants.app.ui.theme.*
 
 @Composable
@@ -88,6 +90,8 @@ fun SettingsScreen(
     val updateCheckBusy by viewModel.updateCheckBusy.collectAsStateWithLifecycle()
     val updateFeedback by viewModel.updateFeedback.collectAsStateWithLifecycle()
     val paid = membership.hasProAccessAt(System.currentTimeMillis())
+    val spendingGoal by viewModel.spendingGoal.collectAsStateWithLifecycle()
+    var showInstructions by remember { mutableStateOf(false) }
     var showWipeConfirm by remember { mutableStateOf(false) }
     var showReminderTimePicker by remember { mutableStateOf(false) }
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
@@ -321,42 +325,7 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        // Manage plan — opens the paywall for renew/upgrade (redundant actions live on
-// the Membership Desk for paid users; kept for free users to discover plans).
-        // The `plain` test flavor strips it entirely.
-        if (!BuildConfig.PLAIN_FREE) {
-            SectionLabelWithIcon(Icons.Outlined.WorkspacePremium, "PLAN", AppTheme.colors.gold)
-            Spacer(Modifier.height(10.dp))
-            SettingsPanel {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onOpenPaywall)
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            if (paid) "Manage membership" else "Go Pro & Max",
-                            style = AppType.bodyMd,
-                            color = palette.textPrimary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            if (paid) "Renew, upgrade to Max, or review plans." else "Unlimited log, lifetime history, Max AI Advisor.",
-                            style = AppType.bodySm,
-                            color = palette.textMuted
-                        )
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        if (paid) "manage membership" else "upgrade to pro",
-                        tint = palette.gold.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
+        SectionLabelWithIcon(Icons.Outlined.CurrencyExchange, "CURRENCY", AppTheme.colors.crimson)
 
         Spacer(Modifier.height(28.dp))
 
@@ -411,6 +380,50 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        SectionLabelWithIcon(Icons.Outlined.TrackChanges, "SPENDING GOAL", AppTheme.colors.marketGreen)
+        Spacer(Modifier.height(10.dp))
+        SettingsPanel {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                listOf("track" to "Track", "budget" to "Budget", "analyze" to "Analyze")
+                    .forEach { (value, label) ->
+                        val selected = spendingGoal == value
+                        Surface(
+                            onClick = {
+                                if (hapticsEnabled) haptics.tick()
+                                viewModel.setSpendingGoal(value)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selected) palette.marketGreen.copy(alpha = 0.12f) else palette.surfaceRaised,
+                            border = if (selected) BorderStroke(1.dp, palette.marketGreen) else null,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                label,
+                                style = AppType.bodySm,
+                                color = if (selected) palette.marketGreen else palette.textSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp)
+                            )
+                        }
+                    }
+            }
+            Text(
+                "What you want from the trainer. Guides the Advisor and nudges.",
+                style = AppType.caption,
+                color = palette.textMuted,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            )
         }
 
         Spacer(Modifier.height(28.dp))
@@ -610,16 +623,28 @@ fun SettingsScreen(
         SectionLabelWithIcon(Icons.Outlined.Shield, stringResource(R.string.settings_privacy_label), AppTheme.colors.textSecondary)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
-            FeedbackToggleRow(
-                title = stringResource(R.string.settings_crash_title),
-                body = stringResource(R.string.settings_crash_body),
-                checked = crashReportsEnabled,
-                onCheckedChange = { checked ->
-                    if (hapticsEnabled) haptics.tick()
-                    viewModel.setCrashReportsEnabled(checked)
-                },
-                palette = palette
-            )
+            if (BuildConfig.SENTRY_DSN.isBlank()) {
+                // No DSN compiled into this build: a working toggle would be a
+                // lie (CrashReporting never enables with a blank DSN), so show
+                // the honest caption instead.
+                Text(
+                    "Crash reports are off in this build.",
+                    style = AppType.caption,
+                    color = palette.textMuted,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                )
+            } else {
+                FeedbackToggleRow(
+                    title = stringResource(R.string.settings_crash_title),
+                    body = stringResource(R.string.settings_crash_body),
+                    checked = crashReportsEnabled,
+                    onCheckedChange = { checked ->
+                        if (hapticsEnabled) haptics.tick()
+                        viewModel.setCrashReportsEnabled(checked)
+                    },
+                    palette = palette
+                )
+            }
             HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
             SettingsNavRow(
                 title = stringResource(R.string.settings_privacy_policy_title),
@@ -639,6 +664,12 @@ fun SettingsScreen(
         SectionLabelWithIcon(Icons.Outlined.Info, "ABOUT", AppTheme.colors.textMuted)
         Spacer(Modifier.height(10.dp))
         SettingsPanel {
+            SettingsNavRow(
+                title = "How it works",
+                body = "The Need vs Want method, 30-day window, and daily budget.",
+                onClick = { showInstructions = true }
+            )
+            HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 16.dp))
             Column(modifier = Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     NeedWantSealMark()
@@ -827,6 +858,14 @@ fun SettingsScreen(
                 pendingRestoreUri = null
             },
             dismissLabel = stringResource(R.string.common_cancel)
+        )
+    }
+
+    if (showInstructions) {
+        InstructionsOverlay(
+            paid = paid,
+            onSelectGoal = { viewModel.setSpendingGoal(it) },
+            onDismiss = { showInstructions = false }
         )
     }
 }

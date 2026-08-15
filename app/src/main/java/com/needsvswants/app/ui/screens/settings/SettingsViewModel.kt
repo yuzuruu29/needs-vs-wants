@@ -104,6 +104,14 @@ class SettingsViewModel @Inject constructor(
     val membership: StateFlow<Entitlement> = preferences.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Entitlement.Free)
 
+    /** Onboarding spending goal (track / budget / analyze). */
+    val spendingGoal: StateFlow<String> = preferences.spendingGoal
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "track")
+
+    fun setSpendingGoal(goal: String) {
+        viewModelScope.launch { preferences.setSpendingGoal(goal) }
+    }
+
     private val _refreshBusy = MutableStateFlow(false)
     val refreshBusy: StateFlow<Boolean> = _refreshBusy.asStateFlow()
 

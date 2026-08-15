@@ -8,6 +8,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -82,6 +86,7 @@ fun MembershipDesk(
     val expiry = entitlement.expiresAtEpochMillis
     val planName = if (isMax) "Max" else "Pro"
     val accent = if (isMax) c.crimson else c.gold
+    var showSignOutConfirm by remember { mutableStateOf(false) }
     val expiryFmt = expiry?.let {
         SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(it))
     }
@@ -112,7 +117,7 @@ fun MembershipDesk(
                 if (authState.signedIn) {
                     GhostTextAction(
                         text = if (authState.busy) "Signing out…" else "Sign out",
-                        onClick = onSignOut,
+                        onClick = { showSignOutConfirm = true },
                         enabled = !authState.busy
                     )
                 }
@@ -218,5 +223,22 @@ fun MembershipDesk(
                 )
             }
         }
+    }
+
+    if (showSignOutConfirm) {
+        PremiumDialog(
+            onDismissRequest = { showSignOutConfirm = false },
+            eyebrow = "ACCOUNT",
+            eyebrowColor = c.crimson,
+            title = "Sign out?",
+            body = "This device goes back to Free until you sign in again.",
+            confirmLabel = "Sign out",
+            confirmDanger = true,
+            onConfirm = {
+                showSignOutConfirm = false
+                onSignOut()
+            },
+            dismissLabel = "Cancel"
+        )
     }
 }

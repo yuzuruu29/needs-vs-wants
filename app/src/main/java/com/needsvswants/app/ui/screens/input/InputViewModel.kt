@@ -87,6 +87,10 @@ class InputViewModel @Inject constructor(
         .map { DailyLogQuota.rollDayIfNeeded(it, todayString()) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, QuotaState("", 0, 0))
 
+    /** Onboarding spending goal; the coach consults it (not the default). */
+    val spendingGoal: StateFlow<String> = preferences.spendingGoal
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AdvisorContextPack.DEFAULT_SPENDING_GOAL)
+
     /** True while the free user may watch another rewarded ad today (cap 3). */
     val canWatchAdToday: StateFlow<Boolean> = quotaState
         .map { AdsConfig.ENABLED && DailyLogQuota.canWatchAd(it, todayString()) }
@@ -213,13 +217,15 @@ class InputViewModel @Inject constructor(
 
     /**
      * Pure-ish coach verdict for a draft Want, backed by the domain engine
-     * over the live ledger + daily budget. Null when the budget is off.
+     * over the live ledger + daily budget + the user's spending goal. Null
+     * when the budget is off.
      */
     fun wantHoldSuggestion(costCents: Long): WantHold? {
         val context = AdvisorContextPack.build(
             entries = sheetEntries.value,
             dailyBudgetCents = dailyBudgetCents.value,
-            spendingGoal = AdvisorContextPack.DEFAULT_SPENDING_GOAL
+            spendingGoal = spendingGoal.value,
+            currencySymbol = currencySymbol.value
         )
         return FinancialAdvisorEngine.wantHoldSuggestion(costCents, context)
     }
