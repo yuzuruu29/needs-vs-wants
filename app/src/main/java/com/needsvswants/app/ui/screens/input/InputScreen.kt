@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -81,6 +83,7 @@ import com.needsvswants.app.ui.theme.rememberAppSfx
 import com.needsvswants.app.ui.theme.themedInkWash
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -88,7 +91,8 @@ import java.util.Locale
 @Composable
 fun InputScreen(
     viewModel: InputViewModel = hiltViewModel(),
-    onOpenPaywall: () -> Unit = {}
+    onOpenPaywall: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
     val entries by viewModel.sheetEntries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
@@ -99,6 +103,9 @@ fun InputScreen(
     val quotaBlocked by viewModel.quotaBlocked.collectAsStateWithLifecycle()
     val canWatchAdToday by viewModel.canWatchAdToday.collectAsStateWithLifecycle()
     val adState by viewModel.adState.collectAsStateWithLifecycle()
+    val sealHour by viewModel.sealHourOverride.collectAsStateWithLifecycle()
+    val lastItemChips by viewModel.lastItemChips.collectAsStateWithLifecycle()
+    val backupNudgeVisible by viewModel.backupNudgeVisible.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
     val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
@@ -118,6 +125,10 @@ fun InputScreen(
     var editingBudget by remember { mutableStateOf(false) }
     var showNewSheetConfirm by remember { mutableStateOf(false) }
     var showSealStamp by remember { mutableStateOf(false) }
+    var showBackupNudge by remember { mutableStateOf(false) }
+    LaunchedEffect(backupNudgeVisible) {
+        if (backupNudgeVisible) showBackupNudge = true
+    }
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()
     val listState = rememberLazyListState()
@@ -294,6 +305,27 @@ fun InputScreen(
                             if (!sheetFull) {
                                 PremiumSurface(raised = false) {
                                     Column(modifier = Modifier.padding(16.dp)) {
+                                        if (item.isBlank() && lastItemChips.isNotEmpty()) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                lastItemChips.forEach { (replayItem, replayType) ->
+                                                    CompactChip(
+                                                        label = replayItem,
+                                                        accent = if (replayType == EntryType.NEED) palette.need else palette.want,
+                                                        onClick = {
+                                                            haptics.tick()
+                                                            sfx.tap()
+                                                            viewModel.replayLastItem(replayItem, replayType)
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                            Spacer(Modifier.height(12.dp))
+                                        }
                                         LedgerField(
                                             value = item,
                                             onValueChange = {
@@ -332,6 +364,36 @@ fun InputScreen(
                                                 }
                                                 viewModel.activeType.value = EntryType.WANT
                                                 viewModel.trySeal()
+                                            }
+                                        }
+                                        // Seal as earlier today (top of the chosen hour; Now = real clock).
+                                        Spacer(Modifier.height(10.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .horizontalScroll(rememberScrollState()),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            CompactChip(
+                                                label = "Now",
+                                                accent = palette.gilt,
+                                                selected = sealHour == null,
+                                                onClick = {
+                                                    haptics.tick()
+                                                    viewModel.setSealHour(null)
+                                                }
+                                            )
+                                            val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                                            for (hour in 6..currentHour) {
+                                                CompactChip(
+                                                    label = String.format("%02d:00", hour),
+                                                    accent = palette.gilt,
+                                                    selected = sealHour == hour,
+                                                    onClick = {
+                                                        haptics.tick()
+                                                        viewModel.setSealHour(hour)
+                                                    }
+                                                )
                                             }
                                         }
                                         // Max-only pre-seal Want coach (Task 3): quiet chip
@@ -522,6 +584,26 @@ fun InputScreen(
             )
         }
 
+        if (showBackupNudge) {
+            PremiumDialog(
+                onDismissRequest = {
+                    showBackupNudge = false
+                    viewModel.dismissBackupNudge()
+                },
+                eyebrow = "DIARY",
+                eyebrowColor = palette.gilt,
+                title = "Keep a copy?",
+                body = "Your diary lives on this device. Set up a backup folder in Settings to keep an automatic daily copy.",
+                confirmLabel = "Open Settings",
+                onConfirm = {
+                    showBackupNudge = false
+                    viewModel.dismissBackupNudge()
+                    onOpenSettings()
+                },
+                dismissLabel = "Not now"
+            )
+        }
+
         // Max-only pre-seal Want hold gate (Task 3): the soft gate dialog.
         // "Hold" only closes the dialog: the seal never fired, so the draft
         // stays. Keyed on the consult instance so an edited row replaces the
@@ -598,6 +680,29 @@ fun InputScreen(
         SealStampOverlay(
             visible = showSealStamp,
             modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun CompactChip(
+    label: String,
+    accent: Color,
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) accent.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
+        border = BorderStroke(1.dp, if (selected) accent else AppTheme.colors.dividerStrong)
+    ) {
+        Text(
+            label,
+            style = AppType.button.copy(fontSize = 12.sp),
+            color = if (selected) accent else AppTheme.colors.textSecondary,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         )
     }
 }

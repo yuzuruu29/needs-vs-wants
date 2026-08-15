@@ -110,6 +110,44 @@ class InputViewModel @Inject constructor(
     var activeType = MutableStateFlow<EntryType?>(null)
     private var isSealing = false
 
+    /**
+     * Optional "seal as earlier today" hour (0-23, top of hour). Null = stamp
+     * with the real clock (Now). Cleared after the next successful seal.
+     */
+    var sealHourOverride = MutableStateFlow<Int?>(null)
+
+    fun setSealHour(hour: Int?) {
+        sealHourOverride.value = hour
+    }
+
+    /** Up to 3 unique most-recent (item, type) pairs for one-tap replay. */
+    val lastItemChips: StateFlow<List<Pair<String, EntryType>>> = sheetEntries
+        .map { entries ->
+            entries.asReversed()
+                .distinctBy { it.item to it.type }
+                .take(3)
+                .map { it.item to it.type }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Fill the form from a replay chip; the cost stays empty on purpose. */
+    fun replayLastItem(item: String, type: EntryType) {
+        activeItem.value = item
+        activeType.value = type
+    }
+
+    /** One-shot backup nudge: shown once after 5 sealed entries with no folder. */
+    val backupNudgeVisible: StateFlow<Boolean> = combine(
+        sheetEntries.map { it.size >= 5 },
+        preferences.backupFolderUri.map { it.isNullOrBlank() },
+        preferences.backupNudgeSeen.map { !it }
+    ) { enough, noFolder, notSeen -> enough && noFolder && notSeen }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun dismissBackupNudge() {
+        viewModelScope.launch { preferences.setBackupNudgeSeen(true) }
+    }
+
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetStatus.Off)
 
@@ -319,13 +357,24 @@ class InputViewModel @Inject constructor(
         _coachHold.value = null
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        // Optional "earlier today" stamp (top of the chosen hour); default Now.
+        val stamp = sealHourOverride.value?.let { hour ->
+            Calendar.getInstance().apply {
+                timeInMillis = now
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } ?: now
+        sealHourOverride.value = null
         val willComplete = !entitlement.value.hasProAccessAt(now) && sheetEntries.value.size + 1 >= 20
         viewModelScope.launch {
             entries.insert(
                 Entry(
-                    dateUtc = now,
-                    date = dateFormat.format(Date(now)),
-                    time = timeFormat.format(Date(now)),
+                    dateUtc = stamp,
+                    date = dateFormat.format(Date(stamp)),
+                    time = timeFormat.format(Date(stamp)),
                     item = item,
                     costCents = costCents,
                     type = type

@@ -19,6 +19,7 @@ import com.needsvswants.app.domain.EntitlementType
 import com.needsvswants.app.domain.QuotaState
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -412,6 +413,85 @@ class InputViewModelTest {
 
         assertEquals(0, gateway.loadAndShowCalls)
         assertEquals(AdState.Idle, vm.adState.value)
+    }
+
+    // --- Wave C: earlier-today stamp, last-item replay, backup nudge ----------
+
+    @Test
+    fun sealEarlierToday_stampsTopOfChosenHour() = runTest(dispatcher) {
+        val vm = buildViewModel()
+        advanceUntilIdle()
+
+        // The UI offers hours 06:00..now; pick the current hour (always offered).
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        vm.setSealHour(hour)
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+
+        val sealed = dao.entries.value.single()
+        assertEquals(String.format("%02d:00", hour), sealed.time)
+        assertEquals(today(), sealed.date)
+        assertTrue(sealed.dateUtc <= System.currentTimeMillis())
+        // One-shot: the override clears after the seal.
+        assertNull(vm.sealHourOverride.value)
+    }
+
+    @Test
+    fun sealNow_withoutOverride_usesRealClock() = runTest(dispatcher) {
+        val vm = buildViewModel()
+        advanceUntilIdle()
+
+        val before = System.currentTimeMillis()
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+        val after = System.currentTimeMillis()
+
+        val sealed = dao.entries.value.single()
+        assertTrue(sealed.dateUtc in before..after)
+        assertEquals(today(), sealed.date)
+    }
+
+    @Test
+    fun replayLastItem_fillsItemAndType_keepsCostEmpty() = runTest(dispatcher) {
+        dao.entries.value = listOf(
+            seedEntry(dateUtc = System.currentTimeMillis() - 3000, item = "Rice", type = EntryType.NEED),
+            seedEntry(dateUtc = System.currentTimeMillis() - 2000, item = "Milk tea", type = EntryType.WANT),
+            seedEntry(dateUtc = System.currentTimeMillis() - 1000, item = "Rice", type = EntryType.WANT)
+        )
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        backgroundScope.launch { vm.lastItemChips.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Rice" to EntryType.WANT, "Milk tea" to EntryType.WANT, "Rice" to EntryType.NEED),
+            vm.lastItemChips.value
+        )
+
+        vm.replayLastItem("Milk tea", EntryType.WANT)
+
+        assertEquals("Milk tea", vm.activeItem.value)
+        assertEquals(EntryType.WANT, vm.activeType.value)
+        assertEquals("", vm.activeCost.value)
+    }
+
+    @Test
+    fun backupNudgeVisible_hidesAfterDismiss() = runTest(dispatcher) {
+        dao.entries.value = List(5) { seedEntry(dateUtc = System.currentTimeMillis() - it) }
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        backgroundScope.launch { vm.backupNudgeVisible.collect {} }
+        advanceUntilIdle()
+
+        // 5 sealed entries + no backup folder + nudge never seen.
+        assertTrue(vm.backupNudgeVisible.value)
+
+        vm.dismissBackupNudge()
+        advanceUntilIdle()
+
+        assertFalse(vm.backupNudgeVisible.value)
     }
 
     private class FakeEntryDao : EntryDao {

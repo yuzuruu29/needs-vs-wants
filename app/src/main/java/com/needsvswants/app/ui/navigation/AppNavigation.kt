@@ -282,9 +282,20 @@ fun AppNavigation(
                                 )
                             }
                         })
-                        MainTab.Log -> InputScreen(onOpenPaywall = {
-                            paywallOpen = true
-                        })
+                        MainTab.Log -> InputScreen(
+                            onOpenPaywall = {
+                                paywallOpen = true
+                            },
+                            onOpenSettings = {
+                                lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Settings)
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = MainTab.visibleEntries().indexOf(MainTab.Settings),
+                                        animationSpec = Motion.pageFlip()
+                                    )
+                                }
+                            }
+                        )
                         MainTab.Advisor -> FinancialAdvisorScreen(onOpenPaywall = {
                             paywallOpen = true
                         })
