@@ -50,7 +50,7 @@ const locks = [
   ['woff2 body font', /\.\/fonts\/source-sans3-regular\.woff2/],
   ['woff2 display font', /\.\/fonts\/caveat-bold\.woff2/],
   // audit-gap locks: honesty pass (absolutist claims must stay dead)
-  ['honest trust note', /The diary itself is fully offline/],
+  ['optional rewarded ad honesty', /optional rewarded ad/],
   // 2.0.15 campaign teaser
   ['essence teaser source', /\.\/video\/essence-teaser\.mp4/],
   // 2.0.15 instruction pass: every user-facing how-to must stay on the page
@@ -63,7 +63,7 @@ const locks = [
   ['subscribe guide', /How to subscribe, and how to get it back/],
   ['restore purchases step', /Restore purchases/],
 ];
-['no network calls', '100% offline', 'NotebookLM'].forEach(claim => {
+['no network calls', '100% offline', 'NotebookLM', 'No ads, no tracking', 'No ads, no analytics'].forEach(claim => {
   if (html.includes(claim)) fail('banned claim present: ' + claim);
   else console.log('claim OK absent:', claim);
 });
