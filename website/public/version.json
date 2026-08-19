@@ -1,7 +1,7 @@
 {
-  "versionName": "2.0.15",
-  "versionCode": 23,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.15.apk",
-  "sha256": "b3b4085e9606139160c665602fe5fee0c109411b6d38fcc020e9a143d1006fbc",
-  "notes": "Annual PayPal plans in this APK, local backup/restore, campaign teaser on the site"
+  "versionName": "2.0.16",
+  "versionCode": 24,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.16.apk",
+  "sha256": "0f7525777be624a995a535be2d493fd4d5c5f786c2f56ba177eb7b6af38eed89",
+  "notes": "Receipt scanner hardening, annual PayPal plans, local backup/restore, campaign teaser on the site"
 }
