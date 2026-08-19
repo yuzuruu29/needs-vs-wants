@@ -434,6 +434,7 @@ fun PaywallScreen(
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
                         "Unlimited entries per log sheet" to true,
+                        "Receipt scanner & line-item sorter" to true,
                         "Lifetime history retention" to true,
                         "Full period summary analytics" to false,
                         "Everything in Free" to false

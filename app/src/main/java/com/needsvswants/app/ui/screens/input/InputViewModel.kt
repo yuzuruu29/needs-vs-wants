@@ -2,6 +2,7 @@ package com.needsvswants.app.ui.screens.input
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.ads.RewardedAdGateway
@@ -17,6 +18,9 @@ import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.FinancialAdvisorEngine
 import com.needsvswants.app.domain.QuotaState
+import com.needsvswants.app.domain.ReceiptOcrProcessor
+import com.needsvswants.app.domain.ReceiptScanResult
+import com.needsvswants.app.domain.ScannedLineItem
 import com.needsvswants.app.domain.WantHold
 import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
@@ -26,6 +30,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
@@ -43,6 +48,14 @@ sealed class AdState {
     data object Idle : AdState()
     data object Loading : AdState()
     data class Failed(val message: String) : AdState()
+}
+
+/** State machine for the Pro/Max Receipt Scanner. */
+sealed class ReceiptScanUiState {
+    data object Idle : ReceiptScanUiState()
+    data object Scanning : ReceiptScanUiState()
+    data class Ready(val result: ReceiptScanResult) : ReceiptScanUiState()
+    data class Error(val message: String) : ReceiptScanUiState()
 }
 
 /**
@@ -64,7 +77,8 @@ class InputViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val dailyBudgetUseCase: DailyBudgetUseCase,
     private val rewardedAds: RewardedAdGateway,
-    @ApplicationContext private val appContext: Context?
+    @ApplicationContext private val appContext: Context?,
+    private val receiptOcrProcessor: ReceiptOcrProcessor
 ) : ViewModel() {
     // Same rationale as entitlement/quotaState: isSheetFull and sealNow read
     // .value, and an uncollected WhileSubscribed StateFlow would freeze it.
@@ -109,6 +123,7 @@ class InputViewModel @Inject constructor(
     var activeCost = MutableStateFlow("")
     var activeType = MutableStateFlow<EntryType?>(null)
     private var isSealing = false
+    private var receiptScanJob: Job? = null
 
     /**
      * Optional "seal as earlier today" hour (0-23, top of hour). Null = stamp
@@ -391,6 +406,99 @@ class InputViewModel @Inject constructor(
             isSealing = false
             _sealEvents.tryEmit(SealEvent.Sealed(sheetComplete = willComplete))
             appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
+        }
+    }
+
+    private val _receiptScanState = MutableStateFlow<ReceiptScanUiState>(ReceiptScanUiState.Idle)
+    val receiptScanState: StateFlow<ReceiptScanUiState> = _receiptScanState.asStateFlow()
+
+    fun scanReceipt(bitmap: Bitmap?) {
+        receiptScanJob?.cancel()
+        val now = System.currentTimeMillis()
+        if (!entitlement.value.hasProAccessAt(now)) {
+            _receiptScanState.value = ReceiptScanUiState.Error("Receipt scanning is exclusive to Pro and Max members.")
+            return
+        }
+        if (bitmap == null) {
+            _receiptScanState.value = ReceiptScanUiState.Error("The selected image could not be decoded.")
+            return
+        }
+        _receiptScanState.value = ReceiptScanUiState.Scanning
+        receiptScanJob = viewModelScope.launch {
+            val result = receiptOcrProcessor.recognizeReceipt(bitmap)
+            result.onSuccess { scanResult ->
+                if (scanResult.items.isEmpty()) {
+                    _receiptScanState.value = ReceiptScanUiState.Error("No purchase line items could be detected. Please ensure the receipt is well-lit and clear.")
+                } else {
+                    _receiptScanState.value = ReceiptScanUiState.Ready(scanResult)
+                }
+            }.onFailure { error ->
+                _receiptScanState.value = ReceiptScanUiState.Error(error.message ?: "Failed to process receipt.")
+            }
+        }
+    }
+
+    fun dismissReceiptScan() {
+        receiptScanJob?.cancel()
+        receiptScanJob = null
+        _receiptScanState.value = ReceiptScanUiState.Idle
+    }
+
+    fun sealScannedBatch(
+        items: List<ScannedLineItem>,
+        dateUtcOverride: Long? = null
+    ) {
+        if (isSealing) return
+        val validItems = items.filter { it.type != null && it.costCents > 0L && it.name.isNotBlank() }
+        if (validItems.size != items.size || validItems.isEmpty()) return
+
+        val now = System.currentTimeMillis()
+        if (!entitlement.value.hasProAccessAt(now)) {
+            _receiptScanState.value = ReceiptScanUiState.Error("Your Pro or Max membership is required to seal receipt items.")
+            return
+        }
+        val stamp = dateUtcOverride ?: now
+        val oldestAllowed = now - 30L * 24L * 60L * 60L * 1000L
+        if (stamp > now || stamp < oldestAllowed) {
+            _receiptScanState.value = ReceiptScanUiState.Error("Receipt date must be within the last 30 days.")
+            return
+        }
+        val budget = budgetStatus.value
+        val totalCents = validItems.sumOf { it.costCents }
+        if (budget is BudgetStatus.On && DailyBudgetMath.wouldExceed(budget.spentCents, budget.budgetCents, totalCents)) {
+            _receiptScanState.value = ReceiptScanUiState.Error("This receipt exceeds today's budget. Review the items in Log before sealing.")
+            return
+        }
+        if (entitlement.value.hasMaxAccessAt(now) && validItems.any { it.type == EntryType.WANT && wantHoldSuggestion(it.costCents)?.hold == true }) {
+            _receiptScanState.value = ReceiptScanUiState.Error("Max coach review is required for a Want on this receipt. Log it from the sheet to review the hold.")
+            return
+        }
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val dateStr = dateFormat.format(Date(stamp))
+        val timeStr = timeFormat.format(Date(stamp))
+
+        val entriesToInsert = validItems.mapIndexed { index, item ->
+            Entry(
+                dateUtc = stamp + index,
+                date = dateStr,
+                time = timeStr,
+                item = item.name.trim(),
+                costCents = item.costCents,
+                type = item.type!!
+            )
+        }
+
+        isSealing = true
+        viewModelScope.launch {
+            try {
+                entries.insertAll(entriesToInsert)
+                _receiptScanState.value = ReceiptScanUiState.Idle
+                _sealEvents.tryEmit(SealEvent.Sealed(sheetComplete = false))
+                appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
+            } finally {
+                isSealing = false
+            }
         }
     }
 

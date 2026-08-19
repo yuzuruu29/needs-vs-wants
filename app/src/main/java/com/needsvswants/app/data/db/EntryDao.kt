@@ -9,6 +9,9 @@ interface EntryDao {
     @Insert
     suspend fun insert(entry: Entry): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<Entry>): List<Long>
+
     @Query("SELECT * FROM entries WHERE dateUtc >= :since ORDER BY dateUtc DESC")
     fun observeSince(since: Long): Flow<List<Entry>>
 

@@ -1,6 +1,10 @@
 package com.needsvswants.app.ui.screens.input
 
 import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -13,6 +17,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,15 +31,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,9 +55,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -82,10 +97,15 @@ import com.needsvswants.app.ui.theme.rememberAppHaptics
 import com.needsvswants.app.ui.theme.rememberAppSfx
 import com.needsvswants.app.ui.theme.themedInkWash
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -111,7 +131,12 @@ fun InputScreen(
     val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
     val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
     val coachHold by viewModel.coachHold.collectAsStateWithLifecycle()
+    val receiptScanState by viewModel.receiptScanState.collectAsStateWithLifecycle()
     var showCoachDialog by remember { mutableStateOf(false) }
+    var showProGateDialog by remember { mutableStateOf(false) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val imageScope = rememberCoroutineScope()
     val isFull = viewModel.isSheetFull
     val today = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date())
     val filled = entries.size
@@ -134,6 +159,53 @@ fun InputScreen(
     val listState = rememberLazyListState()
     val palette = AppTheme.colors
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        ReceiptImageLoader.clearCache(context.cacheDir)
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        val uri = pendingCameraUri
+        pendingCameraUri = null
+        if (success && uri != null) {
+            imageScope.launch {
+                val bitmap = runCatching {
+                    withContext(Dispatchers.IO) {
+                        ReceiptImageLoader.decode(context.contentResolver, uri)
+                    }
+                }.getOrNull()
+                viewModel.scanReceipt(bitmap)
+                context.contentResolver.delete(uri, null, null)
+            }
+        } else if (uri != null) {
+            context.contentResolver.delete(uri, null, null)
+        }
+    }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            imageScope.launch {
+                val bitmap = runCatching {
+                    withContext(Dispatchers.IO) {
+                        ReceiptImageLoader.decode(context.contentResolver, uri)
+                    }
+                }.getOrNull()
+                viewModel.scanReceipt(bitmap)
+            }
+        }
+    }
+
+    fun launchReceiptCamera() {
+        val directory = File(context.cacheDir, "receipt-images").apply { mkdirs() }
+        ReceiptImageLoader.clearCache(context.cacheDir)
+        val file = File(directory, "receipt-${UUID.randomUUID()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        pendingCameraUri = uri
+        takePictureLauncher.launch(uri)
+    }
 
     LaunchedEffect(dailyBudgetCents) {
         val cents = dailyBudgetCents
@@ -227,20 +299,65 @@ fun InputScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     GiltRule(width = 40.dp)
-                }
-                if (hasProAccess) {
                     Spacer(Modifier.height(10.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TierTag(
-                            text = if (entitlement.hasMaxAccessAt(now)) "MAX" else "PRO",
-                            color = if (entitlement.hasMaxAccessAt(now)) palette.crimson else palette.gold
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Unlimited sheet",
-                            style = AppType.caption,
-                            color = palette.textMuted
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (hasProAccess) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TierTag(
+                                    text = if (entitlement.hasMaxAccessAt(now)) "MAX" else "PRO",
+                                    color = if (entitlement.hasMaxAccessAt(now)) palette.crimson else palette.gold
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Unlimited sheet",
+                                    style = AppType.caption,
+                                    color = palette.textMuted
+                                )
+                            }
+                        } else {
+                            Spacer(Modifier.width(1.dp))
+                        }
+
+                        // Scan Receipt Button
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(palette.surfaceCard)
+                                .border(
+                                    BorderStroke(1.dp, palette.gold.copy(alpha = if (hasProAccess) 0.8f else 0.45f)),
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .clickable {
+                                    if (hasProAccess) {
+                                        showPhotoSourceDialog = true
+                                    } else {
+                                        showProGateDialog = true
+                                    }
+                                }
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Scan Receipt",
+                                tint = palette.gold,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = "Scan Receipt",
+                                style = AppType.caption.copy(fontWeight = FontWeight.SemiBold),
+                                color = palette.textPrimary
+                            )
+                            TierTag(
+                                text = "PRO",
+                                color = palette.gold
+                            )
+                        }
                     }
                 }
             }
@@ -675,6 +792,156 @@ fun InputScreen(
                 },
                 dismissLabel = "Cancel"
             )
+        }
+
+        if (showProGateDialog) {
+            ReceiptProGateDialog(
+                onDismiss = { showProGateDialog = false },
+                onOpenPaywall = onOpenPaywall
+            )
+        }
+
+        if (showPhotoSourceDialog) {
+            PremiumDialog(
+                onDismissRequest = { showPhotoSourceDialog = false },
+                eyebrow = "RECEIPT SCANNER",
+                eyebrowColor = palette.gold,
+                title = "Select Photo Source",
+                bodyContent = {
+                    Column {
+                        Text(
+                            "Take a photo of your paper receipt or choose an image from your device gallery.",
+                            style = AppType.body,
+                            color = palette.textSecondary
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(palette.surfaceRaised)
+                                    .border(BorderStroke(1.dp, palette.dividerStrong), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        showPhotoSourceDialog = false
+                                        launchReceiptCamera()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        "Camera",
+                                        style = AppType.button.copy(fontSize = 13.sp),
+                                        color = palette.textPrimary
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(palette.surfaceRaised)
+                                    .border(BorderStroke(1.dp, palette.dividerStrong), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        showPhotoSourceDialog = false
+                                        pickImageLauncher.launch("image/*")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PhotoLibrary,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        "Gallery",
+                                        style = AppType.button.copy(fontSize = 13.sp),
+                                        color = palette.textPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmLabel = "Cancel",
+                onConfirm = { showPhotoSourceDialog = false },
+                dismissLabel = "Close"
+            )
+        }
+
+        when (val state = receiptScanState) {
+            is ReceiptScanUiState.Scanning -> {
+                PremiumDialog(
+                    onDismissRequest = { viewModel.dismissReceiptScan() },
+                    eyebrow = "ON-DEVICE OCR",
+                    eyebrowColor = palette.gold,
+                    title = "Scanning Receipt…",
+                    bodyContent = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = palette.gold,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                "Extracting purchase items and amounts locally…",
+                                style = AppType.body,
+                                color = palette.textSecondary
+                            )
+                        }
+                    },
+                    confirmLabel = "Cancel",
+                    onConfirm = { viewModel.dismissReceiptScan() },
+                    dismissLabel = "Close"
+                )
+            }
+            is ReceiptScanUiState.Ready -> {
+                ReceiptSorterModal(
+                    scanResult = state.result,
+                    currencySymbol = symbol,
+                    onDismiss = { viewModel.dismissReceiptScan() },
+                    onSealBatch = { items, dateUtc ->
+                        viewModel.sealScannedBatch(items, dateUtc)
+                    }
+                )
+            }
+            is ReceiptScanUiState.Error -> {
+                PremiumDialog(
+                    onDismissRequest = { viewModel.dismissReceiptScan() },
+                    eyebrow = "RECEIPT SCANNER",
+                    eyebrowColor = palette.danger,
+                    title = "Scan Notice",
+                    body = state.message,
+                    confirmLabel = "OK",
+                    onConfirm = { viewModel.dismissReceiptScan() },
+                    dismissLabel = "Close"
+                )
+            }
+            else -> Unit
         }
 
         SealStampOverlay(

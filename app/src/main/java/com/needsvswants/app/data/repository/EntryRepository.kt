@@ -20,6 +20,8 @@ class EntryRepository @Inject constructor(
 
     suspend fun insert(entry: Entry): Long = dao.insert(entry)
 
+    suspend fun insertAll(entries: List<Entry>): List<Long> = dao.insertAll(entries)
+
     suspend fun delete(entry: Entry) = dao.delete(entry)
 
     suspend fun update(entry: Entry) = dao.update(entry)

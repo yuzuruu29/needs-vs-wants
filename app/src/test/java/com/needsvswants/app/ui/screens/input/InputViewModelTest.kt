@@ -17,6 +17,7 @@ import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.EntitlementTier
 import com.needsvswants.app.domain.EntitlementType
 import com.needsvswants.app.domain.QuotaState
+import com.needsvswants.app.domain.ReceiptOcrProcessor
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -102,7 +103,8 @@ class InputViewModelTest {
         preferences = prefs,
         dailyBudgetUseCase = DailyBudgetUseCase(dao, prefs),
         rewardedAds = rewardedAds,
-        appContext = null
+        appContext = null,
+        receiptOcrProcessor = ReceiptOcrProcessor { Result.success(com.needsvswants.app.domain.ReceiptScanResult()) }
     )
 
     private fun today(): String =
@@ -494,12 +496,83 @@ class InputViewModelTest {
         assertFalse(vm.backupNudgeVisible.value)
     }
 
+    @Test
+    fun sealScannedBatch_insertsAllCategorizedItems_andEmitsSealed() = runTest(dispatcher) {
+        prefs.setEntitlement(
+            Entitlement(
+                tier = EntitlementTier.PRO,
+                type = EntitlementType.PAID,
+                expiresAtEpochMillis = System.currentTimeMillis() + 86_400_000L
+            )
+        )
+        val vm = buildViewModel()
+        advanceUntilIdle()
+        val scanned = listOf(
+            com.needsvswants.app.domain.ScannedLineItem(name = "Bread", costCents = 8250L, type = EntryType.NEED),
+            com.needsvswants.app.domain.ScannedLineItem(name = "Chips", costCents = 4500L, type = EntryType.WANT)
+        )
+
+        vm.sealScannedBatch(scanned)
+        advanceUntilIdle()
+
+        assertEquals(2, dao.entries.value.size)
+        assertEquals("Bread", dao.entries.value[0].item)
+        assertEquals(EntryType.NEED, dao.entries.value[0].type)
+        assertEquals(8250L, dao.entries.value[0].costCents)
+        assertEquals("Chips", dao.entries.value[1].item)
+        assertEquals(EntryType.WANT, dao.entries.value[1].type)
+        assertEquals(4500L, dao.entries.value[1].costCents)
+        assertEquals(ReceiptScanUiState.Idle, vm.receiptScanState.value)
+    }
+
+    @Test
+    fun scanReceipt_onFreeTier_setsError() = runTest(dispatcher) {
+        val vm = buildViewModel()
+        vm.scanReceipt(null)
+        advanceUntilIdle()
+
+        assertTrue(vm.receiptScanState.value is ReceiptScanUiState.Error)
+        assertEquals(
+            "Receipt scanning is exclusive to Pro and Max members.",
+            (vm.receiptScanState.value as ReceiptScanUiState.Error).message
+        )
+    }
+
+    @Test
+    fun sealScannedBatch_rejectsUnclassifiedItems_withoutPartialInsert() = runTest(dispatcher) {
+        prefs.setEntitlement(
+            Entitlement(
+                tier = EntitlementTier.PRO,
+                type = EntitlementType.PAID,
+                expiresAtEpochMillis = System.currentTimeMillis() + 86_400_000L
+            )
+        )
+        val vm = buildViewModel()
+        advanceUntilIdle()
+
+        vm.sealScannedBatch(
+            listOf(
+                com.needsvswants.app.domain.ScannedLineItem(name = "Bread", costCents = 8250L, type = EntryType.NEED),
+                com.needsvswants.app.domain.ScannedLineItem(name = "Unknown", costCents = 4500L, type = null)
+            )
+        )
+        advanceUntilIdle()
+
+        assertTrue(dao.entries.value.isEmpty())
+        assertTrue(vm.receiptScanState.value is ReceiptScanUiState.Ready || vm.receiptScanState.value is ReceiptScanUiState.Idle)
+    }
+
     private class FakeEntryDao : EntryDao {
         val entries = MutableStateFlow<List<Entry>>(emptyList())
 
         override suspend fun insert(entry: Entry): Long {
             entries.value = entries.value + entry
             return entries.value.size.toLong()
+        }
+
+        override suspend fun insertAll(entries: List<Entry>): List<Long> {
+            this.entries.value = this.entries.value + entries
+            return entries.map { it.id }
         }
 
         override fun observeSince(since: Long): Flow<List<Entry>> =

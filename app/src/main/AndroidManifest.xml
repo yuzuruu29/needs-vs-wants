@@ -4,6 +4,7 @@
     <!-- Supabase auth / entitlement remote calls (Task 3 seam; unused while SUPABASE_URL is blank) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
         android:name=".NeedsVsWantsApp"
         android:allowBackup="false"
@@ -13,6 +14,10 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.NeedsVsWants">
+        <!-- Pre-download / declare ML Kit OCR on-device model dependency -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
         <!-- Sentry never auto-starts; CrashReporting.applyState() decides at
              runtime (release build + DSN configured + user opt-in). -->
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
@@ -77,6 +82,15 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 android:value="androidx.startup"
                 tools:node="remove" />
-</provider>
+        </provider>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/receipt_file_paths" />
+        </provider>
     </application>
 </manifest>

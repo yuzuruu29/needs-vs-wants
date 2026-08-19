@@ -227,12 +227,16 @@ dependencies {
     implementation(libs.sentry.android)
     // SAF tree access for local auto-backup (data/backup/)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.exifinterface)
 
     // Rewarded ads for the Free tier (ads/ package). Kill switch is
     // AdsConfig.ENABLED — a disabled config compiles the SDK in but never
     // inits it and never requests ads.
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
+
+    // ML Kit on-device Text Recognition (Pro/Max Receipt Sorter)
+    implementation(libs.play.services.mlkit.text.recognition)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

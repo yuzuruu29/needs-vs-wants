@@ -97,6 +97,7 @@ class SummaryUseCaseTest {
 
     private class FakeEntryDao(private val entries: List<Entry>) : EntryDao {
         override suspend fun insert(entry: Entry): Long = 0L
+        override suspend fun insertAll(entries: List<Entry>): List<Long> = entries.map { it.id }
         override fun observeSince(since: Long): Flow<List<Entry>> =
             flowOf(entries.filter { it.dateUtc >= since })
         override fun observeAll(): Flow<List<Entry>> = flowOf(entries)

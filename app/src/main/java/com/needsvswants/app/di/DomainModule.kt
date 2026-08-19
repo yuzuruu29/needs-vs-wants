@@ -5,6 +5,8 @@ import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.SummaryUseCase
+import com.needsvswants.app.domain.ReceiptOcrEngine
+import com.needsvswants.app.domain.ReceiptOcrProcessor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,6 +16,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DomainModule {
+    @Provides
+    @Singleton
+    fun provideReceiptOcrProcessor(engine: ReceiptOcrEngine): ReceiptOcrProcessor = engine
+
     @Provides
     @Singleton
     fun provideSummaryUseCase(
