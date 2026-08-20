@@ -104,12 +104,25 @@ fun PaywallScreen(
     val payPalAvailable = viewModel.payPalAvailable
     val payMongoAvailable = viewModel.payMongoAvailable
     val context = LocalContext.current
+    val isPlay = viewModel.isPlayStoreBuild
+    val activity = context as? android.app.Activity
+
+    LaunchedEffect(activity) {
+        viewModel.setActivity(activity)
+    }
+
+    val playController = viewModel.playBillingController
+    val proMonthlyPricePlay by playController?.proMonthlyPrice?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
+    val proAnnualPricePlay by playController?.proAnnualPrice?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
+    val maxMonthlyPricePlay by playController?.maxMonthlyPrice?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
+    val maxAnnualPricePlay by playController?.maxAnnualPrice?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
 
     /** The provider the CTA/footer/timeline actually describe: the user's
      *  choice when available, otherwise the one provider this build has
      *  (PayMongo wins the fully-unconfigured fallback, matching the
      *  pre-selector default). */
     val effectiveProvider = when {
+        isPlay -> PaymentProvider.GOOGLE_PLAY
         selectedProvider == PaymentProvider.PAYPAL && !payPalAvailable -> PaymentProvider.PAYMONGO
         selectedProvider == PaymentProvider.PAYMONGO && !payMongoAvailable -> PaymentProvider.PAYPAL
         !payPalAvailable && payMongoAvailable -> PaymentProvider.PAYMONGO
@@ -120,18 +133,35 @@ fun PaywallScreen(
     /** Billing cycle shorthand for the copy matrix below (₱49/₱99 monthly, ₱490/₱990 annual). */
     val isAnnual = selectedPeriod == BillingPeriod.ANNUAL
     val proTag = when {
+        isPlay -> if (isAnnual) "Billed yearly via Google Play" else "Auto-renewing monthly"
         effectiveProvider == PaymentProvider.PAYPAL && !isAnnual -> "3-day free trial"
         effectiveProvider == PaymentProvider.PAYPAL -> "Billed yearly"
         !isAnnual -> "One-time ₱49"
         else -> "One-time ₱490"
     }
-    val proPriceSuffix = when (effectiveProvider) {
-        PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo after trial"
-        PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
+    val proPriceDisplay = when {
+        isPlay && isAnnual && proAnnualPricePlay != null -> proAnnualPricePlay!!
+        isPlay && !isAnnual && proMonthlyPricePlay != null -> proMonthlyPricePlay!!
+        isAnnual -> "₱490"
+        else -> "₱49"
     }
-    val maxPriceSuffix = when (effectiveProvider) {
-        PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo"
-        PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
+    val maxPriceDisplay = when {
+        isPlay && isAnnual && maxAnnualPricePlay != null -> maxAnnualPricePlay!!
+        isPlay && !isAnnual && maxMonthlyPricePlay != null -> maxMonthlyPricePlay!!
+        isAnnual -> "₱990"
+        else -> "₱99"
+    }
+    val proPriceSuffix = when {
+        isPlay -> if (isAnnual) "/ yr" else "/ mo"
+        effectiveProvider == PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo after trial"
+        effectiveProvider == PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
+        else -> if (isAnnual) "/ yr" else "/ mo"
+    }
+    val maxPriceSuffix = when {
+        isPlay -> if (isAnnual) "/ yr" else "/ mo"
+        effectiveProvider == PaymentProvider.PAYPAL -> if (isAnnual) "/ yr" else "/ mo"
+        effectiveProvider == PaymentProvider.PAYMONGO -> if (isAnnual) "/ yr · renewed manually" else "/ mo · renewed manually"
+        else -> if (isAnnual) "/ yr" else "/ mo"
     }
 
     var selected by remember {
@@ -291,10 +321,12 @@ fun PaywallScreen(
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
         MembershipPlan.Pro -> if (isPro) "You're on Pro" else when (effectiveProvider) {
+            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play · Pro"
             PaymentProvider.PAYPAL -> "Continue with PayPal · Pro (3-day trial)"
             PaymentProvider.PAYMONGO -> "Continue with PayMongo · Pro"
         }
         MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else when (effectiveProvider) {
+            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play · Max"
             PaymentProvider.PAYPAL -> "Continue with PayPal · Max"
             PaymentProvider.PAYMONGO -> "Continue with PayMongo · Max"
         }
@@ -307,6 +339,8 @@ fun PaywallScreen(
     val footerNote = when (selected) {
         MembershipPlan.Free -> "No account. No network. 20 entries per sheet · 30-day trainer."
         MembershipPlan.Pro -> when (effectiveProvider) {
+            PaymentProvider.GOOGLE_PLAY ->
+                "Subscribed through Google Play. Auto-renews until cancelled. Cancel anytime in Google Play Subscriptions."
             PaymentProvider.PAYPAL ->
                 if (isAnnual) {
                     "3-day free trial on PayPal if enabled on the plan, then ₱490/yr. Cancel anytime in PayPal."
@@ -317,6 +351,8 @@ fun PaywallScreen(
                 "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each period when ready — access ends on your expiry date. No auto-charge."
         }
         MembershipPlan.Max -> when (effectiveProvider) {
+            PaymentProvider.GOOGLE_PLAY ->
+                "Subscribed through Google Play. Auto-renews until cancelled. Cancel anytime in Google Play Subscriptions."
             PaymentProvider.PAYPAL ->
                 if (isAnnual) "₱990/yr via PayPal. Cancel anytime in PayPal."
                 else "₱99/mo via PayPal. Cancel anytime in PayPal."
@@ -429,7 +465,7 @@ fun PaywallScreen(
                     eyebrow = "Pro",
                     title = "Unlimited",
                     tag = proTag,
-                    price = if (isAnnual) "₱490" else "₱49",
+                    price = proPriceDisplay,
                     priceSuffix = proPriceSuffix,
                     subtitle = "Unlimited sheets, full history, full period analytics.",
                     features = listOf(
@@ -452,7 +488,7 @@ fun PaywallScreen(
                     eyebrow = "Max",
                     title = "AI Advisor",
                     tag = "Includes Pro",
-                    price = if (isAnnual) "₱990" else "₱99",
+                    price = maxPriceDisplay,
                     priceSuffix = maxPriceSuffix,
                     subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(

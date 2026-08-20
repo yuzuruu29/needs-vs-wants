@@ -546,6 +546,16 @@ fun TrialTimelineCard(
                 TimelineRow("Expiry", "Access lasts until your expiry date — no auto-charge.")
                 TimelineRow("Renew", "Pay again only when you're ready to continue.")
             }
+            PaymentProvider.GOOGLE_PLAY -> {
+                Eyebrow("GOOGLE PLAY SUBSCRIPTION", color = c.gilt, size = 10)
+                Spacer(Modifier.height(8.dp))
+                TimelineRow("Today", "$planWord unlocks immediately after Google Play confirmation.")
+                TimelineRow(
+                    if (period == BillingPeriod.ANNUAL) "Yearly" else "Monthly",
+                    "Google Play renews your subscription automatically each period."
+                )
+                TimelineRow("Anytime", "Manage or cancel anytime in Google Play Store settings.")
+            }
         }
     }
 }

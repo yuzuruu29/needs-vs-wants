@@ -1,22 +1,28 @@
 // Needs vs Wants - google_play_verify Edge Function
 // Task 2: Pro subscription backend scaffolding.
 //
-// Verifies a Google Play purchase/subscription on the Play Developer API,
-// then grants/extends the caller's Pro entitlement.
+// Verifies a Google Play purchase/subscription on the Play Developer API
+// via subscriptionsv2, then grants/extends the caller's Pro/Max entitlement.
 //
 // Trust model:
-//   - Client sends {package_name, product_id, purchase_token, kind} where
-//     kind is "subscription" | "one_time".
+//   - Client sends {package_name, purchase_token, kind}.
 //   - We mint a service-account RS256 JWT (GOOGLE_PLAY_SERVICE_ACCOUNT_JSON),
 //     exchange it for an OAuth access token, and call the real Play API.
 //   - Only a valid, non-cancelled, non-expired purchase produces a grant.
-//   - Server never trusts the client's own claim of purchase validity.
+//   - Server never trusts the client's own claim of purchase validity or tier.
 //
 // Idempotent: purchase_token is a natural idempotency key; re-verifying the
 // same token re-applies the same grant.
 
 import { error, handleOptions, jsonResponse } from "../_shared/http.ts";
-import { grantToRowFields } from "../_shared/entitlements.ts";
+import {
+  grantToRowFields,
+  tierFromGooglePlayProductId,
+  parseSubscriptionV2Response,
+  parseOneTimeProductV2Response,
+  type SubscriptionPurchaseV2Response,
+  type OneTimeProductV2Response,
+} from "../_shared/entitlements.ts";
 import {
   createClient,
 } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -100,51 +106,40 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
   return data.access_token;
 }
 
-async function verifySubscription(
+interface SubscriptionPurchaseV2 {
+  subscriptionState?: string;
+  lineItems?: Array<{
+    productId?: string;
+    expiryTime?: string;
+    acknowledgementState?: string;
+  }>;
+  externalAccountIdentifiers?: Record<string, unknown>;
+}
+
+async function verifySubscriptionV2(
   token: string,
   packageName: string,
-  productId: string,
   purchaseToken: string,
-): Promise<{ expiry: string; entitlementState: "active" | "on_hold" } | null> {
+): Promise<{ expiry: string; productId: string } | null> {
   const url =
-    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+    `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 404) return null;
   if (!res.ok) {
-    throw new Error(`Play API subscription error: ${res.status}`);
+    throw new Error(`Play API subscriptionsv2 error: ${res.status}`);
   }
-  const data = await res.json() as {
-    expiryTimeMillis?: string;
-    paymentState?: number;
-    cancelReason?: number;
-  };
-  const paymentState = data.paymentState;
-  // 0 = payment pending, 1 = received, 2 = free trial, 3 = pending deferral.
-  // Only proceed if payment received or free trial.
-  if (paymentState !== undefined && paymentState !== 1 && paymentState !== 2) {
-    return null;
-  }
-  // 0 = user cancelled, 1 = system cancelled, 2 = replaced, 3 = developer.
-  // ANY present cancelReason means the subscription is no longer active, so
-  // every value (0..3) is rejected.
-  if (data.cancelReason !== undefined && data.cancelReason !== null) {
-    return null;
-  }
-  if (!data.expiryTimeMillis) return null;
-  // An expiry in the past means the subscription has lapsed; never re-grant.
-  if (Number(data.expiryTimeMillis) <= Date.now()) return null;
-  const expiry = new Date(Number(data.expiryTimeMillis)).toISOString();
-  return { expiry, entitlementState: "active" };
+  const data = await res.json() as SubscriptionPurchaseV2Response;
+  return parseSubscriptionV2Response(data);
 }
 
-async function verifyOneTimeProduct(
+async function verifyOneTimeProductV2(
   token: string,
   packageName: string,
   productId: string,
   purchaseToken: string,
-): Promise<{ expiry: string | null } | null> {
+): Promise<{ expiry: string | null; productId: string } | null> {
   const url =
     `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
   const res = await fetch(url, {
@@ -154,17 +149,8 @@ async function verifyOneTimeProduct(
   if (!res.ok) {
     throw new Error(`Play API product error: ${res.status}`);
   }
-  const data = await res.json() as {
-    purchaseState?: number;
-    purchaseTimeMillis?: string;
-  };
-  // purchaseState 0 = purchased.
-  if (data.purchaseState !== undefined && data.purchaseState !== 0) return null;
-  // One-time products never expire, so they grant lifetime Pro. We encode that
-  // as expiry: null -> paid_until: NULL, which the model treats as lifetime.
-  // This is the one intentional exception to "never write paid_until = NULL
-  // for a paid grant" (a one-time product is not a recurring subscription).
-  return { expiry: null };
+  const data = await res.json() as OneTimeProductV2Response;
+  return parseOneTimeProductV2Response(data, productId);
 }
 
 Deno.serve(async (req: Request) => {
@@ -189,38 +175,36 @@ Deno.serve(async (req: Request) => {
       kind?: "subscription" | "one_time";
     };
     const packageName = body.package_name;
-    const productId = body.product_id;
     const purchaseToken = body.purchase_token;
-    const kind = body.kind;
-    if (!packageName || !productId || !purchaseToken || !kind) {
+    const kind = body.kind ?? "subscription";
+    if (!packageName || !purchaseToken) {
       return error("Missing purchase params", 400);
+    }
+    if (kind === "one_time" && !body.product_id) {
+      return error("Missing product_id for one_time purchase", 400);
     }
 
     const accessToken = await getAccessToken(sa);
 
-    let grantExpiry: string | null;
+    let result: { expiry: string; productId: string } | null;
     if (kind === "subscription") {
-      const result = await verifySubscription(
+      result = await verifySubscriptionV2(
         accessToken,
         packageName,
-        productId,
         purchaseToken,
       );
-      if (!result) {
-        return jsonResponse({ success: true, valid: false, reason: "not_active" });
-      }
-      grantExpiry = result.expiry;
     } else {
-      const result = await verifyOneTimeProduct(
+      const oneTime = await verifyOneTimeProductV2(
         accessToken,
         packageName,
-        productId,
+        body.product_id!,
         purchaseToken,
       );
-      if (!result) {
-        return jsonResponse({ success: true, valid: false, reason: "not_active" });
-      }
-      grantExpiry = result.expiry;
+      result = oneTime ? { expiry: oneTime.expiry ?? "", productId: oneTime.productId } : null;
+    }
+
+    if (!result) {
+      return jsonResponse({ success: true, valid: false, reason: "not_active" });
     }
 
     const auth = req.headers.get("authorization") ?? "";
@@ -253,9 +237,12 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
+    // Tier is derived from Google's verified response, never from the client's request.
+    const tier = tierFromGooglePlayProductId(result.productId);
     const fields = grantToRowFields({
       mode: "paid",
-      paid_until: grantExpiry,
+      tier,
+      paid_until: result.expiry || null,
       provider: "google",
       source: kind,
       status: "purchased",
@@ -273,7 +260,7 @@ Deno.serve(async (req: Request) => {
       return error("Failed to apply grant", 500);
     }
 
-    return jsonResponse({ success: true, valid: true, paid_until: grantExpiry });
+    return jsonResponse({ success: true, valid: true, paid_until: result.expiry, product_id: result.productId });
   } catch (err) {
     console.error("google_play_verify error:", err);
     return error("Internal error", 500);

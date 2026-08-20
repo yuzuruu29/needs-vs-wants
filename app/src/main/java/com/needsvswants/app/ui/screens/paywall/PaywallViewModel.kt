@@ -83,6 +83,8 @@ class PaywallViewModel @Inject constructor(
     val annualProductId: String = config.proAnnualProductId.ifBlank { "pro_annual" }
     val maxAnnualProductId: String = config.maxAnnualProductId.ifBlank { "max_annual" }
 
+    val isPlayStoreBuild: Boolean = checkoutProvider.isPlayStoreBuild
+
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy.asStateFlow()
 
@@ -92,9 +94,15 @@ class PaywallViewModel @Inject constructor(
     private val _pendingPurchase = MutableStateFlow(PendingPurchase.None)
     val pendingPurchase: StateFlow<PendingPurchase> = _pendingPurchase.asStateFlow()
 
-    /** Provider used for the next checkout; PayPal trial-first, PayMongo as the one-time alternative. */
+    /** Provider used for the next checkout; PayPal trial-first, PayMongo as the one-time alternative, Google Play for Store. */
     private val _selectedProvider = MutableStateFlow(
-        if (checkoutProvider.payPalAvailable) PaymentProvider.PAYPAL else PaymentProvider.PAYMONGO
+        if (checkoutProvider.isPlayStoreBuild) {
+            PaymentProvider.GOOGLE_PLAY
+        } else if (checkoutProvider.payPalAvailable) {
+            PaymentProvider.PAYPAL
+        } else {
+            PaymentProvider.PAYMONGO
+        }
     )
     val selectedProvider: StateFlow<PaymentProvider> = _selectedProvider.asStateFlow()
 
@@ -105,6 +113,13 @@ class PaywallViewModel @Inject constructor(
     /** Static per-build availability of each checkout provider (config-driven). */
     val payPalAvailable: Boolean = checkoutProvider.payPalAvailable
     val payMongoAvailable: Boolean = checkoutProvider.payMongoAvailable
+
+    val playBillingController: com.needsvswants.app.data.billing.GooglePlayBillingController? =
+        billing as? com.needsvswants.app.data.billing.GooglePlayBillingController
+
+    fun setActivity(activity: android.app.Activity?) {
+        playBillingController?.setActivity(activity)
+    }
 
     /**
      * Checkout-return sync lifecycle ([CheckoutSyncState]). Drives the paywall
@@ -423,6 +438,9 @@ class PaywallViewModel @Inject constructor(
             PaymentProvider.PAYMONGO ->
                 checkoutProvider.controllerFor(PaymentProvider.PAYMONGO)
                     .purchase(productIdFor("pro", period), period)
+            PaymentProvider.GOOGLE_PLAY ->
+                checkoutProvider.controllerFor(PaymentProvider.GOOGLE_PLAY)
+                    .purchase(productIdFor("pro", period), period)
         }
     }
 
@@ -438,6 +456,9 @@ class PaywallViewModel @Inject constructor(
                     .purchase(productIdFor("max", period), period)
             PaymentProvider.PAYMONGO ->
                 checkoutProvider.controllerFor(PaymentProvider.PAYMONGO)
+                    .purchase(productIdFor("max", period), period)
+            PaymentProvider.GOOGLE_PLAY ->
+                checkoutProvider.controllerFor(PaymentProvider.GOOGLE_PLAY)
                     .purchase(productIdFor("max", period), period)
         }
     }

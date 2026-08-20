@@ -20,15 +20,28 @@ fun localProp(name: String, default: String = ""): String =
 
 android {
     namespace = "com.needsvswants.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.needsvswants.app"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 24
         versionName = "2.0.16"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // --- Google Play Billing Subscriptions -----------------------------
+        // Official product IDs registered in Google Play Console.
+        buildConfigField(
+            "String",
+            "PLAY_SUB_PRO",
+            "\"${localProp("PLAY_SUB_PRO", "needsvswants_pro")}\""
+        )
+        buildConfigField(
+            "String",
+            "PLAY_SUB_MAX",
+            "\"${localProp("PLAY_SUB_MAX", "needsvswants_max")}\""
+        )
 
         // --- Task 3: Pro / Supabase seams -----------------------------------
         // Empty by default (offline). Set SUPABASE_URL + SUPABASE_ANON_KEY in
@@ -96,11 +109,19 @@ android {
         }
     }
 
-    // `experience` flavor: `full` is the current production app (unchanged);
-    // `plain` is a Free-only side-by-side test APK (FORCED Free, no Advisor /
-    // paywall / membership UI). Gate flag is BuildConfig.PLAIN_FREE.
-    flavorDimensions += "experience"
+    // Dual distribution: `direct` (sideload APK + PayPal/PayMongo) vs
+    // `play` (Google Play Store AAB + Google Play Billing).
+    // `experience`: `full` (production app) vs `plain` (free-only side-by-side test build).
+    flavorDimensions += listOf("distribution", "experience")
     productFlavors {
+        create("direct") {
+            dimension = "distribution"
+            buildConfigField("boolean", "PLAY_STORE_BUILD", "false")
+        }
+        create("play") {
+            dimension = "distribution"
+            buildConfigField("boolean", "PLAY_STORE_BUILD", "true")
+        }
         create("full") {
             dimension = "experience"
             buildConfigField("boolean", "PLAIN_FREE", "false")
@@ -115,6 +136,13 @@ android {
             resValue("string", "app_name", "Needs vs Wants (Free Test)")
             manifestPlaceholders["deepLinkScheme"] = "needsvswantsplain"
             buildConfigField("String", "DEEP_LINK_SCHEME", "\"needsvswantsplain\"")
+        }
+    }
+
+    variantFilter {
+        // Play Store distribution only needs the full production app, not the plain-free test flavor.
+        if (flavors.any { it.name == "play" } && flavors.any { it.name == "plain" }) {
+            ignore = true
         }
     }
 
@@ -157,6 +185,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
     }
 
     buildFeatures {
@@ -217,6 +246,14 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
 
+    // PBL 9 / Kotlin 2.x metadata compatibility for Hilt annotation processing.
+    // The Play Billing 9 KTX jars carry newer Kotlin metadata than the
+    // kotlinx-metadata-jvm version bundled with Hilt 2.51.x. Force a newer
+    // metadata library so hiltJavaCompile can read those class files.
+    constraints {
+        implementation("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.6.3")
+    }
+
     // Google Sign-In via Credential Manager (native ID token → Supabase)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
@@ -237,6 +274,9 @@ dependencies {
 
     // ML Kit on-device Text Recognition (Pro/Max Receipt Sorter)
     implementation(libs.play.services.mlkit.text.recognition)
+
+    // Google Play In-App Billing (Play Store subscriptions)
+    implementation(libs.play.billing)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
@@ -262,4 +302,14 @@ dependencies {
 
     // Phase 6 Glance Widget
     implementation("androidx.glance:glance-appwidget:1.1.0")
+}
+
+// PBL 9 / Kotlin 2.x metadata compatibility for Hilt annotation processing.
+// The Play Billing 9 KTX jars carry newer Kotlin metadata than the
+// kotlinx-metadata-jvm version bundled with Hilt 2.51.x. Force a newer
+// metadata library so hiltJavaCompile can read those class files.
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.6.3")
+    }
 }

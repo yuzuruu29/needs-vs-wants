@@ -117,6 +117,17 @@ export function tierFromPayPalPlanId(
 }
 
 /**
+ * Resolve tier from a Google Play Product ID (e.g. needsvswants_pro, needsvswants_max).
+ */
+export function tierFromGooglePlayProductId(
+  productId: string | null | undefined,
+): "pro" | "max" {
+  if (!productId) return "pro";
+  if (/max/i.test(productId)) return "max";
+  return "pro";
+}
+
+/**
  * Detect an ACTIVE trial tenure from PayPal's billing_info.cycle_executions.
  * A trial tenure with cycles still remaining means the subscription is inside
  * its free-trial window (e.g. the 3-day Pro plan) — the grant must be mode
@@ -358,4 +369,71 @@ export function grantToRowFields(
         status: null,
       };
   }
+}
+
+export interface SubscriptionV2LineItem {
+  productId?: string;
+  expiryTime?: string;
+  acknowledgementState?: string;
+}
+
+export interface SubscriptionPurchaseV2Response {
+  subscriptionState?: string;
+  lineItems?: SubscriptionV2LineItem[];
+}
+
+export interface OneTimeProductV2Response {
+  productId?: string;
+  purchaseState?: number;
+  purchaseTimeMillis?: string;
+}
+
+/**
+ * Parse a subscriptionsv2 response into a grantable result.
+ * Returns null when the subscription is not in an active-entitlement state,
+ * when the expiry date is in the past, or when required fields are missing.
+ */
+export function parseSubscriptionV2Response(
+  data: SubscriptionPurchaseV2Response,
+  nowIso?: string,
+): { expiry: string; productId: string } | null {
+  const subscriptionState = data.subscriptionState?.toUpperCase();
+  const isActive =
+    subscriptionState === "SUBSCRIPTION_STATE_ACTIVE" ||
+    subscriptionState === "ACTIVE" ||
+    subscriptionState === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD" ||
+    subscriptionState === "IN_GRACE_PERIOD";
+  if (!isActive) {
+    return null;
+  }
+
+  const lineItem = data.lineItems?.[0];
+  if (!lineItem?.productId || !lineItem?.expiryTime) {
+    return null;
+  }
+
+  const expiryMs = Date.parse(lineItem.expiryTime);
+  if (Number.isNaN(expiryMs)) return null;
+
+  const nowMs = nowIso ? Date.parse(nowIso) : Date.now();
+  if (!Number.isNaN(nowMs) && expiryMs <= nowMs) {
+    return null;
+  }
+
+  const expiry = new Date(expiryMs).toISOString();
+  return { expiry, productId: lineItem.productId };
+}
+
+/**
+ * Parse a one-time product v2 response.
+ * Returns null when the purchase state is not purchased (0) or productId is missing.
+ */
+export function parseOneTimeProductV2Response(
+  data: OneTimeProductV2Response,
+  fallbackProductId?: string,
+): { expiry: string | null; productId: string } | null {
+  if (data.purchaseState !== 0) return null;
+  const productId = data.productId || fallbackProductId;
+  if (!productId) return null;
+  return { expiry: null, productId };
 }

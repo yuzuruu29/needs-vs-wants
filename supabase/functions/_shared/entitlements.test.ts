@@ -7,10 +7,13 @@ import {
   isEntitlementActive,
   hasProAccess,
   hasMaxAccess,
+  tierFromGooglePlayProductId,
   mapPayPalWebhookEvent,
   grantToRowFields,
   buildTrialGrant,
   TRIAL_DURATION_DAYS,
+  parseSubscriptionV2Response,
+  parseOneTimeProductV2Response,
 } from "./entitlements.ts";
 
 // ---------------------------------------------------------------------------
@@ -116,6 +119,16 @@ Deno.test("hasMaxAccess returns true ONLY for max tier, false for pro or free", 
   assertEquals(hasMaxAccess({ is_pro: true, tier: "max", trial_ends_at: null, paid_until: null }, now), true);
   assertEquals(hasMaxAccess({ is_pro: true, tier: "pro", trial_ends_at: null, paid_until: null }, now), false);
   assertEquals(hasMaxAccess({ is_pro: false, tier: "free", trial_ends_at: null, paid_until: null }, now), false);
+});
+
+Deno.test("tierFromGooglePlayProductId maps product IDs correctly", () => {
+  assertEquals(tierFromGooglePlayProductId("needsvswants_pro"), "pro");
+  assertEquals(tierFromGooglePlayProductId("needsvswants_max"), "max");
+  assertEquals(tierFromGooglePlayProductId("pro_monthly"), "pro");
+  assertEquals(tierFromGooglePlayProductId("max_annual"), "max");
+  assertEquals(tierFromGooglePlayProductId(""), "pro");
+  assertEquals(tierFromGooglePlayProductId(null), "pro");
+  assertEquals(tierFromGooglePlayProductId(undefined), "pro");
 });
 
 // ---------------------------------------------------------------------------
@@ -499,4 +512,185 @@ Deno.test("buildTrialGrant produces a 3-day window", () => {
   const end = start + build.trial_days! * 24 * 60 * 60 * 1000;
   assertEquals(build.trial_days, 3);
   assertEquals(end - start, 3 * 24 * 60 * 60 * 1000);
+});
+
+// ---------------------------------------------------------------------------
+// subscriptionsv2 parsing helpers
+// ---------------------------------------------------------------------------
+
+const testNow = "2026-08-20T12:00:00.000Z";
+
+Deno.test("parseSubscriptionV2Response maps ACTIVE state with future expiry", () => {
+  const result = parseSubscriptionV2Response({
+    subscriptionState: "ACTIVE",
+    lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+  }, testNow);
+  assertEquals(result?.productId, "needsvswants_pro");
+  assertEquals(result?.expiry, "2026-09-01T00:00:00.000Z");
+});
+
+Deno.test("parseSubscriptionV2Response maps SUBSCRIPTION_STATE_ACTIVE with future expiry", () => {
+  const result = parseSubscriptionV2Response({
+    subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+    lineItems: [{ productId: "needsvswants_max", expiryTime: "2026-09-01T00:00:00.000Z" }],
+  }, testNow);
+  assertEquals(result?.productId, "needsvswants_max");
+  assertEquals(result?.expiry, "2026-09-01T00:00:00.000Z");
+});
+
+Deno.test("parseSubscriptionV2Response maps SUBSCRIPTION_STATE_IN_GRACE_PERIOD with future expiry", () => {
+  const result = parseSubscriptionV2Response({
+    subscriptionState: "SUBSCRIPTION_STATE_IN_GRACE_PERIOD",
+    lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-08-25T00:00:00.000Z" }],
+  }, testNow);
+  assertEquals(result?.productId, "needsvswants_pro");
+  assertEquals(result?.expiry, "2026-08-25T00:00:00.000Z");
+});
+
+Deno.test("parseSubscriptionV2Response maps IN_GRACE_PERIOD with future expiry", () => {
+  const result = parseSubscriptionV2Response({
+    subscriptionState: "IN_GRACE_PERIOD",
+    lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-08-25T00:00:00.000Z" }],
+  }, testNow);
+  assertEquals(result?.productId, "needsvswants_pro");
+  assertEquals(result?.expiry, "2026-08-25T00:00:00.000Z");
+});
+
+Deno.test("parseSubscriptionV2Response rejects expired state (SUBSCRIPTION_STATE_EXPIRED)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_EXPIRED",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects canceled state (SUBSCRIPTION_STATE_CANCELED)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_CANCELED",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects pending state (SUBSCRIPTION_STATE_PENDING)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_PENDING",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects paused state (SUBSCRIPTION_STATE_PAUSED)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_PAUSED",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects on hold state (SUBSCRIPTION_STATE_ON_HOLD)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_ON_HOLD",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects unspecified state (SUBSCRIPTION_STATE_UNSPECIFIED)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_UNSPECIFIED",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects unknown state", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SOME_UNKNOWN_STATE",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects active state with past expiry timestamp", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: "2026-08-19T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects active state with exact expiry boundary (expiry == now)", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+      lineItems: [{ productId: "needsvswants_pro", expiryTime: testNow }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects missing line items", () => {
+  assertEquals(parseSubscriptionV2Response({ subscriptionState: "ACTIVE" }, testNow), null);
+});
+
+Deno.test("parseSubscriptionV2Response rejects missing productId", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "ACTIVE",
+      lineItems: [{ expiryTime: "2026-09-01T00:00:00.000Z" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseSubscriptionV2Response rejects missing expiryTime", () => {
+  assertEquals(
+    parseSubscriptionV2Response({
+      subscriptionState: "ACTIVE",
+      lineItems: [{ productId: "needsvswants_pro" }],
+    }, testNow),
+    null
+  );
+});
+
+Deno.test("parseOneTimeProductV2Response accepts purchased state with data.productId", () => {
+  const result = parseOneTimeProductV2Response({
+    productId: "needsvswants_pro",
+    purchaseState: 0,
+  });
+  assertEquals(result?.productId, "needsvswants_pro");
+  assertEquals(result?.expiry, null);
+});
+
+Deno.test("parseOneTimeProductV2Response accepts purchased state with fallbackProductId", () => {
+  const result = parseOneTimeProductV2Response({
+    purchaseState: 0,
+  }, "needsvswants_max");
+  assertEquals(result?.productId, "needsvswants_max");
+  assertEquals(result?.expiry, null);
+});
+
+Deno.test("parseOneTimeProductV2Response rejects non-purchased state", () => {
+  assertEquals(parseOneTimeProductV2Response({ productId: "needsvswants_pro", purchaseState: 1 }), null);
+});
+
+Deno.test("parseOneTimeProductV2Response rejects missing productId", () => {
+  assertEquals(parseOneTimeProductV2Response({ purchaseState: 0 }), null);
 });

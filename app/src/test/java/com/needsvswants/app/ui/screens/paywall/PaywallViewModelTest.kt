@@ -1836,15 +1836,18 @@ class PaywallViewModelTest {
     private class FakeCheckoutProvider(
         private val payPal: BillingController,
         private val payMongo: BillingController,
+        private val googlePlay: BillingController = payMongo,
         override val payPalAvailable: Boolean = true,
-        override val payMongoAvailable: Boolean = true
+        override val payMongoAvailable: Boolean = true,
+        override val isPlayStoreBuild: Boolean = false
     ) : CheckoutProvider {
-        constructor(billing: BillingController) : this(billing, billing)
-        constructor() : this(FakeBilling(BillingResult.Success), FakeBilling(BillingResult.Success))
+        constructor(billing: BillingController) : this(billing, billing, billing)
+        constructor() : this(FakeBilling(BillingResult.Success), FakeBilling(BillingResult.Success), FakeBilling(BillingResult.Success))
 
         override fun controllerFor(provider: PaymentProvider): BillingController = when (provider) {
             PaymentProvider.PAYPAL -> payPal
             PaymentProvider.PAYMONGO -> payMongo
+            PaymentProvider.GOOGLE_PLAY -> googlePlay
         }
     }
 

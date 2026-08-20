@@ -30,7 +30,8 @@ class DefaultCheckoutProviderTest {
     private fun provider(
         config: SupabaseConfig = enabledConfig(),
         payPal: PayPalBillingController? = null,
-        payMongo: PayMongoBillingController? = null
+        payMongo: PayMongoBillingController? = null,
+        googlePlay: GooglePlayBillingController? = null
     ): DefaultCheckoutProvider {
         val entitlements = EntitlementRepository(FakeLocal(), FakeRemote())
         val auth = AuthRepository(
@@ -44,6 +45,12 @@ class DefaultCheckoutProviderTest {
         return DefaultCheckoutProvider(
             payPal = payPal ?: PayPalBillingController(config, auth, entitlements),
             payMongo = payMongo ?: PayMongoBillingController(config, auth, entitlements),
+            googlePlay = googlePlay ?: GooglePlayBillingController(
+                context = android.content.ContextWrapper(null),
+                config = config,
+                auth = auth,
+                entitlements = entitlements
+            ),
             config = config
         )
     }
@@ -58,8 +65,12 @@ class DefaultCheckoutProviderTest {
         )
 
     @Test
-    fun payPalAvailable_true_whenEnabledAndPlanIdsConfigured() {
-        assertTrue(provider(enabledConfig()).payPalAvailable)
+    fun payPalAvailable_reflectsBuildConfig() {
+        if (com.needsvswants.app.BuildConfig.PLAY_STORE_BUILD) {
+            assertFalse(provider(enabledConfig()).payPalAvailable)
+        } else {
+            assertTrue(provider(enabledConfig()).payPalAvailable)
+        }
     }
 
     @Test
@@ -73,8 +84,12 @@ class DefaultCheckoutProviderTest {
     }
 
     @Test
-    fun payMongoAvailable_true_whenEnabledAndPlanIdsConfigured() {
-        assertTrue(provider(enabledConfig()).payMongoAvailable)
+    fun payMongoAvailable_reflectsBuildConfig() {
+        if (com.needsvswants.app.BuildConfig.PLAY_STORE_BUILD) {
+            assertFalse(provider(enabledConfig()).payMongoAvailable)
+        } else {
+            assertTrue(provider(enabledConfig()).payMongoAvailable)
+        }
     }
 
     @Test
@@ -88,7 +103,7 @@ class DefaultCheckoutProviderTest {
     }
 
     @Test
-    fun controllerFor_payPal_returnsPayPalController() {
+    fun controllerFor_payPal_returnsExpectedController() {
         val payPal = PayPalBillingController(
             enabledConfig(),
             authFor(SupabaseConfig.Disabled),
@@ -99,13 +114,23 @@ class DefaultCheckoutProviderTest {
             authFor(SupabaseConfig.Disabled),
             EntitlementRepository(FakeLocal(), FakeRemote())
         )
-        val seam = provider(payPal = payPal, payMongo = payMongo)
+        val googlePlay = GooglePlayBillingController(
+            context = android.content.ContextWrapper(null),
+            config = enabledConfig(),
+            auth = authFor(SupabaseConfig.Disabled),
+            entitlements = EntitlementRepository(FakeLocal(), FakeRemote())
+        )
+        val seam = provider(payPal = payPal, payMongo = payMongo, googlePlay = googlePlay)
 
-        assertSame(payPal, seam.controllerFor(PaymentProvider.PAYPAL))
+        if (com.needsvswants.app.BuildConfig.PLAY_STORE_BUILD) {
+            assertSame(googlePlay, seam.controllerFor(PaymentProvider.PAYPAL))
+        } else {
+            assertSame(payPal, seam.controllerFor(PaymentProvider.PAYPAL))
+        }
     }
 
     @Test
-    fun controllerFor_payMongo_returnsPayMongoController() {
+    fun controllerFor_payMongo_returnsExpectedController() {
         val payPal = PayPalBillingController(
             enabledConfig(),
             authFor(SupabaseConfig.Disabled),
@@ -116,19 +141,47 @@ class DefaultCheckoutProviderTest {
             authFor(SupabaseConfig.Disabled),
             EntitlementRepository(FakeLocal(), FakeRemote())
         )
-        val seam = provider(payPal = payPal, payMongo = payMongo)
+        val googlePlay = GooglePlayBillingController(
+            context = android.content.ContextWrapper(null),
+            config = enabledConfig(),
+            auth = authFor(SupabaseConfig.Disabled),
+            entitlements = EntitlementRepository(FakeLocal(), FakeRemote())
+        )
+        val seam = provider(payPal = payPal, payMongo = payMongo, googlePlay = googlePlay)
 
-        assertSame(payMongo, seam.controllerFor(PaymentProvider.PAYMONGO))
+        if (com.needsvswants.app.BuildConfig.PLAY_STORE_BUILD) {
+            assertSame(googlePlay, seam.controllerFor(PaymentProvider.PAYMONGO))
+        } else {
+            assertSame(payMongo, seam.controllerFor(PaymentProvider.PAYMONGO))
+        }
     }
 
     @Test
-    fun controllerFor_returnsDistinctLiveControllers() {
+    fun controllerFor_googlePlay_returnsGooglePlayController() {
+        val googlePlay = GooglePlayBillingController(
+            context = android.content.ContextWrapper(null),
+            config = enabledConfig(),
+            auth = authFor(SupabaseConfig.Disabled),
+            entitlements = EntitlementRepository(FakeLocal(), FakeRemote())
+        )
+        val seam = provider(googlePlay = googlePlay)
+        assertSame(googlePlay, seam.controllerFor(PaymentProvider.GOOGLE_PLAY))
+    }
+
+    @Test
+    fun controllerFor_flavorAwareRouting() {
         val seam = provider(enabledConfig())
-        // Both providers resolve to distinct live controllers; neither is the
-        // other, and both are available when configured.
-        assertTrue(seam.controllerFor(PaymentProvider.PAYPAL) is PayPalBillingController)
-        assertTrue(seam.controllerFor(PaymentProvider.PAYMONGO) is PayMongoBillingController)
-        assertTrue(seam.controllerFor(PaymentProvider.PAYPAL) !== seam.controllerFor(PaymentProvider.PAYMONGO))
+        if (com.needsvswants.app.BuildConfig.PLAY_STORE_BUILD) {
+            assertTrue(seam.isPlayStoreBuild)
+            assertTrue(seam.controllerFor(PaymentProvider.PAYPAL) is GooglePlayBillingController)
+            assertTrue(seam.controllerFor(PaymentProvider.PAYMONGO) is GooglePlayBillingController)
+            assertTrue(seam.controllerFor(PaymentProvider.GOOGLE_PLAY) is GooglePlayBillingController)
+        } else {
+            assertFalse(seam.isPlayStoreBuild)
+            assertTrue(seam.controllerFor(PaymentProvider.PAYPAL) is PayPalBillingController)
+            assertTrue(seam.controllerFor(PaymentProvider.PAYMONGO) is PayMongoBillingController)
+            assertTrue(seam.controllerFor(PaymentProvider.PAYPAL) !== seam.controllerFor(PaymentProvider.PAYMONGO))
+        }
     }
 
     private fun authFor(config: SupabaseConfig): AuthRepository = AuthRepository(

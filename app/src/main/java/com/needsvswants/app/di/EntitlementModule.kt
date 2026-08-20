@@ -7,6 +7,7 @@ import com.needsvswants.app.data.auth.GoogleIdTokenProvider
 import com.needsvswants.app.data.billing.BillingController
 import com.needsvswants.app.data.billing.CheckoutProvider
 import com.needsvswants.app.data.billing.DefaultCheckoutProvider
+import com.needsvswants.app.data.billing.GooglePlayBillingController
 import com.needsvswants.app.data.billing.PayMongoBillingController
 import com.needsvswants.app.data.entitlement.EntitlementLocalStore
 import com.needsvswants.app.data.entitlement.EntitlementRemote
@@ -41,9 +42,6 @@ abstract class EntitlementModule {
     abstract fun bindEntitlementRemote(impl: SupabaseEntitlementRemote): EntitlementRemote
 
     @Binds
-    abstract fun bindBillingController(impl: PayMongoBillingController): BillingController
-
-    @Binds
     abstract fun bindCheckoutProvider(impl: DefaultCheckoutProvider): CheckoutProvider
 
     @Binds
@@ -52,6 +50,12 @@ abstract class EntitlementModule {
     ): GoogleIdTokenProvider
 
     companion object {
+        @Provides
+        @Singleton
+        fun provideBillingController(
+            payMongo: PayMongoBillingController,
+            googlePlay: GooglePlayBillingController
+        ): BillingController = if (BuildConfig.PLAY_STORE_BUILD) googlePlay else payMongo
         @Provides
         @Singleton
         fun provideEntitlementLocalStore(prefs: AppPreferences): EntitlementLocalStore = prefs

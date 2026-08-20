@@ -56,6 +56,7 @@ video/*.log
 .zcode/
 .commandcode/
 .playwright-mcp/
+.codex/
 
 # Generated graph caches
 website/graphify-out/
