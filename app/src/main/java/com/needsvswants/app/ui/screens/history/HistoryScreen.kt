@@ -22,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.*
@@ -54,6 +55,7 @@ fun HistoryScreen(
     val filteredEntries by viewModel.filteredEntries.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val typeFilter by viewModel.typeFilter.collectAsStateWithLifecycle()
+    val periodFilter by viewModel.periodFilter.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val isPro by viewModel.isPro.collectAsStateWithLifecycle()
@@ -197,6 +199,40 @@ fun HistoryScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                EditTypeChip(
+                    label = "All",
+                    selected = periodFilter == Period.ALL,
+                    color = AppTheme.colors.gilt,
+                    onClick = { viewModel.setPeriodFilter(Period.ALL) },
+                    modifier = Modifier.weight(1f)
+                )
+                EditTypeChip(
+                    label = "Day",
+                    selected = periodFilter == Period.DAY,
+                    color = AppTheme.colors.gilt,
+                    onClick = { viewModel.setPeriodFilter(Period.DAY) },
+                    modifier = Modifier.weight(1f)
+                )
+                EditTypeChip(
+                    label = "Week",
+                    selected = periodFilter == Period.WEEK,
+                    color = AppTheme.colors.gilt,
+                    onClick = { viewModel.setPeriodFilter(Period.WEEK) },
+                    modifier = Modifier.weight(1f)
+                )
+                EditTypeChip(
+                    label = "Month",
+                    selected = periodFilter == Period.MONTH,
+                    color = AppTheme.colors.gilt,
+                    onClick = { viewModel.setPeriodFilter(Period.MONTH) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             Spacer(Modifier.height(14.dp))
         }
 
@@ -238,7 +274,7 @@ fun HistoryScreen(
                     Eyebrow("NO MATCHES", color = AppTheme.colors.textMuted)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Nothing in the ledger matches that search.",
+                        "Nothing in the ledger matches that search or filter.",
                         style = AppType.bodyMd,
                         color = AppTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
@@ -247,8 +283,9 @@ fun HistoryScreen(
                     TextButton(onClick = {
                         viewModel.setSearchQuery("")
                         viewModel.setTypeFilter(null)
+                        viewModel.setPeriodFilter(Period.ALL)
                     }) {
-                        Text("Clear search", color = AppTheme.colors.crimson)
+                        Text("Clear filters", color = AppTheme.colors.crimson)
                     }
                 }
             }

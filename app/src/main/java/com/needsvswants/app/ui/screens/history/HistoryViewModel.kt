@@ -8,6 +8,8 @@ import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.domain.Period
+import com.needsvswants.app.domain.PeriodWindow
 import com.needsvswants.app.widget.NvwWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,6 +29,17 @@ fun filterHistoryEntries(entries: List<Entry>, query: String, type: EntryType?):
         (type == null || e.type == type) &&
             (q.isEmpty() || e.item.contains(q, ignoreCase = true) || e.date.contains(q))
     }
+}
+
+/**
+ * Pure period window filter (Day / Week / Month / All), same cutoffs as the
+ * Summary selector via [PeriodWindow]. ALL passes through unchanged — the
+ * Free 30-day retention clamp already happened upstream in [entries].
+ */
+fun withinPeriod(entries: List<Entry>, period: Period, nowMs: Long): List<Entry> {
+    val since = PeriodWindow.sinceEpochMs(period, nowMs)
+    if (since <= 0L) return entries
+    return entries.filter { it.dateUtc >= since }
 }
 
 @HiltViewModel
@@ -63,6 +76,9 @@ class HistoryViewModel @Inject constructor(
     private val _typeFilter = MutableStateFlow<EntryType?>(null)
     val typeFilter: StateFlow<EntryType?> = _typeFilter.asStateFlow()
 
+    private val _periodFilter = MutableStateFlow(Period.ALL)
+    val periodFilter: StateFlow<Period> = _periodFilter.asStateFlow()
+
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -71,11 +87,19 @@ class HistoryViewModel @Inject constructor(
         _typeFilter.value = type
     }
 
+    fun setPeriodFilter(period: Period) {
+        _periodFilter.value = period
+    }
+
     /** What the ledger list actually renders; export/date-range still use [entries]. */
     val filteredEntries: StateFlow<List<Entry>> = combine(
-        entries, _searchQuery, _typeFilter
-    ) { list, query, type ->
-        filterHistoryEntries(list, query, type)
+        entries, _searchQuery, _typeFilter, _periodFilter
+    ) { list, query, type, period ->
+        filterHistoryEntries(
+            withinPeriod(list, period, System.currentTimeMillis()),
+            query,
+            type
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** True until the first real entries emission lands (cold-start skeleton, design audit #2). */
