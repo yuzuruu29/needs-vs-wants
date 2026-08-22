@@ -1,9 +1,9 @@
 package com.needsvswants.app.domain
 
-import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.data.repository.EntryRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -38,7 +38,7 @@ data class SummaryStats(
 enum class Period { DAY, WEEK, MONTH, ALL }
 
 class SummaryUseCase(
-    private val dao: EntryDao,
+    private val entries: EntryRepository,
     private val entitlementRepository: EntitlementRepository
 ) {
     private val dayMs = TimeUnit.DAYS.toMillis(1)
@@ -51,8 +51,10 @@ class SummaryUseCase(
             val since = PeriodWindow.sinceEpochMs(period, now, cutoff)
             val prevStart = previousPeriodStart(period, since)
             // Observe the previous-period window too so the trend comparison is
-            // computed from real data, not a second DAO hop.
-            dao.observeSince(prevStart).map { all ->
+            // computed from real data, not a second DAO hop. The repository
+            // already bounds every row to the tier's retention visibility
+            // window, so hidden-but-stored rows can never leak into stats.
+            entries.observeSince(prevStart).map { all ->
                 val current = all.filter { it.dateUtc >= since }
                 val prev = all.filter { it.dateUtc in prevStart until since }
                 val needs = current.filter { it.type == EntryType.NEED }

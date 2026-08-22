@@ -58,6 +58,20 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     env:
       HAS_SIGNING_SECRETS: ${{ secrets.RELEASE_KEYSTORE_BASE64 != '' && secrets.RELEASE_STORE_PASSWORD != '' && secrets.RELEASE_KEY_ALIAS != '' && secrets.RELEASE_KEY_PASSWORD != '' }}
+      # Runtime BuildConfig values for the release artifacts. CI has no
+      # local.properties; localProp() in app/build.gradle.kts falls back to these
+      # env vars. Guarded so an unset secret yields '' instead of a broken
+      # literal — blank SUPABASE_*/GOOGLE_WEB_CLIENT_ID then hard-fails the
+      # build's config gate instead of shipping a signed-but-dead artifact.
+      # TEST AdMob ids / blank SENTRY_DSN stay the deliberate soft-launch
+      # posture (D159-D161): warned, never failed. The debug/PR job above needs
+      # none of these.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL != '' && secrets.SUPABASE_URL || '' }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY != '' && secrets.SUPABASE_ANON_KEY || '' }}
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID != '' && secrets.GOOGLE_WEB_CLIENT_ID || '' }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || '' }}
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID != '' && secrets.ADMOB_APP_ID || '' }}
+      ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID != '' && secrets.ADMOB_REWARDED_UNIT_ID || '' }}
 
     steps:
       - name: Signing secrets absent — skipping

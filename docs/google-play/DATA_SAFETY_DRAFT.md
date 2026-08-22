@@ -57,7 +57,7 @@ Network access is restricted to:
 
 | Data Type | Collected? | Shared? | Purpose | Optional? | Code Evidence |
 |---|---|---|---|---|---|
-| **Photos / Receipt Images** | **No** (On-device only) | **No** | **App functionality** (Receipt OCR line-item sorter) | **Yes** (User-initiated camera/gallery scan) | ML Kit `play-services-mlkit-text-recognition:19.0.1` processes bitmap memory buffers entirely on-device. Images are never saved to disk or uploaded to any server. (`ReceiptParser.kt`, `ReceiptSorterModal.kt`). |
+| **Photos / Receipt Images** | **No** (On-device only) | **No** | **App functionality** (Receipt OCR line-item sorter) | **Yes** (User-initiated camera/gallery scan) | ML Kit `play-services-mlkit-text-recognition:19.0.1` processes bitmap memory buffers entirely on-device; nothing is uploaded to any server. A camera capture is written to a temporary private cache file (`cacheDir/receipt-images/`) that is deleted immediately after processing (or when the capture is cancelled); gallery picks are read in place and never copied. (`InputScreen.kt`, `ReceiptParser.kt`, `ReceiptSorterModal.kt`). |
 
 ---
 

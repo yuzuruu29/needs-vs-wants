@@ -5,6 +5,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -57,6 +58,11 @@ class CredentialManagerGoogleIdTokenProvider @Inject constructor(
             }
         } catch (e: GetCredentialCancellationException) {
             Result.failure(e)
+        } catch (e: NoCredentialException) {
+            // The device has no Google account to sign in with — report a typed
+            // failure with a user-appropriate message instead of the generic
+            // credential error.
+            Result.failure(IllegalStateException("No Google account available on this device"))
         } catch (e: GoogleIdTokenParsingException) {
             Result.failure(e)
         } catch (e: GetCredentialException) {

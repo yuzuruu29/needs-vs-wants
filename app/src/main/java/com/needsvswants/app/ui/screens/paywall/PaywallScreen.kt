@@ -498,6 +498,10 @@ fun PaywallScreen(
                 if (selected == MembershipPlan.Pro || selected == MembershipPlan.Max) {
                     BillingPeriodSelector(
                         period = selectedPeriod,
+                        // PayPal annual needs configured plan ids; when missing,
+                        // the Annual option is disabled instead of letting the
+                        // checkout fail at runtime.
+                        annualEnabled = viewModel.isAnnualAvailable(effectiveProvider),
                         onSelect = ::selectPeriod
                     )
                     Spacer(Modifier.height(12.dp))
@@ -827,7 +831,8 @@ private fun PaymentMethodSelector(
 @Composable
 private fun BillingPeriodSelector(
     period: BillingPeriod,
-    onSelect: (BillingPeriod) -> Unit
+    onSelect: (BillingPeriod) -> Unit,
+    annualEnabled: Boolean = true
 ) {
     val c = AppTheme.colors
     Surface(
@@ -856,7 +861,8 @@ private fun BillingPeriodSelector(
                 detail = "2 months free",
                 selected = period == BillingPeriod.ANNUAL,
                 onClick = { onSelect(BillingPeriod.ANNUAL) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                enabled = annualEnabled
             )
         }
     }
@@ -868,7 +874,8 @@ private fun PeriodOption(
     detail: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val c = AppTheme.colors
     Surface(
@@ -880,19 +887,29 @@ private fun PeriodOption(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(onClick = onClick)
+                .clickable(enabled = enabled, onClick = onClick)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 title,
                 style = PaywallType.planFeatureEmph,
-                color = if (selected) c.textPrimary else c.textMuted
+                color = when {
+                    // Disabled option (e.g. PayPal annual without configured
+                    // plan ids): faded like the unselected state, but untappable.
+                    !enabled -> c.textMuted.copy(alpha = 0.45f)
+                    selected -> c.textPrimary
+                    else -> c.textMuted
+                }
             )
             Text(
                 detail,
                 style = PaywallType.planSub,
-                color = if (selected) c.gilt else c.textMuted.copy(alpha = 0.7f)
+                color = when {
+                    !enabled -> c.textMuted.copy(alpha = 0.35f)
+                    selected -> c.gilt
+                    else -> c.textMuted.copy(alpha = 0.7f)
+                }
             )
         }
     }

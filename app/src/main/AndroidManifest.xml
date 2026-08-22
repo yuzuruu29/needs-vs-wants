@@ -8,6 +8,7 @@
     <application
         android:name=".NeedsVsWantsApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@drawable/app_icon_crop_center"
         android:roundIcon="@drawable/app_icon_crop_center"
         android:label="@string/app_name"

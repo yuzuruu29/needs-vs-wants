@@ -77,9 +77,9 @@ object ImportUseCase {
         }
         if (date.isEmpty() || item.isEmpty() || costCents < 0) return null
 
-        // Rebuild dateUtc from the yyyy-MM-dd + HH:mm fields so the entry sorts and
-        // purges correctly (ImportUseCase never claims knowledge of the original
-        // epoch; the exported format only carries display strings).
+        // Rebuild dateUtc from the yyyy-MM-dd + HH:mm fields so the entry sorts
+        // and retains correctly (ImportUseCase never claims knowledge of the
+        // original epoch; the exported format only carries display strings).
         val dateUtc = parseDateTimeUtc(date, time) ?: return null
 
         return Entry(

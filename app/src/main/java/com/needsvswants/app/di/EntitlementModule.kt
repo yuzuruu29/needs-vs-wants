@@ -76,7 +76,9 @@ abstract class EntitlementModule {
             proTrialProductId = BuildConfig.PRO_TRIAL_PRODUCT_ID,
             proMonthlyProductId = BuildConfig.PRO_MONTHLY_PRODUCT_ID,
             maxMonthlyProductId = BuildConfig.PRO_MAX_MONTHLY_PRODUCT_ID,
-            googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+            googleWebClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
+            proAnnualProductId = BuildConfig.PRO_ANNUAL_PRODUCT_ID,
+            maxAnnualProductId = BuildConfig.PRO_MAX_ANNUAL_PRODUCT_ID
         )
     }
 }

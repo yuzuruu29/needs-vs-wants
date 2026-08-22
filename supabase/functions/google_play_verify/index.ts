@@ -6,13 +6,23 @@
 //
 // Trust model:
 //   - Client sends {package_name, purchase_token, kind}.
+//   - package_name must equal GOOGLE_PLAY_PACKAGE_NAME exactly; kind must be a
+//     supported value; one_time requires an allowlisted Play one-time product
+//     (none exists today, so every one_time request is rejected).
 //   - We mint a service-account RS256 JWT (GOOGLE_PLAY_SERVICE_ACCOUNT_JSON),
 //     exchange it for an OAuth access token, and call the real Play API.
-//   - Only a valid, non-cancelled, non-expired purchase produces a grant.
+//   - Only a valid, non-cancelled, non-expired purchase produces a grant, and
+//     the verified productId must be allowlisted (needsvswants_pro/max);
+//     unknown or missing product ids fail closed instead of mapping to Pro.
 //   - Server never trusts the client's own claim of purchase validity or tier.
 //
 // Idempotent: purchase_token is a natural idempotency key; re-verifying the
 // same token re-applies the same grant.
+//
+// Merging: grants are applied via mergePaidEntitlements so duplicate,
+// out-of-order, or overlapping verifications (e.g. Pro->Max upgrades where both
+// subscriptions briefly coexist) can never downgrade the user: highest tier
+// wins, lifetime outranks dated expiries, and the latest dated expiry wins.
 
 import { error, handleOptions, jsonResponse } from "../_shared/http.ts";
 import {
@@ -20,6 +30,11 @@ import {
   tierFromGooglePlayProductId,
   parseSubscriptionV2Response,
   parseOneTimeProductV2Response,
+  validateGooglePlayVerifyRequest,
+  mergePaidEntitlements,
+  paidPurchaseFromRow,
+  type GooglePlayVerifyRequestBody,
+  type PaidEntitlementPurchase,
   type SubscriptionPurchaseV2Response,
   type OneTimeProductV2Response,
 } from "../_shared/entitlements.ts";
@@ -168,37 +183,29 @@ Deno.serve(async (req: Request) => {
       return error("Invalid service account config", 500);
     }
 
-    const body = await req.json() as {
-      package_name?: string;
-      product_id?: string;
-      purchase_token?: string;
-      kind?: "subscription" | "one_time";
-    };
-    const packageName = body.package_name;
-    const purchaseToken = body.purchase_token;
-    const kind = body.kind ?? "subscription";
-    if (!packageName || !purchaseToken) {
-      return error("Missing purchase params", 400);
-    }
-    if (kind === "one_time" && !body.product_id) {
-      return error("Missing product_id for one_time purchase", 400);
+    const body = await req.json() as GooglePlayVerifyRequestBody;
+    // Fail-closed request validation: exact package allowlist, supported kinds
+    // only, and no grantable Play one-time product exists today.
+    const validated = validateGooglePlayVerifyRequest(body);
+    if (!validated.ok) {
+      return error(validated.error, validated.status);
     }
 
     const accessToken = await getAccessToken(sa);
 
     let result: { expiry: string; productId: string } | null;
-    if (kind === "subscription") {
+    if (validated.kind === "subscription") {
       result = await verifySubscriptionV2(
         accessToken,
-        packageName,
-        purchaseToken,
+        validated.packageName,
+        validated.purchaseToken,
       );
     } else {
       const oneTime = await verifyOneTimeProductV2(
         accessToken,
-        packageName,
-        body.product_id!,
-        purchaseToken,
+        validated.packageName,
+        validated.productId,
+        validated.purchaseToken,
       );
       result = oneTime ? { expiry: oneTime.expiry ?? "", productId: oneTime.productId } : null;
     }
@@ -237,14 +244,40 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
-    // Tier is derived from Google's verified response, never from the client's request.
+    // Tier is derived from Google's verified response, never from the client's
+    // request. Unknown product ids fail closed instead of mapping to Pro.
     const tier = tierFromGooglePlayProductId(result.productId);
+    if (!tier) {
+      return error("Unknown product_id", 400);
+    }
+
+    // Load the current entitlement so the new grant MERGES order-independently
+    // (highest tier wins; lifetime outranks dated; latest dated expiry wins).
+    // A duplicate or out-of-order callback must never shorten a newer grant.
+    const { data: currentRow, error: currentError } = await supabase
+      .from("entitlements")
+      .select("is_pro,tier,trial_ends_at,paid_until")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (currentError) {
+      console.error("entitlements read error:", currentError);
+      return error("Failed to load entitlement", 500);
+    }
+
+    const merged = mergePaidEntitlements(
+      [
+        paidPurchaseFromRow(currentRow),
+        { tier, paid_until: result.expiry || null },
+      ].filter((p): p is PaidEntitlementPurchase => p !== null),
+      new Date().toISOString(),
+    );
+
     const fields = grantToRowFields({
       mode: "paid",
-      tier,
-      paid_until: result.expiry || null,
+      tier: merged.tier,
+      paid_until: merged.paid_until,
       provider: "google",
-      source: kind,
+      source: validated.kind,
       status: "purchased",
     });
 
@@ -260,7 +293,9 @@ Deno.serve(async (req: Request) => {
       return error("Failed to apply grant", 500);
     }
 
-    return jsonResponse({ success: true, valid: true, paid_until: result.expiry, product_id: result.productId });
+    // Response schema unchanged for the Android client; paid_until now reflects
+    // the merged entitlement rather than blindly the last-arriving purchase.
+    return jsonResponse({ success: true, valid: true, paid_until: merged.paid_until, product_id: result.productId });
   } catch (err) {
     console.error("google_play_verify error:", err);
     return error("Internal error", 500);

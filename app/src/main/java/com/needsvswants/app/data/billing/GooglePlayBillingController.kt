@@ -30,10 +30,76 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 import java.lang.ref.WeakReference
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * An owned Google Play subscription tracked from the controller's verified
+ * purchase stream. Used as the replacement source when the user changes
+ * subscription (e.g. Pro -> Max) so Play replaces the old purchase instead of
+ * letting both subscriptions coexist.
+ */
+internal data class ActivePlaySubscription(val productId: String, val purchaseToken: String)
+
+/**
+ * Replacement decision derived from [ActivePlaySubscription].
+ * [replacementMode] pins the proration policy: CHARGE_PRORATED_PRICE for
+ * Pro -> Max changes.
+ */
+internal data class SubscriptionReplacementSpec(
+    val oldPurchaseToken: String,
+    val oldProductId: String
+) {
+    val replacementMode: Int =
+        BillingFlowParams.ProductDetailsParams.SubscriptionProductReplacementParams.ReplacementMode.CHARGE_PRORATED_PRICE
+}
+
+/** Minimal, unit-testable view of a Play purchase needed by the restore pipeline. */
+internal data class RestorablePurchase(
+    val purchaseToken: String,
+    val productIds: List<String>,
+    val isAcknowledged: Boolean
+)
+
+/**
+ * Typed outcome of the restore pipeline. Success may only be reported when
+ * restoration genuinely completed (>= 1 purchase verified) or the query
+ * definitively found no owned subscriptions; a missing auth token or failed
+ * verification is [RestoreOutcome.Error] / [RestoreOutcome.NoneFound], never
+ * success.
+ */
+internal sealed interface RestoreOutcome {
+    /** Restoration completed: [verifiedCount] purchases passed server verification. */
+    data class Restored(
+        val verifiedCount: Int,
+        /** Tokens whose acknowledgement failed after successful verification (surfaced, never swallowed). */
+        val ackFailedTokens: List<String> = emptyList()
+    ) : RestoreOutcome
+
+    /** Query succeeded and Google Play definitively holds no owned subscriptions. */
+    data object NoneFound : RestoreOutcome
+
+    /** Query or verification failed; restoration did NOT complete. */
+    data class Error(val reason: String) : RestoreOutcome
+}
+
+/** Result of the awaited Play purchases query during restore. */
+internal sealed interface OwnedQueryResult {
+    data class Ok(val purchases: List<Purchase>) : OwnedQueryResult
+    data class Error(val reason: String) : OwnedQueryResult
+}
+
+/** Maps the typed restore outcome onto the UI-facing [BillingResult] contract. */
+internal fun RestoreOutcome.toBillingResult(): BillingResult = when (this) {
+    is RestoreOutcome.Restored -> BillingResult.Success
+    is RestoreOutcome.NoneFound -> BillingResult.Failed("No active Google Play subscriptions found.")
+    is RestoreOutcome.Error -> BillingResult.Failed(reason)
+}
 
 /**
  * Google Play Billing client & controller for Google Play Store distribution.
@@ -91,6 +157,11 @@ class GooglePlayBillingController @Inject constructor(
     // Cached ProductDetails
     private var proProductDetails: ProductDetails? = null
     private var maxProductDetails: ProductDetails? = null
+
+    // Active Play subscription tracked from the verified purchase stream; the
+    // replacement source for upgrade/downgrade billing flows.
+    @Volatile
+    private var activePlaySubscription: ActivePlaySubscription? = null
 
     /** Attach active activity context for launching Google Play billing sheets. */
     fun setActivity(activity: Activity?) {
@@ -182,7 +253,7 @@ class GooglePlayBillingController @Inject constructor(
                 val unfetched = queryResult.unfetchedProductList
                 if (unfetched.isNotEmpty()) {
                     android.util.Log.w(
-                        "GooglePlayBilling",
+                        LOG_TAG,
                         "Unfetched Play products: ${unfetched.joinToString { it.productId }}"
                     )
                 }
@@ -269,13 +340,25 @@ class GooglePlayBillingController @Inject constructor(
         val offer = findOfferDetails(details, period)
             ?: return@withContext BillingResult.Failed("Selected subscription plan unavailable on Google Play.")
 
-        val productDetailsParams = BillingFlowParams.ProductDetailsParams.newBuilder()
+        // While a Play subscription is already owned (e.g. Pro -> Max), the flow
+        // must carry replacement parameters; without them Play lets both
+        // subscriptions coexist and entitlement becomes callback-order dependent.
+        val replacement = subscriptionReplacementFor(activePlaySubscription)
+
+        val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
             .setProductDetails(details)
             .setOfferToken(offer.offerToken)
-            .build()
+        if (replacement != null) {
+            productDetailsParamsBuilder.setSubscriptionProductReplacementParams(
+                productReplacementParams(replacement)
+            )
+        }
 
         val billingFlowParamsBuilder = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(listOf(productDetailsParams))
+            .setProductDetailsParamsList(listOf(productDetailsParamsBuilder.build()))
+        if (replacement != null) {
+            billingFlowParamsBuilder.setSubscriptionUpdateParams(subscriptionUpdateParams(replacement))
+        }
 
         // Set obfuscated account id when user is signed in to bind purchase to Supabase account
         val userSession = auth.session.firstOrNull()
@@ -292,6 +375,32 @@ class GooglePlayBillingController @Inject constructor(
             BillingResult.Failed(billingResult.debugMessage.ifBlank { "Google Play purchase failed (code ${billingResult.responseCode})." })
         }
     }
+
+    /**
+     * Replacement decision for launching a subscription purchase while a Play
+     * subscription is already owned; null launches a plain first-time flow.
+     */
+    internal fun subscriptionReplacementFor(activeSubscription: ActivePlaySubscription?): SubscriptionReplacementSpec? =
+        activeSubscription?.let {
+            SubscriptionReplacementSpec(oldPurchaseToken = it.purchaseToken, oldProductId = it.productId)
+        }
+
+    /** Per-product replacement params (old product id + proration policy). */
+    internal fun productReplacementParams(
+        spec: SubscriptionReplacementSpec
+    ): BillingFlowParams.ProductDetailsParams.SubscriptionProductReplacementParams =
+        BillingFlowParams.ProductDetailsParams.SubscriptionProductReplacementParams.newBuilder()
+            .setOldProductId(spec.oldProductId)
+            .setReplacementMode(spec.replacementMode)
+            .build()
+
+    /** Flow-level replacement params binding the old purchase token. */
+    internal fun subscriptionUpdateParams(
+        spec: SubscriptionReplacementSpec
+    ): BillingFlowParams.SubscriptionUpdateParams =
+        BillingFlowParams.SubscriptionUpdateParams.newBuilder()
+            .setOldPurchaseToken(spec.oldPurchaseToken)
+            .build()
 
     override fun onPurchasesUpdated(
         billingResult: PlayBillingResult,
@@ -318,21 +427,33 @@ class GooglePlayBillingController @Inject constructor(
 
         client.queryPurchasesAsync(params) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val purchased = purchases.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                if (purchased.isEmpty()) {
+                    // Play definitively holds no owned subscriptions; drop any
+                    // stale tracked replacement source.
+                    activePlaySubscription = null
+                }
                 scope.launch {
-                    for (purchase in purchases) {
-                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                            handlePurchasedItem(purchase)
-                        }
+                    for (purchase in purchased) {
+                        handlePurchasedItem(purchase)
                     }
                 }
             }
         }
     }
 
+    private fun recordActivePlaySubscription(purchase: Purchase) {
+        val productId = purchase.products.firstOrNull() ?: return
+        if (purchase.purchaseToken.isBlank()) return
+        activePlaySubscription = ActivePlaySubscription(productId, purchase.purchaseToken)
+    }
+
     private suspend fun handlePurchasedItem(purchase: Purchase) {
-        val verified = verifyPurchaseWithBackend(purchase)
+        recordActivePlaySubscription(purchase)
+        val verified = verifyPurchaseWithBackend(purchase.purchaseToken)
         if (verified) {
-            acknowledgePurchaseIfNeeded(purchase)
+            // Awaited; failures are logged inside acknowledgePurchaseIfNeeded.
+            acknowledgePurchaseIfNeeded(purchase.purchaseToken, purchase.isAcknowledged)
             val token = auth.ensureFreshAccessToken()
             if (token != null) {
                 entitlements.refreshFromRemote(token)
@@ -341,12 +462,12 @@ class GooglePlayBillingController @Inject constructor(
     }
 
     private suspend fun verifyPurchaseWithBackend(
-        purchase: Purchase
+        purchaseToken: String
     ): Boolean = withContext(Dispatchers.IO) {
         if (!config.enabled) return@withContext false
         val accessToken = auth.ensureFreshAccessToken() ?: return@withContext false
         val url = "${config.url.trimEnd('/')}/functions/v1/google_play_verify"
-        val body = """{"package_name":"${context.packageName}","purchase_token":"${purchase.purchaseToken.escapeJson()}","kind":"subscription"}"""
+        val body = """{"package_name":"${context.packageName}","purchase_token":"${purchaseToken.escapeJson()}","kind":"subscription"}"""
 
         val result = HttpJsonClient.request(
             url = url,
@@ -364,62 +485,170 @@ class GooglePlayBillingController @Inject constructor(
         }.getOrDefault(false)
     }
 
-    private suspend fun acknowledgePurchaseIfNeeded(purchase: Purchase) = withContext(Dispatchers.IO) {
-        val client = billingClient ?: return@withContext
-        if (!purchase.isAcknowledged) {
-            val ackParams = AcknowledgePurchaseParams.newBuilder()
-                .setPurchaseToken(purchase.purchaseToken)
-                .build()
-            client.acknowledgePurchase(ackParams) { /* acknowledged */ }
+    /**
+     * Acknowledges the purchase when needed, awaiting the Play result (bounded
+     * by [ACK_TIMEOUT_MS]). Returns whether the purchase is acknowledged and
+     * logs every failure - acknowledgement is never fire-and-forget.
+     */
+    private suspend fun acknowledgePurchaseIfNeeded(
+        purchaseToken: String,
+        alreadyAcknowledged: Boolean = false
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (alreadyAcknowledged) return@withContext true
+        val client = billingClient
+        if (client == null) {
+            android.util.Log.w(LOG_TAG, "Cannot acknowledge $purchaseToken: BillingClient unavailable.")
+            return@withContext false
         }
+        val ackParams = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchaseToken)
+            .build()
+        val result = withTimeoutOrNull(ACK_TIMEOUT_MS) {
+            suspendCancellableCoroutine { cont ->
+                client.acknowledgePurchase(ackParams) { billingResult ->
+                    if (cont.isActive) cont.resume(billingResult)
+                }
+            }
+        }
+        val acknowledged = result != null &&
+            result.responseCode == BillingClient.BillingResponseCode.OK
+        if (!acknowledged) {
+            val detail = result?.debugMessage?.takeIf { it.isNotBlank() } ?: "timed out"
+            android.util.Log.w(LOG_TAG, "Acknowledgement failed for $purchaseToken: $detail")
+        }
+        acknowledged
     }
 
+    /**
+     * Restores purchases honestly: the Play query and every verification /
+     * acknowledgement are awaited, and the reported [BillingResult] reflects
+     * what actually happened (see [RestoreOutcome] / [toBillingResult]).
+     */
     override suspend fun restorePurchases(): BillingResult = withContext(Dispatchers.IO) {
         val client = billingClient ?: return@withContext BillingResult.Unavailable
         if (!isConnected) {
             startConnection()
-            delay(1000)
-            if (!isConnected) return@withContext BillingResult.Failed("Unable to connect to Google Play Store.")
+            if (!awaitConnected(RESTORE_CONNECT_TIMEOUT_MS)) {
+                return@withContext BillingResult.Failed("Unable to connect to Google Play Store.")
+            }
         }
 
-        var foundActive = false
-        var lastError: String? = null
+        val outcome = when (val query = queryOwnedSubscriptions(client)) {
+            is OwnedQueryResult.Error -> RestoreOutcome.Error(query.reason)
+            is OwnedQueryResult.Ok -> {
+                val candidates = query.purchases
+                    .filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+                    .map { RestorablePurchase(it.purchaseToken, it.products, it.isAcknowledged) }
+                val processed = processRestoredPurchases(candidates)
+                if (processed is RestoreOutcome.NoneFound && query.purchases.isEmpty()) {
+                    activePlaySubscription = null
+                }
+                processed
+            }
+        }
 
+        if (outcome !is RestoreOutcome.Error) {
+            // Sync the local snapshot with server truth for completed restores
+            // and confirmed-empty accounts alike.
+            val token = auth.ensureFreshAccessToken()
+            if (token != null) {
+                entitlements.refreshFromRemote(token)
+            } else if (outcome is RestoreOutcome.Restored) {
+                android.util.Log.w(
+                    LOG_TAG,
+                    "Restore verified ${outcome.verifiedCount} purchase(s) but no auth token; local entitlement not refreshed."
+                )
+            }
+        }
+
+        outcome.toBillingResult()
+    }
+
+    /** Awaited Play query for owned subscriptions, bounded by [RESTORE_QUERY_TIMEOUT_MS]. */
+    private suspend fun queryOwnedSubscriptions(client: BillingClient): OwnedQueryResult {
         val params = QueryPurchasesParams.newBuilder()
             .setProductType(BillingClient.ProductType.SUBS)
             .build()
 
-        client.queryPurchasesAsync(params) { billingResult, purchases ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                scope.launch {
-                    for (purchase in purchases) {
-                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                            val verified = verifyPurchaseWithBackend(purchase)
-                            if (verified) {
-                                foundActive = true
-                                acknowledgePurchaseIfNeeded(purchase)
-                            }
+        val response = withTimeoutOrNull(RESTORE_QUERY_TIMEOUT_MS) {
+            suspendCancellableCoroutine { cont ->
+                client.queryPurchasesAsync(params) { billingResult, purchases ->
+                    if (cont.isActive) {
+                        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                            cont.resume(OwnedQueryResult.Ok(purchases ?: emptyList()))
+                        } else {
+                            cont.resume(
+                                OwnedQueryResult.Error(
+                                    billingResult.debugMessage.ifBlank {
+                                        "Google Play purchase query failed (code ${billingResult.responseCode})."
+                                    }
+                                )
+                            )
                         }
                     }
-                    val token = auth.ensureFreshAccessToken()
-                    if (token != null) {
-                        entitlements.refreshFromRemote(token)
-                    }
                 }
-            } else {
-                lastError = billingResult.debugMessage
+            }
+        }
+        return response ?: OwnedQueryResult.Error("Timed out querying Google Play purchases.")
+    }
+
+    /**
+     * Verify/ack core of restore, expressed over [RestorablePurchase] values so
+     * it stays unit-testable without a live BillingClient. Verification and
+     * acknowledgement are awaited per purchase; failures are never silently
+     * swallowed (ack failures are logged and reported on the outcome).
+     */
+    internal suspend fun processRestoredPurchases(
+        purchases: List<RestorablePurchase>,
+        verify: suspend (purchaseToken: String) -> Boolean = { verifyPurchaseWithBackend(it) },
+        acknowledge: suspend (purchaseToken: String, alreadyAcknowledged: Boolean) -> Boolean =
+            { token, alreadyAcknowledged -> acknowledgePurchaseIfNeeded(token, alreadyAcknowledged) }
+    ): RestoreOutcome {
+        if (purchases.isEmpty()) return RestoreOutcome.NoneFound
+
+        var verifiedCount = 0
+        val ackFailedTokens = mutableListOf<String>()
+        for (purchase in purchases) {
+            if (!verify(purchase.purchaseToken)) continue
+            verifiedCount++
+            val productId = purchase.productIds.firstOrNull()
+            if (productId != null && purchase.purchaseToken.isNotBlank()) {
+                activePlaySubscription = ActivePlaySubscription(productId, purchase.purchaseToken)
+            }
+            if (!acknowledge(purchase.purchaseToken, purchase.isAcknowledged)) {
+                ackFailedTokens.add(purchase.purchaseToken)
             }
         }
 
-        delay(1500) // Allow async verification to settle
-        val token = auth.ensureFreshAccessToken()
-        if (token != null) {
-            entitlements.refreshFromRemote(token)
-            BillingResult.Success
-        } else {
-            if (foundActive) BillingResult.Success
-            else BillingResult.Failed(lastError ?: "No active Google Play subscriptions found.")
+        if (verifiedCount == 0) {
+            // Nothing verified: an error, never success - regardless of tokens.
+            val signedIn = auth.ensureFreshAccessToken() != null
+            return if (signedIn) {
+                RestoreOutcome.Error("Couldn't verify your Google Play subscriptions. Try again.")
+            } else {
+                RestoreOutcome.Error("Sign in to your account so your Google Play subscriptions can be verified.")
+            }
         }
+        return RestoreOutcome.Restored(verifiedCount, ackFailedTokens)
+    }
+
+    /** Polls until connected or [timeoutMillis] elapsed (replaces fixed sleeps). */
+    private suspend fun awaitConnected(timeoutMillis: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (!isConnected && System.currentTimeMillis() < deadline) {
+            delay(CONNECT_POLL_INTERVAL_MS)
+        }
+        return isConnected
+    }
+
+    private companion object {
+        const val LOG_TAG = "GooglePlayBilling"
+
+        /** Awaited restore query bound; replaces the previous fixed 1.5 s sleep. */
+        const val RESTORE_QUERY_TIMEOUT_MS = 10_000L
+        const val RESTORE_CONNECT_TIMEOUT_MS = 10_000L
+        const val ACK_TIMEOUT_MS = 10_000L
+        const val CONNECT_POLL_INTERVAL_MS = 100L
     }
 
     private fun String.escapeJson(): String =

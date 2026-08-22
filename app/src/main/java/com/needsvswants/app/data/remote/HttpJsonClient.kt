@@ -1,5 +1,6 @@
 package com.needsvswants.app.data.remote
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -23,25 +24,32 @@ internal object HttpJsonClient {
         headers: Map<String, String> = emptyMap(),
         body: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
+        var conn: HttpURLConnection? = null
         try {
-            val conn = URL(url).openConnection() as HttpURLConnection
-            conn.requestMethod = method
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 10_000
-            headers.forEach { (k, v) -> conn.setRequestProperty(k, v) }
+            conn = URL(url).openConnection() as HttpURLConnection
+            val connection = conn
+            connection.requestMethod = method
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            headers.forEach { (k, v) -> connection.setRequestProperty(k, v) }
             if (body != null) {
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Content-Length", body.toByteArray().size.toString())
-                conn.outputStream.use { it.write(body.toByteArray()) }
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Content-Length", body.toByteArray().size.toString())
+                connection.outputStream.use { it.write(body.toByteArray()) }
             }
-            val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader()?.use(BufferedReader::readText) ?: ""
-            conn.disconnect()
             if (code in 200..299) Result.success(text) else Result.failure(RuntimeException("HTTP $code: $text"))
+        } catch (e: CancellationException) {
+            // Cancellation must propagate — never convert it into a failure result.
+            throw e
         } catch (t: Throwable) {
             Result.failure(t)
+        } finally {
+            // Release the socket on every path (success, error body, exception).
+            conn?.disconnect()
         }
     }
 }

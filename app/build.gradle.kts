@@ -13,8 +13,11 @@ val localProperties = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+// Precedence mirrors the signingConfigs block: local.properties property first,
+// then an environment variable of the same name, then the default. The env
+// fallback is what lets CI secrets feed BuildConfig without a local.properties.
 fun localProp(name: String, default: String = ""): String =
-    (localProperties.getProperty(name) ?: default)
+    (localProperties.getProperty(name) ?: System.getenv(name) ?: default)
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
 
@@ -207,8 +210,9 @@ android {
     testOptions {
         managedDevices {
             devices {
-                // Gradle-managed emulator for instrumented tests (CI nightly):
-                //   ./gradlew pixel2api33FullDebugAndroidTest
+                // Gradle-managed emulator for instrumented tests (CI nightly).
+                // With flavors the task is <device><Flavors><BuildType>AndroidTest:
+                //   ./gradlew pixel2api33DirectFullDebugAndroidTest
                 maybeCreate<com.android.build.api.dsl.ManagedVirtualDevice>("pixel2api33").apply {
                     device = "Pixel 2"
                     apiLevel = 33
@@ -311,5 +315,79 @@ dependencies {
 configurations.all {
     resolutionStrategy {
         force("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.6.3")
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Release runtime-config gate.
+// A signed release with blank SUPABASE_URL / SUPABASE_ANON_KEY /
+// GOOGLE_WEB_CLIENT_ID cannot sign in or sync — fail that build here instead of
+// shipping a dead artifact. Google TEST AdMob ids and a blank SENTRY_DSN are
+// the deliberate soft-launch posture (D159-D161) until the owner creates real
+// accounts: warned loudly, never failed. Each check task is wired only as a
+// dependency of its release variant's assemble/bundle tasks, so debug builds,
+// unit tests and PR jobs never trigger it (CI PR runs have no secrets).
+// ---------------------------------------------------------------------------
+val releaseGateRequiredKeys = listOf("SUPABASE_URL", "SUPABASE_ANON_KEY", "GOOGLE_WEB_CLIENT_ID")
+val releaseGateTestAdIds = mapOf(
+    "ADMOB_APP_ID" to "ca-app-pub-3940256099942544~3347511713",
+    "ADMOB_REWARDED_UNIT_ID" to "ca-app-pub-3940256099942544/5224354917",
+)
+val releaseVariantNames = mutableListOf<String>()
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        releaseVariantNames += variant.name
+    }
+}
+afterEvaluate {
+    // Runs after AGP has created the variant tasks, so the assemble/bundle
+    // tasks can be wired below without ordering races.
+    for (variantName in releaseVariantNames) {
+        val capitalized = variantName.replaceFirstChar { it.uppercaseChar() }
+        // Snapshot exactly what BuildConfig will embed (same localProp precedence).
+        val requiredValues = releaseGateRequiredKeys.associateWith { key -> localProp(key) }
+        val admobAppId = localProp("ADMOB_APP_ID")
+        val admobRewardedId = localProp("ADMOB_REWARDED_UNIT_ID")
+        val sentryDsn = localProp("SENTRY_DSN")
+        val checkTask = tasks.register("check${capitalized}Config") {
+            group = "verification"
+            description =
+                "Fails $variantName if sign-in/sync runtime config would be blank in the artifact."
+            doLast {
+                val blankKeys = requiredValues.filterValues { it.isBlank() }.keys
+                if (blankKeys.isNotEmpty()) {
+                    throw GradleException(
+                        "$variantName would ship with blank runtime config: " +
+                            "${blankKeys.joinToString(", ")}. Sign-in/sync would be broken. " +
+                            "Set them in local.properties, or as environment variables " +
+                            "(GitHub repo secrets for CI)."
+                    )
+                }
+                if (admobAppId.isBlank() || admobAppId == releaseGateTestAdIds["ADMOB_APP_ID"]) {
+                    println(
+                        "WARNING [$variantName]: ADMOB_APP_ID is blank or a Google TEST id — " +
+                            "real ads will not serve (deliberate soft-launch posture, D159)."
+                    )
+                }
+                if (admobRewardedId.isBlank() || admobRewardedId == releaseGateTestAdIds["ADMOB_REWARDED_UNIT_ID"]) {
+                    println(
+                        "WARNING [$variantName]: ADMOB_REWARDED_UNIT_ID is blank or a Google TEST id — " +
+                            "rewarded ads grant nothing on live accounts (deliberate soft-launch posture, D159)."
+                    )
+                }
+                if (sentryDsn.isBlank()) {
+                    println(
+                        "WARNING [$variantName]: SENTRY_DSN is blank — crash reporting stays disabled " +
+                            "(deliberate soft-launch posture, D160)."
+                    )
+                }
+                println("$variantName runtime config OK: sign-in/sync keys present.")
+            }
+        }
+        listOf("assemble", "bundle").forEach { verb ->
+            tasks.matching { it.name == "$verb$capitalized" }.configureEach {
+                dependsOn(checkTask)
+            }
+        }
     }
 }

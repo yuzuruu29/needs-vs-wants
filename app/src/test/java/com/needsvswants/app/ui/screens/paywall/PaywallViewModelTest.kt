@@ -1565,13 +1565,16 @@ class PaywallViewModelTest {
         // Mirror of selectProvider (D108): a signed-in deferred intent must
         // never cross a period change — it is cleared and the user re-taps
         // the CTA to start fresh with the new period.
+        // providerRoutingConfig (annual ids set): PAYPAL, the default provider,
+        // supports ANNUAL here - this test pins pending semantics, not the
+        // annual-availability containment.
         val billing = FakeBilling(BillingResult.Failed("timeout"))
         val store = FakeSessionStore(null)
         val vm = PaywallViewModel(
             billing,
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled,
+            providerRoutingConfig(),
             FakePayPalReturnStore(),
             FakeEntitlementSync(),
             FakeCheckoutProvider(billing)
@@ -1597,12 +1600,15 @@ class PaywallViewModelTest {
     fun selectPeriod_whileSignedOutPending_reassertsForCurrentPlan() = runTest(dispatcher) {
         // Signed out: the deferred intent is re-asserted so sign-in completes
         // the purchase with the period just picked.
+        // providerRoutingConfig (annual ids set): PAYPAL, the default provider,
+        // supports ANNUAL here - this test pins pending semantics, not the
+        // annual-availability containment.
         val store = FakeSessionStore(null)
         val vm = PaywallViewModel(
             FakeBilling(BillingResult.Success),
             EntitlementRepository(FakeLocal(), FakeRemote()),
             authForStore(store),
-            SupabaseConfig.Disabled,
+            providerRoutingConfig(),
             FakePayPalReturnStore(),
             FakeEntitlementSync(),
             FakeCheckoutProvider(FakeBilling(BillingResult.Success))
@@ -1617,6 +1623,161 @@ class PaywallViewModelTest {
         assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
         assertEquals(PendingPurchase.MaxSubscribe, vm.pendingPurchase.first())
         assertTrue(vm.needsSignInForPurchase.first())
+    }
+
+    @Test
+    fun isAnnualAvailable_payPalFalse_whenAnnualPlanIdsBlank() = runTest(dispatcher) {
+        // P1 containment: without configured annual PayPal plan ids the
+        // controller would fail with "Annual PayPal plan not configured" -
+        // PayPal exposes no ANNUAL, while PayMongo (server-authoritative
+        // amounts) keeps annual available. A partial config (only one tier's
+        // annual id set) must count as unavailable too: the selector drives
+        // both Pro and Max.
+        val partialConfig = SupabaseConfig(
+            url = "",
+            anonKey = "",
+            proTrialProductId = "trial_x",
+            proMonthlyProductId = "monthly_x",
+            maxMonthlyProductId = "max_x",
+            proAnnualProductId = "annual_x"
+        )
+        val blankVm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            monthlyOnlyRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+        val partialVm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            partialConfig,
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+
+        assertFalse(blankVm.isAnnualAvailable(PaymentProvider.PAYPAL))
+        assertFalse(partialVm.isAnnualAvailable(PaymentProvider.PAYPAL))
+        assertTrue(blankVm.isAnnualAvailable(PaymentProvider.PAYMONGO))
+        assertTrue(partialVm.isAnnualAvailable(PaymentProvider.PAYMONGO))
+    }
+
+    @Test
+    fun isAnnualAvailable_payPalTrue_whenBothAnnualPlanIdsSet() = runTest(dispatcher) {
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider()
+        )
+
+        assertTrue(vm.isAnnualAvailable(PaymentProvider.PAYPAL))
+    }
+
+    @Test
+    fun selectPeriod_annualRejected_forPayPalWithoutAnnualPlans() = runTest(dispatcher) {
+        // Default provider is PAYPAL (the fake reports both available): Annual
+        // must stay rejected so the unconfigured yearly plan is unreachable.
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            monthlyOnlyRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(FakeBilling(BillingResult.Success))
+        )
+
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.MONTHLY, vm.selectedPeriod.first())
+    }
+
+    @Test
+    fun selectPeriod_annualSelectable_whenPayPalAnnualPlansSet() = runTest(dispatcher) {
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            providerRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(FakeBilling(BillingResult.Success))
+        )
+
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
+    }
+
+    @Test
+    fun selectPeriod_annualUnaffected_forPayMongoWithoutPayPalAnnualPlans() = runTest(dispatcher) {
+        // PayMongo annual is server-authoritative: selectable and routable
+        // even when both PayPal annual plan ids are blank.
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedInAuth(),
+            monthlyOnlyRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = RecordingBilling(), payMongo = payMongo)
+        )
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+        vm.subscribePro()
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
+        assertEquals(listOf("purchase" to "pro_annual"), payMongo.calls)
+        assertEquals(listOf("purchase" to BillingPeriod.ANNUAL), payMongo.periods)
+    }
+
+    @Test
+    fun selectProvider_toPayPal_resetsAnnualToMonthly_whenAnnualUnavailable() = runTest(dispatcher) {
+        // Switching back to PayPal without annual plans must fall back to
+        // MONTHLY - also covering the signed-out deferred intent, whose
+        // re-assert then routes the monthly plan instead of the unconfigured
+        // annual one. No controller may be reached.
+        val payPal = RecordingBilling()
+        val payMongo = RecordingBilling()
+        val vm = PaywallViewModel(
+            FakeBilling(BillingResult.Success),
+            EntitlementRepository(FakeLocal(), FakeRemote()),
+            signedOutAuth(),
+            monthlyOnlyRoutingConfig(),
+            FakePayPalReturnStore(),
+            FakeEntitlementSync(),
+            FakeCheckoutProvider(payPal = payPal, payMongo = payMongo)
+        )
+        vm.subscribePro()
+        advanceUntilIdle()
+        vm.selectProvider(PaymentProvider.PAYMONGO)
+        advanceUntilIdle()
+        vm.selectPeriod(BillingPeriod.ANNUAL)
+        advanceUntilIdle()
+        assertEquals(BillingPeriod.ANNUAL, vm.selectedPeriod.first())
+
+        vm.selectProvider(PaymentProvider.PAYPAL)
+        advanceUntilIdle()
+
+        assertEquals(BillingPeriod.MONTHLY, vm.selectedPeriod.first())
+        assertEquals(PendingPurchase.ProSubscribe, vm.pendingPurchase.first())
+        assertEquals(emptyList<Pair<String, String>>(), payPal.calls)
+        assertEquals(emptyList<Pair<String, String>>(), payMongo.calls)
     }
 
     @Test
@@ -1779,6 +1940,15 @@ class PaywallViewModelTest {
         maxMonthlyProductId = "max_x",
         proAnnualProductId = "annual_x",
         maxAnnualProductId = "max_annual_x"
+    )
+
+    /** Plan ids with the ANNUAL ids left blank (PayPal yearly unconfigured). */
+    private fun monthlyOnlyRoutingConfig(): SupabaseConfig = SupabaseConfig(
+        url = "",
+        anonKey = "",
+        proTrialProductId = "trial_x",
+        proMonthlyProductId = "monthly_x",
+        maxMonthlyProductId = "max_x"
     )
 
     private class FakeBilling(private val result: BillingResult) : BillingController {

@@ -3,6 +3,7 @@ package com.needsvswants.app.ui.screens.summary
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.needsvswants.app.data.entitlement.EntitlementRepository
+import com.needsvswants.app.data.entitlement.EntitlementSync
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
@@ -19,6 +20,7 @@ import com.needsvswants.app.domain.SummaryStats
 import com.needsvswants.app.domain.SummaryUseCase
 import com.needsvswants.app.domain.toMoney
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +45,8 @@ class SummaryViewModel @Inject constructor(
     dailyBudgetUseCase: DailyBudgetUseCase,
     private val preferences: AppPreferences,
     entryRepository: EntryRepository,
-    private val entitlementRepository: EntitlementRepository
+    private val entitlementRepository: EntitlementRepository,
+    private val entitlementSync: EntitlementSync
 ) : ViewModel() {
 
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
@@ -194,13 +197,23 @@ class SummaryViewModel @Inject constructor(
 
     /**
      * Pull-to-refresh (design audit #11): force a remote entitlement re-sync.
-     * The stats chain is already reactive to [com.needsvswants.app.data.db.EntryDao]
-     * and entitlement flows, so a fresh entitlement re-emits the period stats
-     * downstream. Best-effort — offline-first stays silent on failure.
+     * Routes through [EntitlementSync.refreshOnce] so the fetch carries a fresh
+     * Supabase access token — calling the repository seam directly would pass
+     * no token and silently no-op. Signed-out / unconfigured users get a clean
+     * `false` no-op, never a hang. The stats chain is already reactive to
+     * [com.needsvswants.app.data.db.EntryDao] and entitlement flows, so a fresh
+     * entitlement re-emits the period stats downstream. Best-effort —
+     * offline-first stays silent on failure.
      */
     fun refresh() {
         viewModelScope.launch {
-            runCatching { entitlementRepository.refreshFromRemote() }
+            try {
+                entitlementSync.refreshOnce()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Best-effort only: a network/parse failure never surfaces here.
+            }
         }
     }
 

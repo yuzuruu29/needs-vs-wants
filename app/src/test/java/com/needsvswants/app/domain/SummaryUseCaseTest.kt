@@ -6,6 +6,7 @@ import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.data.repository.EntryRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,9 +26,8 @@ class SummaryUseCaseTest {
     fun allPeriod_freeEntitlement_filtersEntriesOlderThan30Days() = runTest {
         val recent = entry("recent", cost = 100, dateUtc = now - 10 * millisPerDay)
         val old = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
-        val dao = FakeEntryDao(listOf(recent, old))
         val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
-        val useCase = SummaryUseCase(dao, repo)
+        val useCase = SummaryUseCase(EntryRepository(FakeEntryDao(listOf(recent, old)), repo), repo)
 
         val stats = useCase.getStats(Period.ALL).first()
 
@@ -43,9 +43,8 @@ class SummaryUseCaseTest {
         // own System.currentTimeMillis().
         val within = entry("within", cost = 100, dateUtc = now - 29 * millisPerDay)
         val past = entry("past", cost = 200, dateUtc = now - 31 * millisPerDay)
-        val dao = FakeEntryDao(listOf(within, past))
         val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
-        val useCase = SummaryUseCase(dao, repo)
+        val useCase = SummaryUseCase(EntryRepository(FakeEntryDao(listOf(within, past)), repo), repo)
 
         val stats = useCase.getStats(Period.ALL).first()
 
@@ -57,14 +56,13 @@ class SummaryUseCaseTest {
     fun allPeriod_proEntitlement_includesAllEntries() = runTest {
         val recent = entry("recent", cost = 100, dateUtc = now - 10 * millisPerDay)
         val old = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
-        val dao = FakeEntryDao(listOf(recent, old))
         val pro = Entitlement(
             tier = EntitlementTier.PRO,
             type = EntitlementType.PAID,
             expiresAtEpochMillis = null
         )
         val repo = EntitlementRepository(FakeLocal(pro), FakeRemote())
-        val useCase = SummaryUseCase(dao, repo)
+        val useCase = SummaryUseCase(EntryRepository(FakeEntryDao(listOf(recent, old)), repo), repo)
 
         val stats = useCase.getStats(Period.ALL).first()
 
@@ -76,14 +74,37 @@ class SummaryUseCaseTest {
     fun monthPeriod_includesLastWhenWithin30Days_butNotOlder() = runTest {
         val withinMonth = entry("within", cost = 100, dateUtc = now - 20 * millisPerDay)
         val olderThanMonth = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
-        val dao = FakeEntryDao(listOf(withinMonth, olderThanMonth))
         val repo = EntitlementRepository(FakeLocal(Entitlement.Free), FakeRemote())
-        val useCase = SummaryUseCase(dao, repo)
+        val useCase = SummaryUseCase(
+            EntryRepository(FakeEntryDao(listOf(withinMonth, olderThanMonth)), repo),
+            repo
+        )
 
         val stats = useCase.getStats(Period.MONTH).first()
 
         assertEquals(100, stats.totalCents)
         assertEquals(1, stats.needsCount + stats.wantsCount)
+    }
+
+    @Test
+    fun stalePaidSnapshot_freeVisibility_keepsHiddenRowsOutOfTrendBaseline() = runTest {
+        // A paid snapshot older than the sync grace degrades to Free. The
+        // hidden >30-day rows stay stored but must not leak into the ALL
+        // period's previous-window baseline either (the repository bounds the
+        // whole stream, not just the current window).
+        val recent = entry("recent", cost = 100, dateUtc = now - 10 * millisPerDay)
+        val old = entry("old", cost = 200, dateUtc = now - 40 * millisPerDay)
+        val repo = EntitlementRepository(
+            FakeLocal(paidProSnapshot(), syncedAt = now - 8 * millisPerDay),
+            FakeRemote()
+        )
+        val useCase = SummaryUseCase(EntryRepository(FakeEntryDao(listOf(recent, old)), repo), repo)
+
+        val stats = useCase.getStats(Period.ALL).first()
+
+        assertEquals(100, stats.totalCents)
+        assertEquals(1, stats.needsCount + stats.wantsCount)
+        assertEquals(0, stats.previousPeriodTotalCents)
     }
 
     private fun entry(item: String, cost: Long, dateUtc: Long): Entry = Entry(
@@ -95,13 +116,18 @@ class SummaryUseCaseTest {
         type = EntryType.NEED
     )
 
+    private fun paidProSnapshot(): Entitlement = Entitlement(
+        tier = EntitlementTier.PRO,
+        type = EntitlementType.PAID,
+        expiresAtEpochMillis = null
+    )
+
     private class FakeEntryDao(private val entries: List<Entry>) : EntryDao {
         override suspend fun insert(entry: Entry): Long = 0L
         override suspend fun insertAll(entries: List<Entry>): List<Long> = entries.map { it.id }
         override fun observeSince(since: Long): Flow<List<Entry>> =
             flowOf(entries.filter { it.dateUtc >= since })
         override fun observeAll(): Flow<List<Entry>> = flowOf(entries)
-        override suspend fun purgeBefore(before: Long): Int = 0
         override suspend fun countForDate(date: String): Int = 0
         override suspend fun deleteAll() {}
         override suspend fun delete(entry: Entry) {}
@@ -109,11 +135,16 @@ class SummaryUseCaseTest {
         override suspend fun restore(entry: Entry): Long = 0L
     }
 
-    private class FakeLocal(initial: Entitlement) : EntitlementLocalStore {
+    private class FakeLocal(
+        initial: Entitlement,
+        syncedAt: Long = if (initial.hasProAccessAt(System.currentTimeMillis())) {
+            System.currentTimeMillis()
+        } else {
+            0L
+        }
+    ) : EntitlementLocalStore {
         private val state = MutableStateFlow(initial)
-        private val synced = MutableStateFlow(
-            if (initial.hasProAccessAt(System.currentTimeMillis())) System.currentTimeMillis() else 0L
-        )
+        private val synced = MutableStateFlow(syncedAt)
         override val entitlement: Flow<Entitlement> = state
         override val entitlementSyncedAtMillis: Flow<Long> = synced
         override suspend fun setEntitlement(entitlement: Entitlement) {

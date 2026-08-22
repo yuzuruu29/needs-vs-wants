@@ -6,7 +6,8 @@
 //
 // Steps (see tools/README.md):
 //   1. bump versionCode/versionName in app/build.gradle.kts
-//   2. gradlew :app:testFullDebugUnitTest, then :app:assembleFullRelease
+//   2. gradlew :app:testDirectFullDebugUnitTest :app:testPlayFullDebugUnitTest,
+//      then :app:assembleDirectFullRelease (flavor-split task names)
 //   3. sha256 of the built APK
 //   4. copy APK into website/public/downloads/ AND website/downloads/
 //   5. version-marker checklist (hand-edited HTML copy) -> pause -> apply.js -> check.js (must print ALL CHECKS PASSED)
@@ -25,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const GRADLE_FILE = path.join(ROOT, 'app', 'build.gradle.kts');
-const APK_OUT = path.join(ROOT, 'app', 'build', 'outputs', 'apk', 'full', 'release', 'app-full-release.apk');
+const APK_OUT = path.join(ROOT, 'app', 'build', 'outputs', 'apk', 'directFull', 'release', 'app-direct-full-release.apk');
 const SITE_DIR = path.join(ROOT, 'website');
 const PUBLIC_HTML = path.join(SITE_DIR, 'public', 'index.html');
 const DOWNLOAD_DIRS = [
@@ -71,7 +72,8 @@ function plan(cmdText, cwd) {
   console.log(`  ${EXECUTE ? 'run' : 'would run'}: ${cmdText}${cwd ? `   (cwd: ${path.relative(ROOT, cwd) || '.'})` : ''}`);
 }
 
-// Runs a command, streaming output. Only ever called in EXECUTE mode.
+// Runs a command, streaming output. Called in EXECUTE mode and once by the
+// read-only preflight config gate below; never elsewhere in dry-run.
 // shell:true on Windows so .bat/.cmd shims (gradlew.bat, vercel, gh) resolve.
 function run(cmd, cmdArgs, opts = {}) {
   const res = spawnSync(cmd, cmdArgs, {
@@ -148,6 +150,14 @@ console.log(`APK:     ${apkName}`);
 const gradlew = IS_WIN ? 'gradlew.bat' : './gradlew';
 let sha256 = '(computed after build)';
 
+// Preflight: the offline release-config gate registered in app/build.gradle.kts
+// (:app:checkDirectFullReleaseConfig). Read-only and fast; runs in BOTH modes so
+// even a dry-run aborts before anything is touched when SUPABASE_URL /
+// SUPABASE_ANON_KEY / GOOGLE_WEB_CLIENT_ID would be blank in the artifact.
+// TEST AdMob ids / blank SENTRY_DSN warn only (deliberate soft-launch posture).
+console.log('Preflight: release runtime-config gate');
+run(gradlew, [':app:checkDirectFullReleaseConfig']);
+
 // ---------------------------------------------------------------------------
 // Step 1 — bump versionCode / versionName
 // ---------------------------------------------------------------------------
@@ -165,12 +175,12 @@ if (EXECUTE) {
 // ---------------------------------------------------------------------------
 // Step 2 — unit tests, then signed release build
 // ---------------------------------------------------------------------------
-step(2, 'Gradle: unit tests + assembleFullRelease');
-plan(`${gradlew} :app:testFullDebugUnitTest`);
-plan(`${gradlew} :app:assembleFullRelease   (signing needs RELEASE_* creds in ~/.gradle/gradle.properties or env)`);
+step(2, 'Gradle: unit tests + assembleDirectFullRelease');
+plan(`${gradlew} :app:testDirectFullDebugUnitTest :app:testPlayFullDebugUnitTest`);
+plan(`${gradlew} :app:assembleDirectFullRelease   (signing needs RELEASE_* creds in ~/.gradle/gradle.properties or env)`);
 if (EXECUTE) {
-  run(gradlew, [':app:testFullDebugUnitTest']);
-  run(gradlew, [':app:assembleFullRelease']);
+  run(gradlew, [':app:testDirectFullDebugUnitTest', ':app:testPlayFullDebugUnitTest']);
+  run(gradlew, [':app:assembleDirectFullRelease']);
 }
 
 // ---------------------------------------------------------------------------
@@ -282,7 +292,7 @@ if (EXECUTE) {
 // ---------------------------------------------------------------------------
 console.log(`\n${MODE} complete.`);
 if (!EXECUTE) {
-  console.log('Nothing was modified, no commands were run. Re-run with --yes to execute.');
+  console.log('Nothing was modified (only the read-only release-config gate ran). Re-run with --yes to execute.');
 } else {
   console.log('Remember: commit the version bump + site changes, and update the Second Brain notes (Tasks.md / Decisions.md).');
 }

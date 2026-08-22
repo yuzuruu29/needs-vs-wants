@@ -110,6 +110,22 @@ class PaywallViewModel @Inject constructor(
     private val _selectedPeriod = MutableStateFlow(BillingPeriod.MONTHLY)
     val selectedPeriod: StateFlow<BillingPeriod> = _selectedPeriod.asStateFlow()
 
+    /**
+     * Whether ANNUAL checkout can run for [provider] on this build.
+     *
+     * PayPal needs both annual plan ids wired through BuildConfig /
+     * local.properties; when either is blank the PayPal controller fails with
+     * "Annual PayPal plan not configured on this build." so the paywall keeps
+     * Annual unavailable instead of letting the user hit that error.
+     * PayMongo amounts are server-authoritative in the edge function, so its
+     * annual stays available whenever PayMongo checkout itself is.
+     */
+    fun isAnnualAvailable(provider: PaymentProvider): Boolean = when (provider) {
+        PaymentProvider.PAYPAL ->
+            config.proAnnualProductId.isNotBlank() && config.maxAnnualProductId.isNotBlank()
+        else -> true
+    }
+
     /** Static per-build availability of each checkout provider (config-driven). */
     val payPalAvailable: Boolean = checkoutProvider.payPalAvailable
     val payMongoAvailable: Boolean = checkoutProvider.payMongoAvailable
@@ -180,6 +196,12 @@ class PaywallViewModel @Inject constructor(
     fun selectProvider(provider: PaymentProvider) {
         if (provider == _selectedProvider.value) return
         _selectedProvider.value = provider
+        // Containment mirror of [isAnnualAvailable]: switching to a provider
+        // that cannot run ANNUAL falls back to MONTHLY, so the deferred intent
+        // re-asserted below can never route an unconfigured annual plan.
+        if (!isAnnualAvailable(provider) && _selectedPeriod.value == BillingPeriod.ANNUAL) {
+            _selectedPeriod.value = BillingPeriod.MONTHLY
+        }
         consumeResult()
         viewModelScope.launch {
             when (_pendingPurchase.value) {
@@ -211,6 +233,11 @@ class PaywallViewModel @Inject constructor(
      */
     fun selectPeriod(period: BillingPeriod) {
         if (period == _selectedPeriod.value) return
+        // Containment: never route an unconfigured annual plan into the billing
+        // pipeline. Annual stays rejected while the current provider cannot run
+        // it (PayPal without configured annual plan ids); the UI disables the
+        // Annual option for the same condition.
+        if (period == BillingPeriod.ANNUAL && !isAnnualAvailable(_selectedProvider.value)) return
         _selectedPeriod.value = period
         consumeResult()
         viewModelScope.launch {

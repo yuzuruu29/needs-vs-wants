@@ -10,7 +10,7 @@ on:
 
 jobs:
   instrumented:
-    name: Managed-device androidTest (full flavor)
+    name: Managed-device androidTest (directFull flavor)
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -34,7 +34,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run instrumented tests (Gradle managed device)
-        run: ./gradlew :app:pixel2api33FullDebugAndroidTest --stacktrace
+        run: ./gradlew :app:pixel2api33DirectFullDebugAndroidTest --stacktrace
 
       - name: Upload results
         if: always()

@@ -170,13 +170,19 @@ fun InputScreen(
         pendingCameraUri = null
         if (success && uri != null) {
             imageScope.launch {
-                val bitmap = runCatching {
-                    withContext(Dispatchers.IO) {
-                        ReceiptImageLoader.decode(context.contentResolver, uri)
-                    }
-                }.getOrNull()
-                viewModel.scanReceipt(bitmap)
-                context.contentResolver.delete(uri, null, null)
+                // The capture is a temporary private-cache file; it must be
+                // deleted on every path — decode failure or OCR crash included
+                // (Data Safety: images never outlive processing).
+                try {
+                    val bitmap = runCatching {
+                        withContext(Dispatchers.IO) {
+                            ReceiptImageLoader.decode(context.contentResolver, uri)
+                        }
+                    }.getOrNull()
+                    viewModel.scanReceipt(bitmap)
+                } finally {
+                    runCatching { context.contentResolver.delete(uri, null, null) }
+                }
             }
         } else if (uri != null) {
             context.contentResolver.delete(uri, null, null)

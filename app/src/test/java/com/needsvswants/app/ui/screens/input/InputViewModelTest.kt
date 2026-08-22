@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.Preferences
 import com.needsvswants.app.ads.NoOpRewardedAdGateway
 import com.needsvswants.app.ads.RewardedAdGateway
 import com.needsvswants.app.data.db.EntryDao
+import com.needsvswants.app.data.entitlement.EntitlementRemote
+import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
@@ -80,7 +82,10 @@ class InputViewModelTest {
         ) { file }
         prefs = AppPreferences(dataStore)
         dao = FakeEntryDao()
-        repository = EntryRepository(dao)
+        // Same wiring as production DI: the repository's trusted entitlement
+        // flow reads the very same AppPreferences (DataStore) the view model's
+        // gates use, so prefs.setEntitlement drives both surfaces.
+        repository = EntryRepository(dao, EntitlementRepository(prefs, FakeEntitlementRemote()))
     }
 
     @After
@@ -562,6 +567,10 @@ class InputViewModelTest {
         assertTrue(vm.receiptScanState.value is ReceiptScanUiState.Ready || vm.receiptScanState.value is ReceiptScanUiState.Idle)
     }
 
+    private class FakeEntitlementRemote : EntitlementRemote {
+        override suspend fun fetchEntitlement(accessToken: String?): Entitlement? = null
+    }
+
     private class FakeEntryDao : EntryDao {
         val entries = MutableStateFlow<List<Entry>>(emptyList())
 
@@ -579,12 +588,6 @@ class InputViewModelTest {
             entries.map { list -> list.filter { it.dateUtc >= since } }
 
         override fun observeAll(): Flow<List<Entry>> = entries
-
-        override suspend fun purgeBefore(before: Long): Int {
-            val (kept, removed) = entries.value.partition { it.dateUtc >= before }
-            entries.value = kept
-            return removed.size
-        }
 
         override suspend fun countForDate(date: String): Int =
             entries.value.count { it.date == date }

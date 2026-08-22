@@ -116,15 +116,119 @@ export function tierFromPayPalPlanId(
   return "pro";
 }
 
+// ---------------------------------------------------------------------------
+// Google Play allowlists (fail closed)
+// ---------------------------------------------------------------------------
+
+/** The only package name google_play_verify will ever verify against. */
+export const GOOGLE_PLAY_PACKAGE_NAME = "com.needsvswants.app";
+
 /**
- * Resolve tier from a Google Play Product ID (e.g. needsvswants_pro, needsvswants_max).
+ * Allowlisted Play subscription product IDs -> tier. These mirror the app's
+ * BuildConfig PLAY_SUB_PRO / PLAY_SUB_MAX defaults. Anything not listed here is
+ * REJECTED: an unknown or missing product id must never map to Pro.
+ */
+export const GOOGLE_PLAY_SUBSCRIPTION_PRODUCT_TIERS: Readonly<
+  Record<string, "pro" | "max">
+> = {
+  needsvswants_pro: "pro",
+  needsvswants_max: "max",
+};
+
+/**
+ * Allowlisted Play one-time product IDs -> tier. The Play distribution sells
+ * subscriptions ONLY, so this list is intentionally EMPTY today; kind=one_time
+ * requests are rejected outright until a product is deliberately added here.
+ */
+export const GOOGLE_PLAY_ONE_TIME_PRODUCT_TIERS: Readonly<
+  Record<string, "pro" | "max">
+> = {};
+
+/**
+ * Resolve tier from a Google Play Product ID. FAIL CLOSED: returns null for
+ * unknown or missing ids instead of defaulting to a tier.
  */
 export function tierFromGooglePlayProductId(
   productId: string | null | undefined,
-): "pro" | "max" {
-  if (!productId) return "pro";
-  if (/max/i.test(productId)) return "max";
-  return "pro";
+): "pro" | "max" | null {
+  if (!productId) return null;
+  return GOOGLE_PLAY_SUBSCRIPTION_PRODUCT_TIERS[productId] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// google_play_verify request validation (pure, unit-testable)
+// ---------------------------------------------------------------------------
+
+/** Raw body shape accepted by google_play_verify. */
+export interface GooglePlayVerifyRequestBody {
+  package_name?: string;
+  product_id?: string;
+  purchase_token?: string;
+  kind?: string;
+}
+
+export type GooglePlayVerifyValidation =
+  | {
+    ok: true;
+    packageName: string;
+    purchaseToken: string;
+    kind: "subscription";
+  }
+  | {
+    ok: true;
+    packageName: string;
+    purchaseToken: string;
+    kind: "one_time";
+    productId: string;
+  }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Validate a google_play_verify request body BEFORE any network call.
+ *
+ * Fail-closed rules:
+ *   - package_name must equal GOOGLE_PLAY_PACKAGE_NAME exactly.
+ *   - kind must be "subscription" (defaulted) or "one_time"; anything else is
+ *     rejected rather than falling through to a handler.
+ *   - one_time requires a product_id that is explicitly allowlisted; with the
+ *     current empty Play one-time allowlist every one_time request is rejected
+ *     so it can never grant an entitlement.
+ */
+export function validateGooglePlayVerifyRequest(
+  body: GooglePlayVerifyRequestBody,
+): GooglePlayVerifyValidation {
+  const packageName = body.package_name;
+  const purchaseToken = body.purchase_token;
+  if (!packageName || !purchaseToken) {
+    return { ok: false, status: 400, error: "Missing purchase params" };
+  }
+  if (packageName !== GOOGLE_PLAY_PACKAGE_NAME) {
+    return { ok: false, status: 400, error: "Unknown package_name" };
+  }
+
+  const kind = body.kind ?? "subscription";
+  if (kind === "subscription") {
+    return { ok: true, packageName, purchaseToken, kind };
+  }
+  if (kind === "one_time") {
+    const productId = body.product_id;
+    if (!productId) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Missing product_id for one_time purchase",
+      };
+    }
+    if (!GOOGLE_PLAY_ONE_TIME_PRODUCT_TIERS[productId]) {
+      return {
+        ok: false,
+        status: 400,
+        error: "Unsupported product_id for one_time purchase",
+      };
+    }
+    return { ok: true, packageName, purchaseToken, kind, productId };
+  }
+  return { ok: false, status: 400, error: "Unknown purchase kind" };
 }
 
 /**
@@ -436,4 +540,124 @@ export function parseOneTimeProductV2Response(
   const productId = data.productId || fallbackProductId;
   if (!productId) return null;
   return { expiry: null, productId };
+}
+
+// ---------------------------------------------------------------------------
+// Order-independent entitlement merging
+// ---------------------------------------------------------------------------
+
+/** Rank used when several verified purchases coexist for one user. */
+export const ENTITLEMENT_TIER_RANK: Record<"free" | "pro" | "max", number> = {
+  free: 0,
+  pro: 1,
+  max: 2,
+};
+
+/** A single verified paid purchase reduced to tier + expiry. */
+export interface PaidEntitlementPurchase {
+  tier: "pro" | "max";
+  /** ISO expiry timestamp; null means lifetime (never expires). */
+  paid_until: string | null;
+}
+
+/**
+ * Reduce an entitlements ROW to a mergeable paid purchase, or null when the row
+ * does not represent PAID access.
+ *
+ * paid_until NULL means lifetime ONLY while no trial window is set: a trial row
+ * (is_pro=true, paid_until=null, trial_ends_at set) is NOT lifetime paid and
+ * must be excluded, otherwise verifying any purchase during a trial would
+ * wrongly mint a lifetime grant.
+ */
+export function paidPurchaseFromRow(
+  row:
+    | Pick<
+      EntitlementRow,
+      "is_pro" | "tier" | "trial_ends_at" | "paid_until"
+    >
+    | null
+    | undefined,
+): PaidEntitlementPurchase | null {
+  if (!row || !row.is_pro) return null;
+  // Only paid tiers are mergeable; a pro row with a missing/legacy free tier
+  // marker defaults to "pro".
+  const tier: "pro" | "max" = row.tier === "max" ? "max" : "pro";
+  if (row.paid_until === null || row.paid_until === undefined) {
+    if (row.trial_ends_at === null || row.trial_ends_at === undefined) {
+      return { tier, paid_until: null };
+    }
+    // Trial row: gated by trial_ends_at, not lifetime paid.
+    return null;
+  }
+  return { tier, paid_until: row.paid_until };
+}
+
+/**
+ * Merge several verified paid purchases into ONE order-independent outcome.
+ *
+ * Semantics (rank FREE < PRO < MAX):
+ *   1. Purchases already expired at `nowIso` are dropped first, so a stale or
+ *      out-of-order callback can neither resurrect nor shorten a newer grant.
+ *      paid_until null is lifetime and never drops; unparseable expiries are
+ *      treated as expired.
+ *   2. The surviving HIGHEST tier wins (a Pro->Max upgrade keeps Max even if a
+ *      late Pro callback finishes last).
+ *   3. Within that winning tier: paid_until null (lifetime) outranks any dated
+ *      expiry; otherwise the LATEST expiry wins. Expiries are never taken from
+ *      a lower tier, so a grant never outlives its own verified coverage.
+ *
+ * Pure and commutative: the result depends only on the SET of purchases, never
+ * on callback arrival order. Throws when nothing survives step 1 so callers
+ * fail loudly instead of silently writing a bogus row.
+ */
+export function mergePaidEntitlements(
+  purchases: readonly PaidEntitlementPurchase[],
+  nowIso: string,
+): PaidEntitlementPurchase {
+  const now = Date.parse(nowIso);
+  if (Number.isNaN(now)) {
+    throw new Error("mergePaidEntitlements: invalid now timestamp");
+  }
+
+  // Step 1: drop expired purchases.
+  const active = purchases.filter((p) => {
+    if (p.paid_until === null) return true;
+    const ms = Date.parse(p.paid_until);
+    return !Number.isNaN(ms) && ms > now;
+  });
+  if (active.length === 0) {
+    throw new Error("mergePaidEntitlements: no active purchase to merge");
+  }
+
+  // Step 2: highest surviving tier wins.
+  let bestTier: "pro" | "max" = "pro";
+  let bestRank = ENTITLEMENT_TIER_RANK.pro;
+  for (const p of active) {
+    const rank = ENTITLEMENT_TIER_RANK[p.tier];
+    if (rank > bestRank) {
+      bestRank = rank;
+      bestTier = p.tier;
+    }
+  }
+
+  // Step 3: within the winning tier - lifetime outranks dated, else latest date.
+  let lifetime = false;
+  let bestMs = Number.NEGATIVE_INFINITY;
+  let bestUntil: string | null = null;
+  for (const p of active) {
+    if (p.tier !== bestTier) continue;
+    if (p.paid_until === null) {
+      lifetime = true;
+      continue;
+    }
+    const ms = Date.parse(p.paid_until);
+    // Unparseable dates were already dropped in step 1; guard anyway.
+    if (Number.isNaN(ms)) continue;
+    if (ms > bestMs) {
+      bestMs = ms;
+      bestUntil = p.paid_until;
+    }
+  }
+
+  return { tier: bestTier, paid_until: lifetime ? null : bestUntil };
 }

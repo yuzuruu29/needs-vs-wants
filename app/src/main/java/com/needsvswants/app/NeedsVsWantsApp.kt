@@ -4,10 +4,8 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.needsvswants.app.data.backup.BackupScheduler
-import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.entitlement.EntitlementSync
 import com.needsvswants.app.data.prefs.AppPreferences
-import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.data.update.UpdateChecker
 import com.needsvswants.app.diagnostics.CrashReporting
 import com.needsvswants.app.notification.ReminderScheduler
@@ -21,8 +19,6 @@ import javax.inject.Inject
 
 @HiltAndroidApp
 class NeedsVsWantsApp : Application(), Configuration.Provider {
-    @Inject lateinit var entryRepository: EntryRepository
-    @Inject lateinit var entitlementRepository: EntitlementRepository
     @Inject lateinit var entitlementSync: EntitlementSync
     @Inject lateinit var preferences: AppPreferences
     @Inject lateinit var updateChecker: UpdateChecker
@@ -41,16 +37,18 @@ class NeedsVsWantsApp : Application(), Configuration.Provider {
                     preferences.crashReportsEnabled.first()
                 )
             }
-            // Best-effort remote entitlement refresh BEFORE the purge-cutoff
-            // read, so a Pro user whose local snapshot is stale (e.g. right
-            // after PayPal approval) is not purged as free. Bounded and
-            // exception-safe; offline keeps the local snapshot.
+            // Best-effort remote entitlement refresh at cold start so a Pro
+            // user whose local snapshot went stale (offline > 7 days, backend
+            // outage) regains paid access as soon as a connection exists.
+            // Bounded and exception-safe; offline keeps the local snapshot.
             runCatching { entitlementSync.syncAtAppStart() }
-            val cutoff = entitlementRepository.entitlement.first()
-                .retentionCutoffAt(System.currentTimeMillis())
-            if (cutoff != null) {
-                entryRepository.purgeBefore(cutoff)
-            }
+            // NOTE: startup must NEVER delete entries based on entitlement
+            // state. The old purgeBefore(cutoff) call here physically deleted
+            // lifetime history when a stale paid snapshot degraded to Free.
+            // Retention is now a visibility boundary inside EntryRepository:
+            // Free-tier reads return only the last 30 days while every older
+            // row stays stored and reappears once Pro access is verified.
+
             // Re-arm reminder if user had it enabled (e.g. after process death / reinstall of work).
             if (preferences.reminderEnabled.first()) {
                 val hour = preferences.reminderHour.first()

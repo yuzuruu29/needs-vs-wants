@@ -34,7 +34,8 @@ fun filterHistoryEntries(entries: List<Entry>, query: String, type: EntryType?):
 /**
  * Pure period window filter (Day / Week / Month / All), same cutoffs as the
  * Summary selector via [PeriodWindow]. ALL passes through unchanged — the
- * Free 30-day retention clamp already happened upstream in [entries].
+ * Free 30-day retention visibility boundary is enforced upstream in
+ * [EntryRepository], never here.
  */
 fun withinPeriod(entries: List<Entry>, period: Period, nowMs: Long): List<Entry> {
     val since = PeriodWindow.sinceEpochMs(period, nowMs)
@@ -52,18 +53,10 @@ class HistoryViewModel @Inject constructor(
     val entitlement: StateFlow<com.needsvswants.app.domain.Entitlement> = entitlementRepository.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.needsvswants.app.domain.Entitlement.Free)
 
-    val entries: StateFlow<List<Entry>> = combine(
-        entryRepository.observeAll(),
-        entitlement
-    ) { allEntries, ent ->
-        val now = System.currentTimeMillis()
-        val cutoff = ent.retentionCutoffAt(now)
-        if (cutoff == null) {
-            allEntries
-        } else {
-            allEntries.filter { it.dateUtc >= cutoff }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    // The repository already bounds this stream to the tier's retention window
+    // (Free: last 30 days, hidden rows stay stored; paid: lifetime).
+    val entries: StateFlow<List<Entry>> = entryRepository.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")

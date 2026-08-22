@@ -18,8 +18,11 @@ interface EntryDao {
     @Query("SELECT * FROM entries ORDER BY dateUtc DESC")
     fun observeAll(): Flow<List<Entry>>
 
-    @Query("DELETE FROM entries WHERE dateUtc < :before")
-    suspend fun purgeBefore(before: Long): Int
+    // NOTE: there is deliberately NO purge/delete-older-than query here.
+    // Free-tier retention (D122) is enforced as a visibility boundary in
+    // [com.needsvswants.app.data.repository.EntryRepository]: rows are never
+    // physically deleted because an entitlement snapshot is stale, failed,
+    // unverified, or even confirmed Free.
 
     @Query("SELECT COUNT(*) FROM entries WHERE date = :date")
     suspend fun countForDate(date: String): Int

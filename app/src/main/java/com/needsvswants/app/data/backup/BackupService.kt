@@ -4,8 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.needsvswants.app.BuildConfig
+import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.prefs.AppPreferences
-import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.notification.ReminderScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -22,11 +22,17 @@ import javax.inject.Singleton
  * no backup story). The user picks a folder once (persistable tree URI — a
  * Google Drive folder works too); backups are plain JSON envelopes written by
  * [BackupEnvelopeCodec]. Keeps the newest [KEEP_BACKUPS] files, prunes older.
+ *
+ * Reads go through the raw [EntryDao], NOT the retention-bounded
+ * EntryRepository: backups are tier-blind. Exporting only the tier-visible
+ * window would silently drop hidden-but-stored rows from a Free/stale user's
+ * backup, and restore dedupe must see every stored row or hidden entries get
+ * re-inserted as duplicates.
  */
 @Singleton
 class BackupService @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val entryRepository: EntryRepository,
+    private val dao: EntryDao,
     private val preferences: AppPreferences
 ) {
     sealed class BackupResult {
@@ -48,7 +54,7 @@ class BackupService @Inject constructor(
             if (!dir.canWrite()) {
                 return@withContext BackupResult.Failed("Backup folder is not writable — pick it again")
             }
-            val entries = entryRepository.observeAll().first()
+            val entries = dao.observeAll().first()
             val envelope = BackupEnvelope(
                 schemaVersion = BackupEnvelopeCodec.SCHEMA_VERSION,
                 appVersionName = BuildConfig.VERSION_NAME,
@@ -95,9 +101,9 @@ class BackupService @Inject constructor(
                 return@withContext RestoreResult.Failed(e.message ?: "Invalid backup file")
             }
 
-            val existing = entryRepository.observeAll().first()
+            val existing = dao.observeAll().first()
             val fresh = BackupEnvelopeCodec.newEntriesOnly(envelope.entries, existing)
-            fresh.forEach { entryRepository.insert(it.toEntry()) }
+            fresh.forEach { dao.insert(it.toEntry()) }
 
             envelope.prefs?.let { p ->
                 preferences.setCurrency(p.currencySymbol, p.currencyCode)
