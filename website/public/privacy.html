@@ -65,10 +65,10 @@ footer a{color:var(--sub)}
   <div class="wrap">
     <article class="paper">
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: August 13, 2026 · Applies to the Needs vs Wants Android app and this website.</p>
+      <p class="updated">Last updated: August 21, 2026 · Applies to the Needs vs Wants Android app and this website.</p>
 
       <div class="summary">
-        <p><b>The short version:</b> your live spending diary stays on your phone and is never sent to our servers. Optional backups go only to a folder you choose. We only handle data when you choose to sign in for a paid tier, pay through PayMongo or PayPal, send a crash report, or leave your email for the launch note. The Free tier may offer an optional rewarded ad to unlock extra seals — you tap to watch it, it never runs silently, and it is not tracking. No analytics or behavioral tracking, and we never sell data.</p>
+        <p><b>The short version:</b> your live spending diary stays on your phone and is never sent to our servers. Optional backups go only to a folder you choose. We only handle data when you choose to sign in for a paid tier, pay through Google Play, PayMongo, or PayPal, send a crash report, or leave your email for the launch note. The Free tier may offer an optional rewarded ad to unlock extra seals — you tap to watch it, it never runs silently. No analytics or behavioral tracking of your diary, and we never sell data.</p>
       </div>
 
       <h2>1. Your diary stays on your device</h2>
@@ -84,9 +84,13 @@ footer a{color:var(--sub)}
       </ul>
       <p>These are stored with Supabase, our backend provider, and are used solely to verify and restore your membership across installs and devices. Signing out stops the device from using the account; the entitlement record stays attached to your account so you can restore what you paid for.</p>
 
-      <h2>3. Payments (PayMongo and PayPal)</h2>
-      <p>Payments are processed entirely by <b>PayMongo</b> (GCash, cards; one-time manual-renew passes) or <b>PayPal</b> (subscriptions). Your card number, GCash account, and full payment details go to those providers, <b>never to us</b>: we do not see them and do not store them. The providers send you receipts directly. What we record is the outcome: a payment event and the entitlement it grants (tier and paid-until date) tied to your signed-in account.</p>
-      <p>PayMongo and PayPal have their own privacy policies that govern the data you give them during checkout.</p>
+      <h2>3. Payments (Google Play, PayMongo, and PayPal)</h2>
+      <p>How you pay depends on how you installed the app:</p>
+      <ul>
+        <li><b>Google Play:</b> if you installed from the Play Store, Pro and Max are billed by Google Play Billing. Card and wallet details stay with Google. We receive a purchase token so we can verify and restore your membership. Cancel auto-renewing subscriptions in Google Play subscription settings.</li>
+        <li><b>Direct APK (this website):</b> payments are processed by <b>PayMongo</b> (GCash, cards; one-time manual-renew passes) or <b>PayPal</b> (subscriptions). Your card number, GCash account, and full payment details go to those providers, <b>never to us</b>.</li>
+      </ul>
+      <p>In every case we record only the outcome: a payment event and the entitlement it grants (tier and paid-until date) tied to your signed-in account. Google Play, PayMongo, and PayPal have their own privacy policies for checkout data.</p>
 
       <h2>4. Crash reports (Sentry)</h2>
       <p>Release builds of the app may send crash reports through <b>Sentry</b> when crash reporting is configured and enabled, so we can find and fix bugs. A crash report contains technical details: device model, Android version, and the stack trace of the failure. It contains <b>no diary contents</b>: your entries, amounts, and budgets are never included.</p>
@@ -95,19 +99,22 @@ footer a{color:var(--sub)}
       <h2>5. Launch-notification emails (this website)</h2>
       <p>If you submit your email in the "Get notified" form on this site, we store that address for one purpose: emailing you when the app launches on iOS or Google Play. It is not used for marketing lists, not shared, and not sold. Ask us to remove it at any time using the contact below.</p>
 
-      <h2>6. What we do not do</h2>
+      <h2>6. Optional rewarded ads (Free tier)</h2>
+      <p>The Free tier may offer an optional rewarded video ad to unlock extra seals for that day. The ad only loads after you tap Watch ad. Google AdMob and Google's User Messaging Platform may then use a device advertising ID and show a consent prompt where required. We do not use ads to track your diary, and we do not build advertising profiles from your purchases. You can skip the ad and wait for the next day's free quota instead.</p>
+
+      <h2>7. What we do not do</h2>
       <ul>
-        <li>No advertising, and no ad identifiers.</li>
-        <li>No analytics or behavioral tracking in the app or on this site.</li>
+        <li>No silent or banner advertising. Ads, when offered, are opt-in rewarded videos on the Free tier only.</li>
+        <li>No analytics or behavioral tracking of your diary in the app or on this site.</li>
         <li>No selling or renting of personal data, to anyone, ever.</li>
         <li>No reading of your diary: the app never sends it to us.</li>
       </ul>
 
-      <h2>7. Your rights (Philippine Data Privacy Act)</h2>
+      <h2>8. Your rights (Philippine Data Privacy Act)</h2>
       <p>We handle personal data in line with the <b>Philippine Data Privacy Act of 2012 (RA 10173)</b>. As a data subject you have the right to be informed, to access the personal data we hold about you (account email, entitlement records, launch-note email), to correct it, to object to processing, to request erasure or blocking, and to data portability where applicable.</p>
       <p>To exercise any of these rights, contact us below. We will respond within a reasonable time, and you may also lodge a complaint with the <b>National Privacy Commission</b> if you believe your data privacy rights were violated.</p>
 
-      <h2>8. Retention</h2>
+      <h2>9. Retention</h2>
       <ul>
         <li><b>Diary data:</b> in the app on your device; optional backup files remain in the folder you selected until you remove them.</li>
         <li><b>Account and entitlement records:</b> kept while your account holds or held a paid tier, then removed on erasure request unless a legal obligation requires otherwise.</li>
@@ -115,10 +122,13 @@ footer a{color:var(--sub)}
         <li><b>Launch-note emails:</b> kept until the launch note is sent or you ask for removal, whichever comes first.</li>
       </ul>
 
-      <h2>9. Changes to this policy</h2>
+      <h2 id="account-deletion">10. Deleting your data</h2>
+      <p>You can wipe the on-device diary at any time in the app's <b>Settings</b>. Signing out stops this device from using your paid membership but does not delete the account record. To request erasure of the email, Google ID, and entitlement record we hold, email <a href="mailto:aceuaisolutions@gmail.com">aceuaisolutions@gmail.com</a> from the address on the account. We will delete that account data unless a legal obligation requires us to keep a payment record.</p>
+
+      <h2>11. Changes to this policy</h2>
       <p>If this policy changes materially, the "Last updated" date above will change and the new version will be posted on this page before it takes effect.</p>
 
-      <h2>10. Contact</h2>
+      <h2>12. Contact</h2>
       <div class="contact-box">
         Data privacy requests and questions: <a href="mailto:aceuaisolutions@gmail.com"><b>aceuaisolutions@gmail.com</b></a><br>
         Needs vs Wants · ACEU AI Solutions · Manila, Philippines

@@ -55,6 +55,7 @@ import java.util.Locale
 import com.needsvswants.app.domain.AdsConfig
 import com.needsvswants.app.domain.FontScaleStep
 import com.needsvswants.app.domain.ThemeId
+import com.needsvswants.app.domain.toMoney
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
 import com.needsvswants.app.ui.screens.summary.InstructionsOverlay
@@ -276,7 +277,9 @@ fun SettingsScreen(
                 }
                 HorizontalDivider(color = palette.inkDivider, modifier = Modifier.padding(horizontal = 12.dp))
                 Text(
-                    "Sample: ${symbol}1,250.00  Need",
+                    // Render through the real money formatter so the sample shows
+                    // the exact "₱ 1,250.00" shape the ledger uses.
+                    "Sample: ${125_000L.toMoney(symbol)} · Need",
                     style = AppType.body,
                     color = palette.textPrimary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)

@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,6 +62,7 @@ import com.needsvswants.app.ui.theme.LedgerField
 import com.needsvswants.app.ui.theme.MembershipPlan
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
+import com.needsvswants.app.ui.theme.PaywallCopy
 import com.needsvswants.app.ui.theme.PaywallNoticeSurface
 import com.needsvswants.app.ui.theme.PaywallType
 import com.needsvswants.app.ui.theme.PlanTierCard
@@ -133,23 +135,20 @@ fun PaywallScreen(
     /** Billing cycle shorthand for the copy matrix below (₱49/₱99 monthly, ₱490/₱990 annual). */
     val isAnnual = selectedPeriod == BillingPeriod.ANNUAL
     val proTag = when {
-        isPlay -> if (isAnnual) "Billed yearly via Google Play" else "Auto-renewing monthly"
+        isPlay -> if (isAnnual) "Billed yearly via Google Play" else "Auto-renews via Google Play"
         effectiveProvider == PaymentProvider.PAYPAL && !isAnnual -> "3-day free trial"
         effectiveProvider == PaymentProvider.PAYPAL -> "Billed yearly"
-        !isAnnual -> "One-time ₱49"
-        else -> "One-time ₱490"
+        else -> "One-time ${PaywallCopy.proPrice(isAnnual)}"
     }
     val proPriceDisplay = when {
         isPlay && isAnnual && proAnnualPricePlay != null -> proAnnualPricePlay!!
         isPlay && !isAnnual && proMonthlyPricePlay != null -> proMonthlyPricePlay!!
-        isAnnual -> "₱490"
-        else -> "₱49"
+        else -> PaywallCopy.proPrice(isAnnual)
     }
     val maxPriceDisplay = when {
         isPlay && isAnnual && maxAnnualPricePlay != null -> maxAnnualPricePlay!!
         isPlay && !isAnnual && maxMonthlyPricePlay != null -> maxMonthlyPricePlay!!
-        isAnnual -> "₱990"
-        else -> "₱99"
+        else -> PaywallCopy.maxPrice(isAnnual)
     }
     val proPriceSuffix = when {
         isPlay -> if (isAnnual) "/ yr" else "/ mo"
@@ -337,27 +336,18 @@ fun PaywallScreen(
         MembershipPlan.Max -> ctaEnabled && !hasMaxAccess
     }
     val footerNote = when (selected) {
-        MembershipPlan.Free -> "No account. No network. 20 entries per sheet · 30-day trainer."
+        MembershipPlan.Free -> "No account. Diary stays on this device. 20 entries per sheet · 30-day window."
         MembershipPlan.Pro -> when (effectiveProvider) {
             PaymentProvider.GOOGLE_PLAY ->
                 "Subscribed through Google Play. Auto-renews until cancelled. Cancel anytime in Google Play Subscriptions."
-            PaymentProvider.PAYPAL ->
-                if (isAnnual) {
-                    "3-day free trial on PayPal if enabled on the plan, then ₱490/yr. Cancel anytime in PayPal."
-                } else {
-                    "3-day free trial on PayPal if enabled on the plan, then ₱49/mo. Cancel anytime in PayPal."
-                }
-            PaymentProvider.PAYMONGO ->
-                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each period when ready — access ends on your expiry date. No auto-charge."
+            PaymentProvider.PAYPAL -> PaywallCopy.paypalProFooter(isAnnual)
+            PaymentProvider.PAYMONGO -> PaywallCopy.PAYMONGO_FOOTER
         }
         MembershipPlan.Max -> when (effectiveProvider) {
             PaymentProvider.GOOGLE_PLAY ->
                 "Subscribed through Google Play. Auto-renews until cancelled. Cancel anytime in Google Play Subscriptions."
-            PaymentProvider.PAYPAL ->
-                if (isAnnual) "₱990/yr via PayPal. Cancel anytime in PayPal."
-                else "₱99/mo via PayPal. Cancel anytime in PayPal."
-            PaymentProvider.PAYMONGO ->
-                "One-time payment via GCash, card, PayMaya, GrabPay, or QR PH. You pay each period when ready — access ends on your expiry date. No auto-charge."
+            PaymentProvider.PAYPAL -> PaywallCopy.paypalMaxFooter(isAnnual)
+            PaymentProvider.PAYMONGO -> PaywallCopy.PAYMONGO_FOOTER
         }
     }
     /** Payment-method selector is meaningful only when both providers are configured. */
@@ -427,7 +417,7 @@ fun PaywallScreen(
                 GiltRule(width = 40.dp)
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "Free keeps 20 entries per sheet over a 30-day window. Pro lifts the caps. Max adds the AI Advisor with cited notebooks.",
+                    text = "Free keeps 20 entries per sheet over a 30-day window. Pro lifts the caps. Max adds the AI Financial Advisor with cited notebooks.",
                     style = PaywallType.screenLede,
                     color = palette.textSecondary,
                     softWrap = true
@@ -601,7 +591,10 @@ fun PaywallScreen(
                                 style = PaywallType.stickyNote,
                                 color = palette.crimson,
                                 modifier = Modifier
-                                    .clickable(enabled = !authState.busy) { authViewModel.openEmailOtp() }
+                                    .clickable(
+                                        enabled = !authState.busy,
+                                        role = Role.Button
+                                    ) { authViewModel.openEmailOtp() }
                                     .padding(vertical = 4.dp)
                             )
                         }
@@ -741,7 +734,7 @@ fun PaywallScreen(
                                 needsSignInForPurchase && !isSignedIn ->
                                     "First Google, then checkout opens in your browser."
                                 isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
-                                    "You're on Pro. Select Max for the AI Advisor."
+                                    "You're on Pro. Select Max for the AI Financial Advisor."
                                 else ->
                                     "Browse free anytime. Sign-in only when you start Pro or Max."
                             },
@@ -807,30 +800,21 @@ private fun PaymentMethodSelector(
     forMax: Boolean,
     period: BillingPeriod
 ) {
-    val c = AppTheme.colors
     val isAnnual = period == BillingPeriod.ANNUAL
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ProviderOption(
             title = "PayPal",
             detail = if (forMax) {
-                if (isAnnual) "₱990/yr. Cancel anytime in PayPal."
-                else "₱99/mo. Cancel anytime in PayPal."
+                PaywallCopy.paypalMaxDetail(isAnnual)
             } else {
-                if (isAnnual) "3-day free trial, then ₱490/yr. Cancel anytime in PayPal."
-                else "3-day free trial, then ₱49/mo. Cancel anytime in PayPal."
+                PaywallCopy.paypalProDetail(isAnnual)
             },
             selected = provider == PaymentProvider.PAYPAL,
             onClick = { onSelect(PaymentProvider.PAYPAL) }
         )
         ProviderOption(
             title = "PayMongo",
-            detail = if (forMax) {
-                if (isAnnual) "One-time ₱990 · 365 days · no auto-charge"
-                else "One-time ₱99 · 30 days · no auto-charge"
-            } else {
-                if (isAnnual) "One-time ₱490 · 365 days · no auto-charge"
-                else "One-time ₱49 · 30 days · no auto-charge"
-            },
+            detail = PaywallCopy.paymongoDetail(isAnnual),
             selected = provider == PaymentProvider.PAYMONGO,
             onClick = { onSelect(PaymentProvider.PAYMONGO) }
         )
@@ -893,7 +877,7 @@ private fun PeriodOption(
                 .clickable(onClick = onClick)
                 .padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Start
         ) {
             Text(
                 title,

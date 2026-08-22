@@ -75,7 +75,7 @@
    - Upload 1024×500 Feature Graphic.
    - Upload Phone Screenshots (minimum 2; captured from real device).
 2. [ ] **App Content & Policy Declarations**:
-   - **Privacy Policy**: `https://needs-vs-wants.vercel.app/privacy`
+   - **Privacy Policy**: `https://needs-vs-wants.vercel.app/privacy.html` (bare `/privacy` also redirects)
    - **Ads**: Check **Yes, my app contains ads** (for optional rewarded ads on the Free tier).
    - **App Access**: All functionality is available without special access restrictions (free tier available to all; optional paid subscriptions).
    - **Content Rating**: Complete questionnaire (Expected rating: PEGI 3 / Everyone / 3+).

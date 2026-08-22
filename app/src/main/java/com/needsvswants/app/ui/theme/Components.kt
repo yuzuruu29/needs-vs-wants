@@ -678,7 +678,9 @@ fun PremiumDialog(
                                 border = BorderStroke(1.dp, c.danger),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text(confirmLabel, fontWeight = FontWeight.SemiBold)
+                                // Uppercase to match GiltButton confirms — dialog
+                                // actions read as one voice regardless of style.
+                                Text(confirmLabel.uppercase(), fontWeight = FontWeight.SemiBold)
                             }
                         } else {
                             GiltButton(

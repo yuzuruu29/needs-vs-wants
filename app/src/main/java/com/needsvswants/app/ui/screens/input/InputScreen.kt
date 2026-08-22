@@ -683,6 +683,12 @@ fun InputScreen(
                                 else -> Unit
                             }
                             val activity = context as? Activity
+                            Text(
+                                "Watch a short ad for ${AdsConfig.EXTRA_LOGS_PER_REWARD} extra logs today.",
+                                color = palette.textMuted,
+                                style = AppType.caption
+                            )
+                            Spacer(Modifier.height(10.dp))
                             GiltButton(
                                 onClick = { activity?.let(viewModel::onWatchAd) },
                                 enabled = adState !is AdState.Loading && activity != null,

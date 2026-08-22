@@ -1249,18 +1249,18 @@ private fun getPeriodRange(period: Period, paid: Boolean): String {
         Period.WEEK -> {
             // Inclusive 7 calendar days — matches PeriodWindow.WEEK (today − 6).
             val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
-            "${fmt.format(start.time)} - ${fmt.format(today.time)}"
+            "${fmt.format(start.time)}–${fmt.format(today.time)}"
         }
         Period.MONTH -> {
             // Inclusive 30 calendar days — matches PeriodWindow.MONTH (today − 29).
             val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -29) }
-            "${fmt.format(start.time)} - ${fmt.format(today.time)}"
+            "${fmt.format(start.time)}–${fmt.format(today.time)}"
         }
         Period.ALL -> if (paid) {
             "Since your first entry"
         } else {
             val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -34) }
-            "${fmt.format(start.time)} - ${fmt.format(today.time)}"
+            "${fmt.format(start.time)}–${fmt.format(today.time)}"
         }
     }
 }

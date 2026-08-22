@@ -151,12 +151,14 @@ fun MembershipDesk(
             )
             Spacer(Modifier.height(12.dp))
 
-            // Unlocked benefits checklist
+            // Unlocked benefits checklist — mirrors the paywall Pro/Max bullets
+            // so members read the same feature names they subscribed to.
             Eyebrow("UNLOCKED", color = accent, size = 10)
             Spacer(Modifier.height(6.dp))
             ReceiptFeatureLine(text = "Unlimited entries per log sheet", accent = accent, emphasize = true)
+            ReceiptFeatureLine(text = "Receipt scanner & line-item sorter", accent = accent, emphasize = true)
             ReceiptFeatureLine(text = "Lifetime history retention", accent = accent)
-            ReceiptFeatureLine(text = "Month + Lifetime summary periods", accent = accent)
+            ReceiptFeatureLine(text = "Full period summary analytics", accent = accent)
             if (isMax) {
                 ReceiptFeatureLine(text = "AI Financial Advisor with citations", accent = accent, emphasize = true)
             }

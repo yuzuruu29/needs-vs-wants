@@ -42,6 +42,7 @@ import com.needsvswants.app.ui.theme.LockedBookIllustration
 import com.needsvswants.app.ui.theme.MaxSealBadge
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
+import com.needsvswants.app.ui.theme.PaywallCopy
 import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.ReceiptFeatureLine
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
@@ -369,7 +370,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "₱99 / mo · includes everything in Pro",
+                text = "${PaywallCopy.MAX_MONTHLY}/mo · includes everything in Pro",
                 style = AppType.bodySm,
                 color = palette.textMuted,
                 textAlign = TextAlign.Center

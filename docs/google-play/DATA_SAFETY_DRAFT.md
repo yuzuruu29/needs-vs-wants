@@ -82,7 +82,7 @@ Network access is restricted to:
 1. [ ] Log in to **Google Play Console** → Select **Needs vs Wants** → **App content** → **Data safety**.
 2. [ ] Mark **Yes** to data collection.
 3. [ ] Mark **Yes** to data encrypted in transit.
-4. [ ] Mark **Yes** to user deletion mechanism (provide account deletion / data wipe URL: `https://needs-vs-wants.vercel.app/terms#account-deletion`).
+4. [ ] Mark **Yes** to user deletion mechanism (provide account deletion / data wipe URL: `https://needs-vs-wants.vercel.app/privacy.html#account-deletion`).
 5. [ ] Select the 4 declared data types:
    - **Personal info → Email address** (Collected, Not shared, Ephemeral/Persistent for account, Optional)
    - **Personal info → User IDs** (Collected, Not shared, Account management, Optional)

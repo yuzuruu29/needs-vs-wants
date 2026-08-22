@@ -156,7 +156,7 @@ fun HistoryScreen(
                 val newestDate = dateFormat.parse(newest)
                 if (oldestDate != null && newestDate != null) {
                     Text(
-                        "${displayFormat.format(oldestDate)} - ${displayFormat.format(newestDate)}",
+                        "${displayFormat.format(oldestDate)}–${displayFormat.format(newestDate)}",
                         style = AppType.caption,
                         color = AppTheme.colors.textMuted
                     )

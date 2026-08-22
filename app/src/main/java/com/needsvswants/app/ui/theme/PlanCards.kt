@@ -63,7 +63,6 @@ fun TierTag(
     modifier: Modifier = Modifier,
     color: Color = AppTheme.colors.gold
 ) {
-    val c = AppTheme.colors
     Text(
         text = text.uppercase(),
         style = AppType.eyebrowSm,
@@ -518,11 +517,7 @@ fun TrialTimelineCard(
                 TimelineRow("Today", "Max unlocks after PayPal approval.")
                 TimelineRow(
                     if (period == BillingPeriod.ANNUAL) "Yearly" else "Monthly",
-                    if (period == BillingPeriod.ANNUAL) {
-                        "PayPal charges ₱990 each year until you cancel."
-                    } else {
-                        "PayPal charges ₱99 each month until you cancel."
-                    }
+                    PaywallCopy.paypalMaxChargeLine(period == BillingPeriod.ANNUAL)
                 )
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             } else {
@@ -531,11 +526,7 @@ fun TrialTimelineCard(
                 TimelineRow("Today", "After PayPal approval, Pro unlocks on this device.")
                 TimelineRow(
                     "Day 3",
-                    if (period == BillingPeriod.ANNUAL) {
-                        "Trial ends. PayPal charges the annual rate unless you cancel."
-                    } else {
-                        "Trial ends. PayPal charges the monthly rate unless you cancel."
-                    }
+                    PaywallCopy.paypalProTrialEndLine(period == BillingPeriod.ANNUAL)
                 )
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             }

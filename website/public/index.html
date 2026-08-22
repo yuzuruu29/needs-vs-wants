@@ -697,6 +697,7 @@ header.scrolled{
 .ledger-head{border-top:2px solid var(--divider-strong);border-bottom:1px solid var(--divider);padding:8px 0}
 .ledger-head span{font:600 9.5px/1 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
 .ledger-head .r,.l-cost{text-align:right}
+.ledger-head .t{text-align:center}
 .ledger-rows{max-height:236px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--divider-strong) transparent}
 .ledger-rows::-webkit-scrollbar{width:7px}
 .ledger-rows::-webkit-scrollbar-thumb{background:var(--divider-strong);border-radius:4px}
@@ -1423,7 +1424,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
     </span>
     <div class="pro-notice-copy reveal">
       <h3>Free trainer on device. Pro and Max via PayPal or PayMongo in the app, monthly or annually.</h3>
-      <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (Financial Advisor coach) are available in the app: PayPal or PayMongo checkout, no store needed.</p>
+      <p>Download the Android APK, seal a few lines, no account. <b>Pro</b> (unlimited diary) and <b>Max</b> (AI Financial Advisor) are available in the app: PayPal or PayMongo checkout, no store needed.</p>
     </div>
     <div class="pro-notice-cta reveal">
       <a class="btn btn--primary btn-arr" href="#get">
@@ -1539,7 +1540,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <h3>An optional daily budget</h3>
         <p>Set a limit on <b>Log</b>, the meter there (and Summary Day) shows today's spend, remaining budget, and when you're over. Logging would push you over? The diary asks before you seal, you still decide. Log on consecutive days and Summary shows your streak.</p>
         <ol class="rule-steps">
-          <li><b>Set it on Log.</b> Open <b>Log</b>, enter your daily limit, say ₱1,500, and <b>Save budget</b>.</li>
+          <li><b>Set it on Log.</b> Open <b>Log</b>, enter your daily limit, say ₱ 1,500, and <b>Save budget</b>.</li>
           <li><b>Watch the meter.</b> On <b>Log</b> and Summary <b>Day</b>, see spent vs budget and what's left. Green keeps you on track; red tells you you're over.</li>
           <li><b>Seal past the line?</b> The diary asks <b>“Log anyway?”</b> first. Cancel keeps your draft; Log seals it, your call, every time.</li>
           <li><b>Change or turn off anytime.</b> On Log, tap <b>Change</b> to update the limit, or <b>Turn off</b> to drop the guardrail. The trainer stays.</li>
@@ -1615,7 +1616,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
         <article class="recent-line">
           <p class="recent-meta"><b>Membership</b> · 2.0.14</p>
           <h3>Annual plans live</h3>
-          <p>Pro P49/mo or P490/yr, Max P99/mo or P990/yr. Pick Monthly or Annual on the paywall; the annual rate is two months free.</p>
+          <p>Pro ₱49/mo or ₱490/yr, Max ₱99/mo or ₱990/yr. Pick Monthly or Annual on the paywall; the annual rate is 2 months free.</p>
         </article>
         <article class="recent-line">
           <p class="recent-meta"><b>Social</b> · 2.0.14</p>
@@ -1665,9 +1666,9 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               </div>
               <div class="budget-meter" id="budgetMeter" hidden>
                 <p class="eyebrow">Daily Budget</p>
-                <div class="bm-line"><span class="money" id="bmSpent" data-cents="0">₱0.00</span><span class="money bm-budget" id="bmBudget" data-cents="0">of ₱0.00</span></div>
+                <div class="bm-line"><span class="money" id="bmSpent" data-cents="0">₱ 0.00</span><span class="money bm-budget" id="bmBudget" data-cents="0">of ₱ 0.00</span></div>
                 <div class="bm-track"><i class="bm-fill" id="bmFill"></i></div>
-                <p class="bm-remain" id="bmRemain">Remaining ₱0.00</p>
+                <p class="bm-remain" id="bmRemain">Remaining ₱ 0.00</p>
               </div>
               <div class="donut">
                 <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -1675,15 +1676,15 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
                   <circle id="arcWant" cx="100" cy="100" r="80" pathLength="100" stroke="var(--crimson)" stroke-dasharray="0 100" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
                   <circle id="arcNeed" cx="100" cy="100" r="80" pathLength="100" stroke="var(--green)" stroke-dasharray="0 100" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
                 </svg>
-                <div class="donut-center"><span class="e">Total</span><span class="money" id="donutTotal" data-cents="0">₱0.00</span></div>
+                <div class="donut-center"><span class="e">Total</span><span class="money" id="donutTotal" data-cents="0">₱ 0.00</span></div>
               </div>
               <div class="legend">
                 <span><i class="dn" aria-hidden="true"></i>Need <b class="money" id="needPct">0%</b></span>
                 <span><i class="dw" aria-hidden="true"></i>Want <b class="money" id="wantPct">0%</b></span>
               </div>
               <div class="stat-grid">
-                <div class="stat"><span class="e">Needs</span><div class="v money v-need" id="statNeed" data-cents="0">₱0.00</div><div class="s" id="statNeedN">0 entries</div></div>
-                <div class="stat"><span class="e">Wants</span><div class="v money v-want" id="statWant" data-cents="0">₱0.00</div><div class="s" id="statWantN">0 entries</div></div>
+                <div class="stat"><span class="e">Needs</span><div class="v money v-need" id="statNeed" data-cents="0">₱ 0.00</div><div class="s" id="statNeedN">0 entries</div></div>
+                <div class="stat"><span class="e">Wants</span><div class="v money v-want" id="statWant" data-cents="0">₱ 0.00</div><div class="s" id="statWantN">0 entries</div></div>
                 <div class="stat"><span class="e">Need %</span><div class="v money v-gold" id="statPct">0%</div><div class="share"><i id="shareFill"></i></div></div>
               </div>
               <button class="btn btn--primary btn--sm" type="button" data-focus-demo>Log an expense</button>
@@ -1704,18 +1705,18 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <h3 style="margin-top:8px">LOG</h3>
               <div class="budget-meter" style="margin-top:10px">
                 <p class="eyebrow">Daily Budget</p>
-                <div class="bm-line"><span class="money" data-cents="420000">₱4,200.00</span><span class="money bm-budget" data-cents="500000">of ₱5,000.00</span></div>
+                <div class="bm-line"><span class="money" data-cents="420000">₱ 4,200.00</span><span class="money bm-budget" data-cents="500000">of ₱ 5,000.00</span></div>
                 <div class="bm-track"><i class="bm-fill" style="width:84%"></i></div>
-                <p class="bm-remain">Remaining ₱800.00</p>
+                <p class="bm-remain">Remaining ₱ 800.00</p>
               </div>
               <div class="budget-actions">
                 <button type="button" id="logBudgetChange">Change</button>
                 <button type="button" id="logBudgetTurnOff" class="ba-off">Turn off</button>
               </div>
               <p class="grp" style="margin-top:12px">Sheet</p>
-              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱125.00</b><i class="l-type t-n">NEED</i></div>
-              <div class="l-row"><span class="l-time">12:40</span><span class="l-item">Lunch</span><b class="money l-cost" data-cents="180000">₱1,800.00</b><i class="l-type t-n">NEED</i></div>
-              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱85.00</b><i class="l-type t-w">WANT</i></div>
+              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱ 125.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">12:40</span><span class="l-item">Lunch</span><b class="money l-cost" data-cents="180000">₱ 1,800.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱ 85.00</b><i class="l-type t-w">WANT</i></div>
             </div>
           </div>
         </div>
@@ -1735,18 +1736,18 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
 
               <div class="day-head">
                 <span><b>Thu, Jul 30</b> &nbsp;<span class="meta">3</span></span>
-                <span class="day-totals"><span class="money v-need" data-cents="36500">₱365.00</span> · <span class="money v-want" data-cents="8500">₱85.00</span></span>
+                <span class="day-totals"><span class="money v-need" data-cents="36500">₱ 365.00</span> · <span class="money v-want" data-cents="8500">₱ 85.00</span></span>
               </div>
-              <div class="l-row"><span class="l-time">07:55</span><span class="l-item">Bus fare</span><b class="money l-cost" data-cents="4500">₱45.00</b><i class="l-type t-n">NEED</i></div>
-              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱85.00</b><i class="l-type t-w">WANT</i></div>
-              <div class="l-row"><span class="l-time">18:42</span><span class="l-item">Dinner</span><b class="money l-cost" data-cents="32000">₱320.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">07:55</span><span class="l-item">Bus fare</span><b class="money l-cost" data-cents="4500">₱ 45.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">15:10</span><span class="l-item">Iced tea</span><b class="money l-cost" data-cents="8500">₱ 85.00</b><i class="l-type t-w">WANT</i></div>
+              <div class="l-row"><span class="l-time">18:42</span><span class="l-item">Dinner</span><b class="money l-cost" data-cents="32000">₱ 320.00</b><i class="l-type t-n">NEED</i></div>
 
               <div class="day-head">
                 <span><b>Wed, Jul 29</b> &nbsp;<span class="meta">2</span></span>
-                <span class="day-totals"><span class="money v-need" data-cents="12500">₱125.00</span> · <span class="money v-want" data-cents="18000">₱180.00</span></span>
+                <span class="day-totals"><span class="money v-need" data-cents="12500">₱ 125.00</span> · <span class="money v-want" data-cents="18000">₱ 180.00</span></span>
               </div>
-              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱125.00</b><i class="l-type t-n">NEED</i></div>
-              <div class="l-row"><span class="l-time">10:03</span><span class="l-item">Coffee</span><b class="money l-cost" data-cents="18000">₱180.00</b><i class="l-type t-w">WANT</i></div>
+              <div class="l-row"><span class="l-time">08:12</span><span class="l-item">Rice &amp; eggs</span><b class="money l-cost" data-cents="12500">₱ 125.00</b><i class="l-type t-n">NEED</i></div>
+              <div class="l-row"><span class="l-time">10:03</span><span class="l-item">Coffee</span><b class="money l-cost" data-cents="18000">₱ 180.00</b><i class="l-type t-w">WANT</i></div>
 
               <p class="ink-line">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17H7.5A2.5 2.5 0 0 0 5 21.5v-17z"/><path d="M19 17H7.5a2.5 2.5 0 0 0-2.5 2.5"/></svg>
@@ -1777,7 +1778,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
                 <label class="cur-row"><input type="radio" name="fontSize" value="large" checked><span class="rdot"></span><span class="cnm">Large</span></label>
                 <label class="cur-row"><input type="radio" name="fontSize" value="xl"><span class="rdot"></span><span class="cnm">Extra large</span></label>
               </div>
-              <p class="font-sample" id="fontSample">Sample: ₱1,250.00 · Need</p>
+              <p class="font-sample" id="fontSample">Sample: ₱ 1,250.00 · Need</p>
               <p class="grp">Appearance</p>
               <div role="radiogroup" aria-label="Appearance">
                 <label class="cur-row"><input type="radio" name="theme" value="light" checked><span class="rdot"></span><span class="theme-swatches" aria-hidden="true"><i class="ts-bg"></i><i class="ts-need"></i><i class="ts-want"></i></span><span class="cnm">Market light</span></label>
@@ -1823,7 +1824,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             </div>
           </div>
         </div>
-        <p class="phone-cap"><b>Financial Advisor</b> (Max) An offline, rule-based coach on your sealed diary. Today's insight, quick protocols, and answers with curated citations from economic studies, bundled so it works without internet. Unlocks with Max.</p>
+        <p class="phone-cap"><b>AI Financial Advisor</b> (Max) An offline, rule-based coach on your sealed diary. Today's insight, quick protocols, and answers with curated citations from economic studies, bundled so it works without internet. Unlocks with Max.</p>
         <div style="max-width:460px;margin:14px auto 0;text-align:left">
           <p class="eyebrow eyebrow--gold" style="margin-bottom:10px">How the Max coach works</p>
           <ol class="rule-steps">
@@ -1883,7 +1884,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>5 sealed logs per day (unused carry forward while you log daily)</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Watch an ad for extra seals (up to 3 per day)</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Watch an ad for 8 extra logs (up to 3 per day)</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>20 entries per sheet</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>30-day retention window</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Daily budget meter</li>
@@ -1941,7 +1942,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
             <span class="pri-tag">Subscribe in the app</span>
             <p class="pri-price">₱99<small> / mo</small></p>
             <p class="pri-annual">Annual · ₱990 / yr · 2 months free</p>
-            <p class="pri-sub">Everything in Pro, plus the Financial Advisor coach.</p>
+            <p class="pri-sub">Everything in Pro, plus the AI Financial Advisor.</p>
             <div class="pri-divider" aria-hidden="true"></div>
             <ul class="pri-list">
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><b>Everything in Pro</b> · unlimited &amp; lifetime</li>
@@ -2017,7 +2018,7 @@ footer{border-top:1px solid var(--divider);padding:44px 0 50px;position:relative
               <li><strong>If Play Protect warns you</strong> that the developer is unknown, choose <strong>Install anyway</strong>. Confirm the file and the signer first under <strong>Verify your download</strong> below.</li>
               <li><strong>Open the app.</strong> There is no account and no setup: a short walkthrough explains the method, then you can log your first purchase.</li>
             </ol>
-            <p class="trust-note">✓ The diary itself stays on your device. Free may offer an optional rewarded ad to unlock extra seals today. Pro and Max have no ads. Internet is used only for optional sign-in, checkout, entitlement checks, and that optional ad.</p>
+            <p class="trust-note">✓ The diary itself stays on your device. Free may offer an optional rewarded ad to unlock extra logs today. Pro and Max have no ads. Internet is used only for optional sign-in, checkout, entitlement checks, and that optional ad.</p>
           </details>
           <details class="sideload-guide">
             <summary>Upgrading from an older version? ▾</summary>
@@ -2163,7 +2164,7 @@ function fmt(cents){
   const num = c.d === 0
     ? Math.round(v).toLocaleString('en-US')
     : v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-  return c.s + num;
+  return c.s + ' ' + num;
 }
 function applyCurrency(){
   $$('[data-cents]').forEach(el => el.textContent = fmt(+el.dataset.cents));
@@ -2313,7 +2314,7 @@ function renderSheetMarkup(sheetIdx, live){
     </div>
     ${body}
     <div class="ledger-head" aria-hidden="true">
-      <span>Time</span><span>Item</span><span class="r">Cost</span><span style="text-align:center">Type</span><span></span>
+      <span>Time</span><span>Item</span><span class="r">Cost</span><span class="t">Type</span><span></span>
     </div>
     <div class="ledger-rows">${rowsHtml}</div>
     ${dogEar}

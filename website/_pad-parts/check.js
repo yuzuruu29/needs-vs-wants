@@ -74,8 +74,8 @@ locks.forEach(([name, re]) => {
 
 // audit-gap locks: static files (legal pages, SEO files, OG image)
 const fileLocks = [
-  ['privacy.html', ['stays on your device', 'Data Privacy Act', 'Sentry', 'PayMongo', 'Google Sign-In', 'one-time code', 'folder you select', 'National Privacy Commission', 'aceuaisolutions@gmail.com']],
-  ['terms.html', ['Refund', '7 days', 'PayPal', 'PayMongo', 'accidental-purchase', 'one-time code', 'aceuaisolutions@gmail.com']],
+  ['privacy.html', ['stays on your device', 'Data Privacy Act', 'Sentry', 'PayMongo', 'Google Sign-In', 'one-time code', 'folder you select', 'National Privacy Commission', 'aceuaisolutions@gmail.com', 'Google Play Billing', 'rewarded video ad']],
+  ['terms.html', ['Refund', '7 days', 'PayPal', 'PayMongo', 'accidental-purchase', 'one-time code', 'aceuaisolutions@gmail.com', 'Google Play']],
   ['robots.txt', ['Sitemap: https://needs-vs-wants.vercel.app/sitemap.xml']],
   ['sitemap.xml', ['https://needs-vs-wants.vercel.app/privacy.html', 'https://needs-vs-wants.vercel.app/terms.html']],
   ['404.html', ['404', 'Needs <b>vs</b> Wants']],

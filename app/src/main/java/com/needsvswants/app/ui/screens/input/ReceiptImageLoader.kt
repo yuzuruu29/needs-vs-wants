@@ -7,6 +7,7 @@ import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.exifinterface.media.ExifInterface
 import java.io.IOException
 import kotlin.math.max
@@ -26,6 +27,9 @@ object ReceiptImageLoader {
             ?: throw IOException("The selected image could not be decoded")
     }
 
+    // The decode call sites below need API 28; [decode] only routes here past
+    // the SDK_INT >= P check, which @RequiresApi makes visible to lint.
+    @RequiresApi(Build.VERSION_CODES.P)
     private fun decodeWithImageDecoder(contentResolver: ContentResolver, uri: Uri): Bitmap? {
         val source = ImageDecoder.createSource(contentResolver, uri)
         return ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
