@@ -44,7 +44,7 @@ const locks = [
   ['notify endpoint', /xpwcrloarciomikfudln\.supabase\.co\/functions\/v1\/notify_signup/],
   ['honeypot field', /name="website" class="hp-field"/],
   // audit-gap locks: download trust block
-  ['apk sha256 on page', /79093fd54b8422007f70a88d4ecbae2e060df6e866f735a232e439a304e7563d/],
+  ['apk sha256 on page', /ba8d477c6eff38cbece3d54a9f0728ac3c28fecf4f46e7531cf20b5352fb7051/],
   ['cert sha256 on page', /5fc43fb6e3a4d8e72123895d4b05d5f83082d8c6b242f1a8f8fd3039d551c961/],
   // audit-gap locks: subset woff2 fonts (TTFs were never in public/ and 404ed in prod)
   ['woff2 body font', /\.\/fonts\/source-sans3-regular\.woff2/],

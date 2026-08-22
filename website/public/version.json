@@ -1,7 +1,7 @@
 {
-  "versionName": "2.0.17",
-  "versionCode": 25,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.17.apk",
-  "sha256": "79093fd54b8422007f70a88d4ecbae2e060df6e866f735a232e439a304e7563d",
-  "notes": "History filters (Day/Week/Month), Google Play Billing 9 migration, hardened purchase verification"
+  "versionName": "2.0.19",
+  "versionCode": 27,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.19.apk",
+  "sha256": "ba8d477c6eff38cbece3d54a9f0728ac3c28fecf4f46e7531cf20b5352fb7051",
+  "notes": "Paywall billing-period picker stays tidy at large text sizes; launcher renamed to Needs vs Wants"
 }
