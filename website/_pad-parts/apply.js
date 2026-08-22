@@ -83,7 +83,7 @@ console.log('checks', {
   pflip: html.includes('pflip-stage') || html.includes('buildFlipLeaves'),
   initPad: html.includes('function initPad'),
   qrcode151: html.includes('qrcode@1.5.1'),
-  apk: html.includes('needs-vs-wants-2.0.15.apk'),
+  apk: html.includes('needs-vs-wants-2.0.20.apk'),
   ctaPanel: html.includes('rollRedPanel'),
   noOldBind: !html.includes('notepad-bind'),
   noPageFlipLib: !html.includes('page-flip@'),

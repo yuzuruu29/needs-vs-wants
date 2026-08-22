@@ -1,7 +1,8 @@
 {
-  "versionName": "2.0.19",
-  "versionCode": 27,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.19.apk",
-  "sha256": "ba8d477c6eff38cbece3d54a9f0728ac3c28fecf4f46e7531cf20b5352fb7051",
-  "notes": "Paywall billing-period picker stays tidy at large text sizes; launcher renamed to Needs vs Wants"
+  "versionName": "2.0.20",
+  "versionCode": 28,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.20.apk",
+  "sha256": "fca5649f179f98e72bff6f307619c3f5ecbef4d1dfde63d06d47a0000afdfa10",
+  "notes": "Diary safety pass: nothing deletes behind your back; Annual PayPal fixed; cleaner Play plan switches",
+  "updatedAt": "2026-08-22T09:22:50.000Z"
 }
