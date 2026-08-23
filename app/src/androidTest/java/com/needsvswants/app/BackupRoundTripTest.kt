@@ -7,7 +7,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.needsvswants.app.data.backup.BackupEntry
 import com.needsvswants.app.data.backup.BackupEnvelope
 import com.needsvswants.app.data.backup.BackupEnvelopeCodec
+import com.needsvswants.app.data.backup.BackupDailyBudget
 import com.needsvswants.app.data.db.AppDatabase
+import com.needsvswants.app.data.model.DailyBudgetEntity
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import kotlinx.coroutines.flow.first
@@ -34,6 +36,7 @@ class BackupRoundTripTest {
             val b = Entry(dateUtc = 2_000L, date = "2026-08-13", time = "12:00 PM", item = "Rice 5kg", costCents = 120_000L, type = EntryType.NEED)
             source.entryDao().insert(a)
             source.entryDao().insert(b)
+            source.dailyBudgetDao().upsert(DailyBudgetEntity("2026-08-12", 50_000L))
 
             val exported = source.entryDao().observeAll().first()
             val json = BackupEnvelopeCodec.toJson(
@@ -43,7 +46,8 @@ class BackupRoundTripTest {
                     appVersionCode = 0,
                     exportedAtEpochMillis = 0L,
                     prefs = null,
-                    entries = exported.map { BackupEntry.fromEntry(it) }
+                    entries = exported.map { BackupEntry.fromEntry(it) },
+                    dailyBudgets = listOf(BackupDailyBudget("2026-08-12", 50_000L))
                 )
             )
 
@@ -54,6 +58,9 @@ class BackupRoundTripTest {
             val existing = target.entryDao().observeAll().first()
             val fresh = BackupEnvelopeCodec.newEntriesOnly(parsed.entries, existing)
             fresh.forEach { target.entryDao().insert(it.toEntry()) }
+            target.dailyBudgetDao().upsertAll(
+                parsed.dailyBudgets.map { DailyBudgetEntity(it.dayKey, it.budgetCents) }
+            )
 
             val restored = target.entryDao().observeAll().first()
             assertEquals(2, restored.size)
@@ -61,6 +68,7 @@ class BackupRoundTripTest {
                 setOf("Kape ₱ \"promo\"" to 15_000L, "Rice 5kg" to 120_000L),
                 restored.map { it.item to it.costCents }.toSet()
             )
+            assertEquals(50_000L, target.dailyBudgetDao().getForDay("2026-08-12")!!.budgetCents)
         } finally {
             source.close()
             target.close()

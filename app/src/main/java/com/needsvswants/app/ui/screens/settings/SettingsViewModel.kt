@@ -11,6 +11,7 @@ import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.prefs.AvailableUpdate
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.data.repository.DailyBudgetRepository
 import com.needsvswants.app.data.update.UpdateChecker
 import com.needsvswants.app.diagnostics.CrashReporting
 import com.needsvswants.app.domain.DailyLogQuota
@@ -69,6 +70,7 @@ data class DailyFreeLogsInfo(
 class SettingsViewModel @Inject constructor(
     private val preferences: AppPreferences,
     private val entryRepository: EntryRepository,
+    private val dailyBudgetRepository: DailyBudgetRepository,
     private val billingController: BillingController,
     private val backupService: BackupService,
     private val updateChecker: UpdateChecker,
@@ -327,6 +329,7 @@ class SettingsViewModel @Inject constructor(
     fun wipeData() {
         viewModelScope.launch {
             entryRepository.deleteAll()
+            dailyBudgetRepository.deleteAll()
             preferences.wipeAll()
             runCatching { NvwWidget.refreshAll(appContext) }
         }

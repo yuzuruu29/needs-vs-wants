@@ -49,7 +49,8 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         private val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
         private val CURRENCY_CODE = stringPreferencesKey("currency_code")
         private val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
-        private val DAILY_BUDGET_CENTS = longPreferencesKey("daily_budget_cents")
+        // Legacy global budget key. New budgets live in Room, keyed by local day.
+        private val LEGACY_DAILY_BUDGET_CENTS = longPreferencesKey("daily_budget_cents")
         private val BEST_STREAK_EVER = intPreferencesKey("best_streak_ever")
         private val LAST_MILESTONE_SHOWN = intPreferencesKey("last_milestone_shown")
         private val REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
@@ -148,19 +149,31 @@ class AppPreferences internal constructor(private val dataStore: DataStore<Prefe
         FontScaleStep.fromStorage(it[FONT_SCALE_STEP])
     }
 
-    /** null means budget is off (missing or ≤ 0). */
-    val dailyBudgetCents: Flow<Long?> = dataStore.data.map { prefs ->
-        val v = prefs[DAILY_BUDGET_CENTS] ?: return@map null
+    /**
+     * The old global budget value, retained only as a migration bridge for
+     * installs upgraded from the DataStore-backed implementation.
+     */
+    val legacyDailyBudgetCents: Flow<Long?> = dataStore.data.map { prefs ->
+        val v = prefs[LEGACY_DAILY_BUDGET_CENTS] ?: return@map null
         if (v <= 0L) null else v
     }
 
+    @Deprecated("Use DailyBudgetRepository for date-scoped budgets")
+    val dailyBudgetCents: Flow<Long?> = legacyDailyBudgetCents
+
+    @Deprecated("Use DailyBudgetRepository.setForDay")
     suspend fun setDailyBudgetCents(cents: Long) {
         require(cents > 0L) { "daily budget must be positive cents" }
-        dataStore.edit { it[DAILY_BUDGET_CENTS] = cents }
+        dataStore.edit { it[LEGACY_DAILY_BUDGET_CENTS] = cents }
     }
 
+    @Deprecated("Use DailyBudgetRepository.clearForDay")
     suspend fun clearDailyBudget() {
-        dataStore.edit { it.remove(DAILY_BUDGET_CENTS) }
+        clearLegacyDailyBudget()
+    }
+
+    suspend fun clearLegacyDailyBudget() {
+        dataStore.edit { it.remove(LEGACY_DAILY_BUDGET_CENTS) }
     }
 
     suspend fun setThemeId(id: ThemeId) {

@@ -4,7 +4,9 @@ import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.PeriodWindow
+import com.needsvswants.app.domain.LocalDayKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HistoryFilterTest {
@@ -100,5 +102,35 @@ class HistoryFilterTest {
     @Test
     fun `all window passes entries through unchanged`() {
         assertEquals(entries, withinPeriod(entries, Period.ALL, now))
+    }
+
+    @Test
+    fun `history groups budget-only days and keeps budget metadata beside entries`() {
+        val today = LocalDayKey.today(now)
+        val budgetOnlyDay = LocalDayKey.daysAgo(now, 2)
+        val todayEntry = Entry(
+            id = 9L,
+            dateUtc = todayStart + 60L * 60L * 1_000L,
+            date = today,
+            time = "01:00 PM",
+            item = "Lunch",
+            costCents = 12_000L,
+            type = EntryType.NEED
+        )
+
+        val groups = buildHistoryDays(
+            entries = listOf(todayEntry),
+            budgets = mapOf(today to 50_000L, budgetOnlyDay to 30_000L),
+            query = "",
+            type = null,
+            period = Period.ALL,
+            nowMs = now
+        )
+
+        assertEquals(listOf(today, budgetOnlyDay), groups.map { it.date })
+        assertEquals(50_000L, groups[0].budgetCents)
+        assertEquals(listOf(todayEntry), groups[0].entries)
+        assertEquals(30_000L, groups[1].budgetCents)
+        assertTrue(groups[1].entries.isEmpty())
     }
 }

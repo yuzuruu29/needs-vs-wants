@@ -7,7 +7,9 @@ import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.DailyBudgetRepository
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.domain.LocalDayKey
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.PeriodWindow
 import com.needsvswants.app.widget.NvwWidget
@@ -43,9 +45,48 @@ fun withinPeriod(entries: List<Entry>, period: Period, nowMs: Long): List<Entry>
     return entries.filter { it.dateUtc >= since }
 }
 
+data class HistoryDay(
+    val date: String,
+    val entries: List<Entry>,
+    val budgetCents: Long?
+)
+
+fun buildHistoryDays(
+    entries: List<Entry>,
+    budgets: Map<String, Long>,
+    query: String,
+    type: EntryType?,
+    period: Period,
+    nowMs: Long
+): List<HistoryDay> {
+    val filtered = filterHistoryEntries(
+        withinPeriod(entries, period, nowMs),
+        query,
+        type
+    )
+    val q = query.trim()
+    val budgetDays = budgets.filter { (date, _) ->
+        type == null &&
+            LocalDayKey.isInPeriod(date, period, nowMs) &&
+            (q.isEmpty() || date.contains(q))
+    }
+    val byDate = filtered.groupBy { it.date }
+    return (byDate.keys + budgetDays.keys)
+        .distinct()
+        .sortedDescending()
+        .map { date ->
+            HistoryDay(
+                date = date,
+                entries = byDate[date].orEmpty(),
+                budgetCents = budgets[date]
+            )
+        }
+}
+
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val entryRepository: EntryRepository,
+    private val dailyBudgetRepository: DailyBudgetRepository,
     private val preferences: AppPreferences,
     private val entitlementRepository: EntitlementRepository,
     @ApplicationContext private val appContext: Context
@@ -60,6 +101,10 @@ class HistoryViewModel @Inject constructor(
 
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "₱")
+
+    val dailyBudgets: StateFlow<Map<String, Long>> = dailyBudgetRepository.observeVisibleBudgets()
+        .map { budgets -> budgets.associate { it.dayKey to it.budgetCents } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // --- Search + type filter (audit gap) ------------------------------------
 
@@ -84,7 +129,7 @@ class HistoryViewModel @Inject constructor(
         _periodFilter.value = period
     }
 
-    /** What the ledger list actually renders; export/date-range still use [entries]. */
+    /** Filtered transaction subset used by export/date-range actions. */
     val filteredEntries: StateFlow<List<Entry>> = combine(
         entries, _searchQuery, _typeFilter, _periodFilter
     ) { list, query, type, period ->
@@ -93,6 +138,16 @@ class HistoryViewModel @Inject constructor(
             query,
             type
         )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * History is grouped by the union of visible ledger days and budget days,
+     * so a day where the user only set a budget still has a useful card.
+     */
+    val dayGroups: StateFlow<List<HistoryDay>> = combine(
+        entries, dailyBudgets, _searchQuery, _typeFilter, _periodFilter
+    ) { list, budgets, query, type, period ->
+        buildHistoryDays(list, budgets, query, type, period, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** True until the first real entries emission lands (cold-start skeleton, design audit #2). */

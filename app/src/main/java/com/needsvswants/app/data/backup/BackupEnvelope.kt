@@ -8,17 +8,19 @@ import com.needsvswants.app.data.model.EntryType
  * backup story). Pure JVM code — all format logic is unit-tested; the SAF /
  * Android side lives in [BackupService].
  *
- * Format v1:
+ * Format v2 adds a `dailyBudgets` list keyed by local calendar day. The v1
+ * `prefs.dailyBudgetCents` field remains readable as a current-day fallback.
  * ```json
  * {
  *   "format": "nvw-backup",
- *   "schemaVersion": 1,
+ *   "schemaVersion": 2,
  *   "appVersionName": "2.0.14",
  *   "appVersionCode": 22,
  *   "exportedAtEpochMillis": 1765584000000,
  *   "prefs": { "currencySymbol": "₱", "currencyCode": "PHP",
  *              "dailyBudgetCents": 50000, "reminderEnabled": true,
  *              "reminderHour": 20, "spendingGoal": "track" },
+ *   "dailyBudgets": [ { "dayKey": "2026-08-13", "budgetCents": 50000 } ],
  *   "entries": [ { "dateUtc": 1765584000000, "date": "2026-08-13",
  *                  "time": "07:30 PM", "item": "Coffee",
  *                  "costCents": 15000, "type": "WANT" } ]
@@ -33,7 +35,8 @@ data class BackupEnvelope(
     val appVersionCode: Int,
     val exportedAtEpochMillis: Long,
     val prefs: BackupPrefs?,
-    val entries: List<BackupEntry>
+    val entries: List<BackupEntry>,
+    val dailyBudgets: List<BackupDailyBudget> = emptyList()
 )
 
 data class BackupPrefs(
@@ -43,6 +46,11 @@ data class BackupPrefs(
     val reminderEnabled: Boolean,
     val reminderHour: Int,
     val spendingGoal: String
+)
+
+data class BackupDailyBudget(
+    val dayKey: String,
+    val budgetCents: Long
 )
 
 data class BackupEntry(
@@ -71,7 +79,7 @@ data class BackupEntry(
 
 object BackupEnvelopeCodec {
     const val FORMAT = "nvw-backup"
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
 
     fun toJson(envelope: BackupEnvelope): String = buildString(envelope.entries.size * 96 + 512) {
         append("{\"format\":\"").append(FORMAT).append("\",")
@@ -88,7 +96,16 @@ object BackupEnvelopeCodec {
             append("\"reminderHour\":").append(p.reminderHour).append(',')
             append("\"spendingGoal\":\"").append(BackupJson.escape(p.spendingGoal)).append("\"},")
         }
-        append("\"entries\":[")
+        append("\"dailyBudgets\":[")
+        envelope.dailyBudgets.forEachIndexed { i, budget ->
+            if (i > 0) append(',')
+            append("{\"dayKey\":\"")
+                .append(BackupJson.escape(budget.dayKey))
+                .append("\",\"budgetCents\":")
+                .append(budget.budgetCents)
+                .append('}')
+        }
+        append("],\"entries\":[")
         envelope.entries.forEachIndexed { i, e ->
             if (i > 0) append(',')
             append("{\"dateUtc\":").append(e.dateUtc).append(',')
@@ -129,6 +146,18 @@ object BackupEnvelopeCodec {
                 }
             )
         }
+        val dailyBudgets = (root["dailyBudgets"] as? List<*>).orEmpty().mapIndexed { i, raw ->
+            val m = raw as? Map<*, *>
+                ?: throw IllegalArgumentException("Daily budget $i is malformed")
+            val budgetCents = m["budgetCents"] as? Long
+                ?: throw IllegalArgumentException("Daily budget $i is missing 'budgetCents'")
+            require(budgetCents > 0L) { "Daily budget $i must be positive" }
+            BackupDailyBudget(
+                dayKey = m["dayKey"] as? String
+                    ?: throw IllegalArgumentException("Daily budget $i is missing 'dayKey'"),
+                budgetCents = budgetCents
+            )
+        }
         val prefs = (root["prefs"] as? Map<*, *>)?.let { p ->
             BackupPrefs(
                 currencySymbol = p["currencySymbol"] as? String ?: "₱",
@@ -145,7 +174,8 @@ object BackupEnvelopeCodec {
             appVersionCode = (root["appVersionCode"] as? Long)?.toInt() ?: 0,
             exportedAtEpochMillis = root["exportedAtEpochMillis"] as? Long ?: 0L,
             prefs = prefs,
-            entries = entries
+            entries = entries,
+            dailyBudgets = dailyBudgets
         )
     }
 

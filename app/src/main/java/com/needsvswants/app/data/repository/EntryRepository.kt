@@ -39,6 +39,12 @@ class EntryRepository @Inject constructor(
             visible(entries, entitlement)
         }
 
+    /** Entries recorded against one local calendar day, still retention-bounded. */
+    fun observeForDate(date: String): Flow<List<Entry>> =
+        combine(dao.observeForDate(date), entitlements.entitlement) { entries, entitlement ->
+            visible(entries, entitlement)
+        }
+
     /**
      * Entries from [since] onward, still bounded by the retention visibility
      * window when the effective tier is Free (the tighter bound wins).

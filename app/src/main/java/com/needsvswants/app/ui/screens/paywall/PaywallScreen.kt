@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
@@ -882,12 +883,19 @@ private fun PeriodOption(
         shape = RoundedCornerShape(9.dp),
         color = if (selected) c.surfaceCard else Color.Transparent,
         border = BorderStroke(1.dp, if (selected) c.gold else c.gold.copy(alpha = 0.18f)),
-        modifier = modifier.fillMaxHeight()
+        modifier = modifier
+            .fillMaxHeight()
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.Tab,
+                onClick = onClick
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(enabled = enabled, onClick = onClick)
+                .heightIn(min = 48.dp)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.Center
         ) {

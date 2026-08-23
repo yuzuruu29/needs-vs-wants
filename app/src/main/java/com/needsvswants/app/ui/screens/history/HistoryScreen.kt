@@ -52,7 +52,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
     val entries by viewModel.entries.collectAsStateWithLifecycle()
-    val filteredEntries by viewModel.filteredEntries.collectAsStateWithLifecycle()
+    val dayGroups by viewModel.dayGroups.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val typeFilter by viewModel.typeFilter.collectAsStateWithLifecycle()
     val periodFilter by viewModel.periodFilter.collectAsStateWithLifecycle()
@@ -89,7 +89,6 @@ fun HistoryScreen(
         }
     }
 
-    val grouped = filteredEntries.groupBy { it.date }.toList()
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     val displayFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
 
@@ -246,7 +245,7 @@ fun HistoryScreen(
                     HistorySkeletonGroup()
                 }
             }
-        } else if (entries.isEmpty()) {
+        } else if (entries.isEmpty() && dayGroups.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     EmptyDiaryIllustration(modifier = Modifier.size(160.dp, 120.dp))
@@ -267,7 +266,7 @@ fun HistoryScreen(
                     )
                 }
             }
-        } else if (filteredEntries.isEmpty()) {
+        } else if (dayGroups.isEmpty()) {
             // Entries exist but the search/filter matched nothing.
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -296,13 +295,19 @@ fun HistoryScreen(
                     .verticalScrollFirst(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(grouped, key = { it.first }) { (date, dayEntries) ->
+                items(dayGroups, key = { it.date }) { day ->
+                        val date = day.date
+                        val dayEntries = day.entries
                         val displayDate = dateFormat.parse(date)?.let { displayFormat.format(it) } ?: date
                         val dayNeeds = dayEntries.filter { it.type == EntryType.NEED }.sumOf { it.costCents }
                         val dayWants = dayEntries.filter { it.type == EntryType.WANT }.sumOf { it.costCents }
 
                         val dayTotal = dayNeeds + dayWants
-                        val entryLabel = if (dayEntries.size == 1) "1 entry" else "${dayEntries.size} entries"
+                        val entryLabel = when (dayEntries.size) {
+                            0 -> "Budget day"
+                            1 -> "1 entry"
+                            else -> "${dayEntries.size} entries"
+                        }
                         PremiumSurface(
                             modifier = Modifier.animateItem(
                                 fadeInSpec = Motion.entrance(),
@@ -332,45 +337,65 @@ fun HistoryScreen(
                                             softWrap = false
                                         )
                                     }
-                                    Text(
-                                        entryLabel.uppercase(),
-                                        style = AppType.eyebrowSm,
-                                        color = AppTheme.colors.textMuted,
-                                        modifier = Modifier
-                                            .border(
-                                                BorderStroke(1.dp, AppTheme.colors.dividerStrong),
-                                                RoundedCornerShape(20.dp)
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        day.budgetCents?.let { budgetCents ->
+                                            Text(
+                                                "BUDGET ${budgetCents.toMoney(symbol)}",
+                                                style = AppType.eyebrowSm,
+                                                color = AppTheme.colors.gilt,
+                                                textAlign = TextAlign.End
                                             )
-                                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                                    )
+                                            Spacer(Modifier.height(5.dp))
+                                        }
+                                        Text(
+                                            entryLabel.uppercase(),
+                                            style = AppType.eyebrowSm,
+                                            color = AppTheme.colors.textMuted,
+                                            modifier = Modifier
+                                                .border(
+                                                    BorderStroke(1.dp, AppTheme.colors.dividerStrong),
+                                                    RoundedCornerShape(20.dp)
+                                                )
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                        )
+                                    }
                                 }
-                                Spacer(Modifier.height(12.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    DaySplitChip(
-                                        color = AppTheme.colors.need,
-                                        label = "Need",
-                                        value = dayNeeds.toMoney(symbol),
-                                        modifier = Modifier.weight(1f)
+                                if (dayEntries.isEmpty()) {
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        "No purchases logged for this budget day.",
+                                        style = AppType.bodySm,
+                                        color = AppTheme.colors.textSecondary
                                     )
-                                    DaySplitChip(
-                                        color = AppTheme.colors.want,
-                                        label = "Want",
-                                        value = dayWants.toMoney(symbol),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                Spacer(Modifier.height(14.dp))
-                                GiltRule(width = 28.dp)
-                                Spacer(Modifier.height(10.dp))
-                                dayEntries.forEach { entry ->
-                                    EntryLedgerRow(
-                                        entry = entry,
-                                        symbol = symbol,
-                                        onDelete = { actionTarget = entry }
-                                    )
+                                } else {
+                                    Spacer(Modifier.height(12.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        DaySplitChip(
+                                            color = AppTheme.colors.need,
+                                            label = "Need",
+                                            value = dayNeeds.toMoney(symbol),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        DaySplitChip(
+                                            color = AppTheme.colors.want,
+                                            label = "Want",
+                                            value = dayWants.toMoney(symbol),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    Spacer(Modifier.height(14.dp))
+                                    GiltRule(width = 28.dp)
+                                    Spacer(Modifier.height(10.dp))
+                                    dayEntries.forEach { entry ->
+                                        EntryLedgerRow(
+                                            entry = entry,
+                                            symbol = symbol,
+                                            onDelete = { actionTarget = entry }
+                                        )
+                                    }
                                 }
                             }
                         }

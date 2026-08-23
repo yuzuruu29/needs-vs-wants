@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import com.needsvswants.app.data.backup.BackupScheduler
 import com.needsvswants.app.data.entitlement.EntitlementSync
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.DailyBudgetRepository
 import com.needsvswants.app.data.update.UpdateChecker
 import com.needsvswants.app.diagnostics.CrashReporting
 import com.needsvswants.app.notification.ReminderScheduler
@@ -21,6 +22,7 @@ import javax.inject.Inject
 class NeedsVsWantsApp : Application(), Configuration.Provider {
     @Inject lateinit var entitlementSync: EntitlementSync
     @Inject lateinit var preferences: AppPreferences
+    @Inject lateinit var dailyBudgetRepository: DailyBudgetRepository
     @Inject lateinit var updateChecker: UpdateChecker
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
@@ -42,6 +44,13 @@ class NeedsVsWantsApp : Application(), Configuration.Provider {
             // outage) regains paid access as soon as a connection exists.
             // Bounded and exception-safe; offline keeps the local snapshot.
             runCatching { entitlementSync.syncAtAppStart() }
+            // Move the old global DataStore budget into today's Room day key,
+            // then apply Free retention to budget-only rows. Ledger rows remain
+            // visibility-bounded rather than physically purged (D175).
+            runCatching {
+                dailyBudgetRepository.migrateLegacyBudgetIfNeeded()
+                dailyBudgetRepository.pruneExpiredOrphanedBudgets()
+            }
             // NOTE: startup must NEVER delete entries based on entitlement
             // state. The old purgeBefore(cutoff) call here physically deleted
             // lifetime history when a stale paid snapshot degraded to Free.

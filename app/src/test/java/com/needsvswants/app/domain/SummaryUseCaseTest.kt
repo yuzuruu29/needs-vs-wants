@@ -128,6 +128,8 @@ class SummaryUseCaseTest {
         override fun observeSince(since: Long): Flow<List<Entry>> =
             flowOf(entries.filter { it.dateUtc >= since })
         override fun observeAll(): Flow<List<Entry>> = flowOf(entries)
+        override fun observeForDate(date: String): Flow<List<Entry>> =
+            flowOf(entries.filter { it.date == date })
         override suspend fun countForDate(date: String): Int = 0
         override suspend fun deleteAll() {}
         override suspend fun delete(entry: Entry) {}

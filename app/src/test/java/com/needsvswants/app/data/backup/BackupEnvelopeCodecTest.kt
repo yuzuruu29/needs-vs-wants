@@ -25,6 +25,10 @@ class BackupEnvelopeCodecTest {
         entries = listOf(
             BackupEntry(1_765_500_000_000L, "2026-08-12", "07:30 PM", "Kape \"promo\"", 15_000L, EntryType.WANT),
             BackupEntry(1_765_400_000_000L, "2026-08-11", "12:00 PM", "Groceries", 120_000L, EntryType.NEED)
+        ),
+        dailyBudgets = listOf(
+            BackupDailyBudget("2026-08-12", 50_000L),
+            BackupDailyBudget("2026-08-11", 75_000L)
         )
     )
 
@@ -60,7 +64,7 @@ class BackupEnvelopeCodecTest {
     @Test
     fun `rejects newer schema version with upgrade message`() {
         val json = BackupEnvelopeCodec.toJson(sampleEnvelope())
-            .replace("\"schemaVersion\":1", "\"schemaVersion\":99")
+            .replace("\"schemaVersion\":${BackupEnvelopeCodec.SCHEMA_VERSION}", "\"schemaVersion\":99")
         val error = runCatching { BackupEnvelopeCodec.fromJson(json) }.exceptionOrNull()
         assertTrue(error is IllegalArgumentException)
         assertTrue(error!!.message!!.contains("newer app version"))
@@ -82,6 +86,20 @@ class BackupEnvelopeCodecTest {
         val error = runCatching { BackupEnvelopeCodec.fromJson(json) }.exceptionOrNull()
         assertTrue(error is IllegalArgumentException)
         assertTrue(error!!.message!!.contains("dateUtc"))
+    }
+
+    @Test
+    fun `v1 backup without daily budget list remains readable`() {
+        val json = """
+            {"format":"nvw-backup","schemaVersion":1,"appVersionName":"old",
+             "appVersionCode":1,"exportedAtEpochMillis":0,
+             "prefs":{"currencySymbol":"₱","currencyCode":"PHP",
+             "dailyBudgetCents":42000,"reminderEnabled":false,"reminderHour":20,
+             "spendingGoal":"track"},"entries":[]}
+        """.trimIndent()
+        val restored = BackupEnvelopeCodec.fromJson(json)
+        assertEquals(42_000L, restored.prefs!!.dailyBudgetCents)
+        assertTrue(restored.dailyBudgets.isEmpty())
     }
 
     @Test

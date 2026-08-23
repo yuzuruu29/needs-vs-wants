@@ -186,6 +186,9 @@ class EntryRepositoryRetentionTest {
 
         override fun observeAll(): Flow<List<Entry>> = store
 
+        override fun observeForDate(date: String): Flow<List<Entry>> =
+            store.map { list -> list.filter { it.date == date } }
+
         override suspend fun countForDate(date: String): Int =
             store.value.count { it.date == date }
 

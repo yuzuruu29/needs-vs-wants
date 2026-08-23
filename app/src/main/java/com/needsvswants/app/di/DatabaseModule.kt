@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.needsvswants.app.data.db.ALL_MIGRATIONS
 import com.needsvswants.app.data.db.AppDatabase
+import com.needsvswants.app.data.db.DailyBudgetDao
 import com.needsvswants.app.data.db.EntryDao
 import dagger.Module
 import dagger.Provides
@@ -26,4 +27,7 @@ object DatabaseModule {
 
     @Provides
     fun provideEntryDao(db: AppDatabase): EntryDao = db.entryDao()
+
+    @Provides
+    fun provideDailyBudgetDao(db: AppDatabase): DailyBudgetDao = db.dailyBudgetDao()
 }

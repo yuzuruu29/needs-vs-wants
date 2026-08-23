@@ -9,6 +9,7 @@ import com.needsvswants.app.domain.AdvisorChatSession
 import com.needsvswants.app.domain.AdvisorContextPack
 import com.needsvswants.app.domain.AdvisorInsight
 import com.needsvswants.app.domain.ChatMessage
+import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.FinancialAdvisorEngine
 import com.needsvswants.app.domain.RecoveryPlan
@@ -33,7 +34,8 @@ data class AdvisorUiState(
 @HiltViewModel
 class FinancialAdvisorViewModel @Inject constructor(
     private val entryRepository: EntryRepository,
-    private val preferences: AppPreferences
+    private val preferences: AppPreferences,
+    private val dailyBudgetUseCase: DailyBudgetUseCase
 ) : ViewModel() {
 
     private data class AdvisorInputs(
@@ -51,7 +53,7 @@ class FinancialAdvisorViewModel @Inject constructor(
         combine(
             entryRepository.observeAll(),
             preferences.currencySymbol,
-            preferences.dailyBudgetCents,
+            dailyBudgetUseCase.observeCurrentBudget(),
             preferences.entitlement,
             _chatMessages
         ) { entries, currencySymbol, dailyBudgetCents, entitlement, messages ->
@@ -103,7 +105,7 @@ class FinancialAdvisorViewModel @Inject constructor(
             }
             val entries = entryRepository.observeAll().first()
             val currency = preferences.currencySymbol.first()
-            val dailyBudget = preferences.dailyBudgetCents.first()
+            val dailyBudget = dailyBudgetUseCase.currentBudget()
             val spendingGoal = preferences.spendingGoal.first()
             val updated = chatSession.sendUserQuery(
                 queryText = queryText,

@@ -1,8 +1,7 @@
 package com.needsvswants.app.di
 
-import com.needsvswants.app.data.db.EntryDao
 import com.needsvswants.app.data.entitlement.EntitlementRepository
-import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.DailyBudgetRepository
 import com.needsvswants.app.data.repository.EntryRepository
 import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.SummaryUseCase
@@ -33,9 +32,7 @@ object DomainModule {
     @Provides
     @Singleton
     fun provideDailyBudgetUseCase(
-        // Raw DAO is safe here: the window is local midnight -> now, which can
-        // never cross the Free 30-day retention visibility boundary.
-        dao: EntryDao,
-        preferences: AppPreferences
-    ): DailyBudgetUseCase = DailyBudgetUseCase(dao, preferences)
+        entries: EntryRepository,
+        budgets: DailyBudgetRepository
+    ): DailyBudgetUseCase = DailyBudgetUseCase(entries, budgets)
 }

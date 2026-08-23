@@ -18,6 +18,9 @@ interface EntryDao {
     @Query("SELECT * FROM entries ORDER BY dateUtc DESC")
     fun observeAll(): Flow<List<Entry>>
 
+    @Query("SELECT * FROM entries WHERE date = :date ORDER BY dateUtc DESC")
+    fun observeForDate(date: String): Flow<List<Entry>>
+
     // NOTE: there is deliberately NO purge/delete-older-than query here.
     // Free-tier retention (D122) is enforced as a visibility boundary in
     // [com.needsvswants.app.data.repository.EntryRepository]: rows are never

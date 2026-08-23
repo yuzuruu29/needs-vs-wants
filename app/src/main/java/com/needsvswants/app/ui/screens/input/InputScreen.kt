@@ -128,6 +128,7 @@ fun InputScreen(
     val backupNudgeVisible by viewModel.backupNudgeVisible.collectAsStateWithLifecycle()
     val budgetStatus by viewModel.budgetStatus.collectAsStateWithLifecycle()
     val dailyBudgetCents by viewModel.dailyBudgetCents.collectAsStateWithLifecycle()
+    val currentDayKey by viewModel.currentDayKey.collectAsStateWithLifecycle()
     val budgetNudgePending by viewModel.budgetNudgePending.collectAsStateWithLifecycle()
     val entitlement by viewModel.entitlement.collectAsStateWithLifecycle()
     val coachHold by viewModel.coachHold.collectAsStateWithLifecycle()
@@ -153,6 +154,14 @@ fun InputScreen(
     var showBackupNudge by remember { mutableStateOf(false) }
     LaunchedEffect(backupNudgeVisible) {
         if (backupNudgeVisible) showBackupNudge = true
+    }
+
+    // A budget belongs to the current local day. Clear the form when the day
+    // key rolls so yesterday's amount can never be mistaken for today's.
+    LaunchedEffect(currentDayKey) {
+        budgetAmount = ""
+        budgetError = false
+        editingBudget = false
     }
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()

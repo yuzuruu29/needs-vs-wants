@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.20",
-  "versionCode": 28,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.20.apk",
-  "sha256": "fca5649f179f98e72bff6f307619c3f5ecbef4d1dfde63d06d47a0000afdfa10",
-  "notes": "Diary safety pass: nothing deletes behind your back; Annual PayPal fixed; cleaner Play plan switches",
-  "updatedAt": "2026-08-22T09:22:50.000Z"
+  "versionName": "2.0.21",
+  "versionCode": 29,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.21.apk",
+  "sha256": "1ef73fbfd1c7e8c766dc0c4c3409d7a0c97a80a5148060cd21a7c1c400bb14fb",
+  "notes": "Date-scoped daily budgets; balanced billing selector; Room migration",
+  "updatedAt": "2026-08-23T06:04:03.588Z"
 }

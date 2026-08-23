@@ -164,10 +164,13 @@ class InputViewModel @Inject constructor(
     }
 
     val budgetStatus: StateFlow<BudgetStatus> = dailyBudgetUseCase.observeStatus()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BudgetStatus.Off)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, BudgetStatus.Off)
 
-    val dailyBudgetCents: StateFlow<Long?> = preferences.dailyBudgetCents
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val dailyBudgetCents: StateFlow<Long?> = dailyBudgetUseCase.observeCurrentBudget()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val currentDayKey: StateFlow<String> = dailyBudgetUseCase.observeCurrentDayKey()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, com.needsvswants.app.domain.LocalDayKey.today())
 
     /** One-shot onboarding nudge: pre-open the set-budget form on Log (design audit #9 follow-up). */
     val budgetNudgePending: StateFlow<Boolean> = preferences.budgetNudgePending
@@ -206,12 +209,12 @@ class InputViewModel @Inject constructor(
     fun saveDailyBudget(rawAmount: String): Boolean {
         val cents = parseCents(rawAmount) ?: return false
         if (cents <= 0L) return false
-        viewModelScope.launch { preferences.setDailyBudgetCents(cents) }
+        viewModelScope.launch { dailyBudgetUseCase.setCurrentBudget(cents) }
         return true
     }
 
     fun clearDailyBudget() {
-        viewModelScope.launch { preferences.clearDailyBudget() }
+        viewModelScope.launch { dailyBudgetUseCase.clearCurrentBudget() }
     }
 
     fun trySeal() {

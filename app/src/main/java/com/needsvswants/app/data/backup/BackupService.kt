@@ -5,7 +5,10 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.needsvswants.app.BuildConfig
 import com.needsvswants.app.data.db.EntryDao
+import com.needsvswants.app.data.model.DailyBudgetEntity
 import com.needsvswants.app.data.prefs.AppPreferences
+import com.needsvswants.app.data.repository.DailyBudgetRepository
+import com.needsvswants.app.domain.LocalDayKey
 import com.needsvswants.app.notification.ReminderScheduler
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +36,8 @@ import javax.inject.Singleton
 class BackupService @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: EntryDao,
-    private val preferences: AppPreferences
+    private val preferences: AppPreferences,
+    private val dailyBudgetRepository: DailyBudgetRepository
 ) {
     sealed class BackupResult {
         data class Success(val fileName: String, val entryCount: Int) : BackupResult()
@@ -55,6 +59,7 @@ class BackupService @Inject constructor(
                 return@withContext BackupResult.Failed("Backup folder is not writable — pick it again")
             }
             val entries = dao.observeAll().first()
+            val dailyBudgets = dailyBudgetRepository.allStoredBudgets()
             val envelope = BackupEnvelope(
                 schemaVersion = BackupEnvelopeCodec.SCHEMA_VERSION,
                 appVersionName = BuildConfig.VERSION_NAME,
@@ -63,12 +68,17 @@ class BackupService @Inject constructor(
                 prefs = BackupPrefs(
                     currencySymbol = preferences.currencySymbol.first(),
                     currencyCode = preferences.currencyCode.first(),
-                    dailyBudgetCents = preferences.dailyBudgetCents.first(),
+                    // v2 stores the complete day history below; newly written
+                    // backups keep the old single-value field empty.
+                    dailyBudgetCents = null,
                     reminderEnabled = preferences.reminderEnabled.first(),
                     reminderHour = preferences.reminderHour.first(),
                     spendingGoal = preferences.spendingGoal.first()
                 ),
-                entries = entries.map { BackupEntry.fromEntry(it) }
+                entries = entries.map { BackupEntry.fromEntry(it) },
+                dailyBudgets = dailyBudgets.map {
+                    BackupDailyBudget(dayKey = it.dayKey, budgetCents = it.budgetCents)
+                }
             )
             val json = BackupEnvelopeCodec.toJson(envelope)
             val name = "$FILE_PREFIX${FILE_STAMP.format(Date())}.json"
@@ -107,7 +117,13 @@ class BackupService @Inject constructor(
 
             envelope.prefs?.let { p ->
                 preferences.setCurrency(p.currencySymbol, p.currencyCode)
-                p.dailyBudgetCents?.let { preferences.setDailyBudgetCents(it) }
+                if (envelope.dailyBudgets.isEmpty()) {
+                    // v1 backups had one global value; restore it to the day
+                    // on which this restore runs, then let Room own it.
+                    p.dailyBudgetCents?.let {
+                        dailyBudgetRepository.setForDay(LocalDayKey.today(), it)
+                    }
+                }
                 preferences.setSpendingGoal(p.spendingGoal)
                 preferences.setReminderHour(p.reminderHour)
                 preferences.setReminderEnabled(p.reminderEnabled)
@@ -115,6 +131,11 @@ class BackupService @Inject constructor(
                     ReminderScheduler.schedule(context, p.reminderHour)
                 }
             }
+            dailyBudgetRepository.restoreBudgets(
+                envelope.dailyBudgets.map {
+                    DailyBudgetEntity(dayKey = it.dayKey, budgetCents = it.budgetCents)
+                }
+            )
             RestoreResult.Success(
                 imported = fresh.size,
                 duplicatesSkipped = envelope.entries.size - fresh.size

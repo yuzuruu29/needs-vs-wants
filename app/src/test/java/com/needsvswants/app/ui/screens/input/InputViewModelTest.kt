@@ -7,12 +7,15 @@ import androidx.datastore.preferences.core.Preferences
 import com.needsvswants.app.ads.NoOpRewardedAdGateway
 import com.needsvswants.app.ads.RewardedAdGateway
 import com.needsvswants.app.data.db.EntryDao
+import com.needsvswants.app.data.db.DailyBudgetDao
 import com.needsvswants.app.data.entitlement.EntitlementRemote
 import com.needsvswants.app.data.entitlement.EntitlementRepository
 import com.needsvswants.app.data.model.Entry
 import com.needsvswants.app.data.model.EntryType
+import com.needsvswants.app.data.model.DailyBudgetEntity
 import com.needsvswants.app.data.prefs.AppPreferences
 import com.needsvswants.app.data.repository.EntryRepository
+import com.needsvswants.app.data.repository.DailyBudgetRepository
 import com.needsvswants.app.domain.DailyBudgetUseCase
 import com.needsvswants.app.domain.DailyLogQuota
 import com.needsvswants.app.domain.Entitlement
@@ -68,6 +71,9 @@ class InputViewModelTest {
     private lateinit var prefs: AppPreferences
     private lateinit var dao: FakeEntryDao
     private lateinit var repository: EntryRepository
+    private lateinit var entitlements: EntitlementRepository
+    private lateinit var budgetDao: FakeDailyBudgetDao
+    private lateinit var budgetRepository: DailyBudgetRepository
     private var dataStoreScope: CoroutineScope? = null
     private var dataStoreFile: File? = null
 
@@ -85,7 +91,10 @@ class InputViewModelTest {
         // Same wiring as production DI: the repository's trusted entitlement
         // flow reads the very same AppPreferences (DataStore) the view model's
         // gates use, so prefs.setEntitlement drives both surfaces.
-        repository = EntryRepository(dao, EntitlementRepository(prefs, FakeEntitlementRemote()))
+        entitlements = EntitlementRepository(prefs, FakeEntitlementRemote())
+        repository = EntryRepository(dao, entitlements)
+        budgetDao = FakeDailyBudgetDao()
+        budgetRepository = DailyBudgetRepository(budgetDao, prefs, entitlements)
     }
 
     @After
@@ -106,7 +115,7 @@ class InputViewModelTest {
     ): InputViewModel = InputViewModel(
         entries = repository,
         preferences = prefs,
-        dailyBudgetUseCase = DailyBudgetUseCase(dao, prefs),
+        dailyBudgetUseCase = DailyBudgetUseCase(repository, budgetRepository),
         rewardedAds = rewardedAds,
         appContext = null,
         receiptOcrProcessor = ReceiptOcrProcessor { Result.success(com.needsvswants.app.domain.ReceiptScanResult()) }
@@ -236,12 +245,12 @@ class InputViewModelTest {
         )
         val vm = buildViewModel()
         backgroundScope.launch { vm.sheetEntries.collect {} }
-        // dailyBudgetCents is WhileSubscribed; without a collector it freezes at
-        // null and the coach would see budget Off. Collect it like the screen does.
+        // Collect it like the screen does so the test exercises the live Room
+        // budget path rather than only the eager StateFlow value.
         backgroundScope.launch { vm.dailyBudgetCents.collect {} }
-        vm.saveDailyBudget("100")
+        vm.saveDailyBudget("10000")
         advanceUntilIdle()
-        assertEquals(100_00L, vm.dailyBudgetCents.value)
+        assertEquals(1000_000L, vm.dailyBudgetCents.value)
         return vm
     }
 
@@ -266,7 +275,7 @@ class InputViewModelTest {
     fun max_wantWithin15PercentOfRemaining_sealsImmediately_withoutCoachHold() = runTest(dispatcher) {
         val vm = buildMaxViewModel()
 
-        // ₱10 = 1000 cents, under the ₱15 (15% of ₱100 remaining) threshold.
+        // ₱10 = 1000 cents, under the ₱1500 (15% of ₱10,000 remaining) threshold.
         vm.activeItem.value = "Coffee"
         vm.activeCost.value = "10"
         vm.activeType.value = EntryType.WANT
@@ -589,6 +598,9 @@ class InputViewModelTest {
 
         override fun observeAll(): Flow<List<Entry>> = entries
 
+        override fun observeForDate(date: String): Flow<List<Entry>> =
+            entries.map { list -> list.filter { it.date == date } }
+
         override suspend fun countForDate(date: String): Int =
             entries.value.count { it.date == date }
 
@@ -607,6 +619,39 @@ class InputViewModelTest {
         override suspend fun restore(entry: Entry): Long {
             entries.value = entries.value + entry
             return entry.id
+        }
+    }
+
+    private class FakeDailyBudgetDao : DailyBudgetDao {
+        val budgets = MutableStateFlow<List<DailyBudgetEntity>>(emptyList())
+
+        override fun observeForDay(dayKey: String): Flow<DailyBudgetEntity?> =
+            budgets.map { list -> list.firstOrNull { it.dayKey == dayKey } }
+
+        override suspend fun getForDay(dayKey: String): DailyBudgetEntity? =
+            budgets.value.firstOrNull { it.dayKey == dayKey }
+
+        override fun observeAll(): Flow<List<DailyBudgetEntity>> = budgets
+
+        override suspend fun upsert(budget: DailyBudgetEntity) {
+            budgets.value = budgets.value.filterNot { it.dayKey == budget.dayKey } + budget
+        }
+
+        override suspend fun upsertAll(budgets: List<DailyBudgetEntity>) {
+            this.budgets.value = this.budgets.value
+                .filterNot { old -> budgets.any { it.dayKey == old.dayKey } } + budgets
+        }
+
+        override suspend fun deleteForDay(dayKey: String) {
+            budgets.value = budgets.value.filterNot { it.dayKey == dayKey }
+        }
+
+        override suspend fun deleteAll() {
+            budgets.value = emptyList()
+        }
+
+        override suspend fun deleteOrphanedBefore(beforeDayKey: String) {
+            budgets.value = budgets.value.filter { it.dayKey >= beforeDayKey }
         }
     }
 }
