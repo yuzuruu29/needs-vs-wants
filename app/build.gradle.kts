@@ -29,8 +29,8 @@ android {
         applicationId = "com.needsvswants.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 29
-        versionName = "2.0.21"
+        versionCode = 30
+        versionName = "2.0.22"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // --- Google Play Billing Subscriptions -----------------------------
