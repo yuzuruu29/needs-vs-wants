@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -353,6 +355,42 @@ fun SettingsPanel(
 }
 
 /**
+ * Machined Double-Bezel (Doppelrand) container:
+ * Outer shell with subtle gold hairline, inner concentric core with top highlight.
+ */
+@Composable
+fun DoubleBezelCard(
+    modifier: Modifier = Modifier,
+    outerShape: Shape = RoundedCornerShape(20.dp),
+    innerShape: Shape = RoundedCornerShape(15.dp),
+    goldEdge: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val palette = AppTheme.colors
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(outerShape)
+            .background(palette.surfaceSunken.copy(alpha = 0.5f))
+            .border(
+                BorderStroke(1.dp, if (goldEdge) palette.gold.copy(alpha = 0.35f) else palette.divider),
+                outerShape
+            )
+            .padding(2.5.dp)
+    ) {
+        Surface(
+            shape = innerShape,
+            color = palette.surfaceCard,
+            shadowElevation = 2.dp,
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+/**
  * 48dp gold-edge icon well for screen headers (Help, Share, Export, Send).
  * Prefer over stock IconButton chrome.
  */
@@ -367,6 +405,7 @@ fun HeaderIconWell(
     content: @Composable () -> Unit
 ) {
     val c = AppTheme.colors
+    val interaction = remember { MutableInteractionSource() }
     val bg = when {
         filled -> (fillColor ?: c.crimson)
         else -> c.surfaceCard
@@ -380,6 +419,7 @@ fun HeaderIconWell(
     Box(
         modifier = modifier
             .size(well)
+            .pressRecoil(interaction, enabled)
             .then(
                 if (filled) {
                     Modifier
@@ -393,7 +433,13 @@ fun HeaderIconWell(
                     )
                 }
             )
-            .clickable(enabled = enabled, onClick = onClick, role = Role.Button)
+            .clickable(
+                enabled = enabled,
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+                role = Role.Button
+            )
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {
@@ -461,20 +507,21 @@ fun GiltCard(
     PremiumSurface(modifier = modifier, shape = shape, goldEdge = true || giltAccent, content = content)
 }
 
-/** Primary action button — solid crimson with white text, press scale physics. */
+/** Primary action button — solid crimson with white text, tactile recoil physics and nested icon support. */
 @Composable
 fun GiltButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     text: String,
-    height: Dp = 54.dp
+    height: Dp = 54.dp,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) 0.97f else 1f,
-        animationSpec = Motion.pressSpring(),
+        targetValue = if (pressed && enabled) 0.95f else 1f,
+        animationSpec = if (pressed) Motion.pressSpring() else Motion.recoilSpring(),
         label = "giltPress"
     )
     Button(
@@ -492,17 +539,35 @@ fun GiltButton(
             defaultElevation = 3.dp,
             pressedElevation = 1.dp
         ),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
         modifier = modifier
             .scale(scale)
             .heightIn(min = height)
     ) {
-        Text(
-            text = text.uppercase(),
-            style = AppType.button,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text.uppercase(),
+                style = AppType.button,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = if (trailingIcon != null) Modifier.padding(end = 10.dp) else Modifier
+            )
+            if (trailingIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    trailingIcon()
+                }
+            }
+        }
     }
 }
 

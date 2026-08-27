@@ -59,6 +59,11 @@ fun FloatingGeminiOrb(
         animationSpec = Motion.pressSpring(),
         label = "orbPress"
     )
+    val animatedNeedsSweep by animateFloatAsState(
+        targetValue = needsSweepDegrees,
+        animationSpec = Motion.inkDraw(),
+        label = "needsSweepDegrees"
+    )
 
     Box(
         modifier = modifier
@@ -153,7 +158,7 @@ fun FloatingGeminiOrb(
             )
 
             if (!empty) {
-                val needSweep = needsSweepDegrees.coerceIn(0f, 360f)
+                val needSweep = animatedNeedsSweep.coerceIn(0f, 360f)
                 val wantSweep = (360f - needSweep).coerceAtLeast(0f)
 
                 // Draw Want first so Need sits cleanly on the 12-o'clock joint.

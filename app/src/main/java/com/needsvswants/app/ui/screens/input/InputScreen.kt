@@ -63,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import com.needsvswants.app.ui.theme.pressRecoil
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
@@ -997,6 +998,7 @@ private fun CompactChip(
 
 @Composable
 private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: () -> Unit) {
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val bgColor by animateColorAsState(
         targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
         animationSpec = Motion.state(),
@@ -1007,22 +1009,15 @@ private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: ()
         animationSpec = Motion.state(),
         label = "chipBorder"
     )
-    val scale by animateFloatAsState(
-        targetValue = if (selected) 1.03f else 1f,
-        animationSpec = if (selected) Motion.selectionSpring() else Motion.seal(),
-        label = "chipScale"
-    )
     Surface(
         onClick = onClick,
+        interactionSource = interaction,
         shape = RoundedCornerShape(12.dp),
         color = bgColor,
         border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .pressRecoil(interaction)
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),

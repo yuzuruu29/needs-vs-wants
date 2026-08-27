@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -194,48 +195,86 @@ fun AppNavigation(
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .padding(
-                                horizontal = scaledSpacing(12f),
+                                horizontal = scaledSpacing(14f),
                                 vertical = scaledSpacing(10f)
                             )
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = AppTheme.colors.surfaceCard,
-                            shadowElevation = 10.dp,
+                            shape = RoundedCornerShape(26.dp),
+                            color = AppTheme.colors.surfaceCard.copy(alpha = 0.96f),
+                            shadowElevation = 12.dp,
                             tonalElevation = 0.dp,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                AppTheme.colors.gold.copy(alpha = 0.38f)
+                                AppTheme.colors.gold.copy(alpha = 0.45f)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 2.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                MainTab.visibleEntries().forEachIndexed { index, tab ->
-                                    val item = bottomNavItems.firstOrNull { it.route == tab.route } ?: return@forEachIndexed
-                                    NavPill(
-                                        item = item,
-                                        selected = pagerState.currentPage == index,
-                                        entitlement = navEntitlement,
-                                        onClick = {
-                                            haptics.tick()
-                                            sfx.tap()
-                                            lastTappedPage = index
-                                            scope.launch {
-                                                // Same paper ease as swipe settle so tap and fling match.
-                                                pagerState.animateScrollToPage(
-                                                    page = index,
-                                                    animationSpec = Motion.pageFlip()
+                            val tabs = MainTab.visibleEntries()
+                            val selectedIndex = pagerState.currentPage
+                            val indicatorOffsetFraction by animateFloatAsState(
+                                targetValue = selectedIndex.toFloat(),
+                                animationSpec = Motion.tabGlideSpring(),
+                                label = "navIndicatorOffset"
+                            )
+                            val isMax = navEntitlement.hasMaxAccessAt(System.currentTimeMillis())
+                            val isPaid = navEntitlement.hasProAccessAt(System.currentTimeMillis())
+                            val activePillColor = when {
+                                isMax -> AppTheme.colors.crimson
+                                isPaid -> AppTheme.colors.gilt
+                                else -> AppTheme.colors.crimson
+                            }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    val tabWidth = maxWidth / tabs.size
+                                    Box(
+                                        modifier = Modifier
+                                            .offset {
+                                                androidx.compose.ui.unit.IntOffset(
+                                                    x = (indicatorOffsetFraction * tabWidth.toPx()).toInt(),
+                                                    y = 0
                                                 )
                                             }
-                                        },
-                                        modifier = Modifier.weight(1f)
+                                            .width(tabWidth)
+                                            .fillMaxHeight()
+                                            .padding(horizontal = 3.dp, vertical = 4.dp)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(activePillColor.copy(alpha = 0.12f))
+                                            .border(
+                                                androidx.compose.foundation.BorderStroke(1.dp, activePillColor.copy(alpha = 0.35f)),
+                                                RoundedCornerShape(20.dp)
+                                            )
                                     )
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 2.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    tabs.forEachIndexed { index, tab ->
+                                        val item = bottomNavItems.firstOrNull { it.route == tab.route } ?: return@forEachIndexed
+                                        NavPill(
+                                            item = item,
+                                            selected = selectedIndex == index,
+                                            entitlement = navEntitlement,
+                                            onClick = {
+                                                haptics.tick()
+                                                sfx.tap()
+                                                lastTappedPage = index
+                                                scope.launch {
+                                                    pagerState.animateScrollToPage(
+                                                        page = index,
+                                                        animationSpec = Motion.pageFlip()
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -387,9 +426,8 @@ private fun NavPill(
         label = "navPill"
     )
     val tint = androidx.compose.ui.graphics.lerp(palette.textSecondary, selectedColor, tintProgress)
-    val bg = selectedColor.copy(alpha = 0.10f * tintProgress)
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.04f else 1f,
+        targetValue = if (selected) 1.08f else 1f,
         animationSpec = Motion.selectionSpring(),
         label = "navPillIconScale"
     )
@@ -397,7 +435,6 @@ private fun NavPill(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(bg)
             .clickable(onClick = onClick, role = Role.Tab)
             // TalkBack: announce which tab is active, not just its name.
             .semantics { this.selected = selected }

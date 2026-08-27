@@ -33,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,7 +64,10 @@ import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
 import com.needsvswants.app.ui.theme.GiltButton
 import com.needsvswants.app.ui.theme.GiltRule
+import com.needsvswants.app.ui.theme.Motion
+import com.needsvswants.app.ui.theme.pressRecoil
 import com.needsvswants.app.ui.theme.rememberAppHaptics
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @Composable
 fun ReceiptSorterModal(
@@ -93,17 +97,29 @@ fun ReceiptSorterModal(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(palette.background),
-            color = palette.background
+        var visible by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            visible = true
+        }
+        AnimatedVisibility(
+            visible = visible,
+            enter = androidx.compose.animation.slideInVertically(
+                initialOffsetY = { it / 6 },
+                animationSpec = Motion.receiptPrint()
+            ) + fadeIn(Motion.receiptPrint()),
+            exit = fadeOut(Motion.feedback())
         ) {
-            Column(
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 16.dp)
+                    .background(palette.background),
+                color = palette.background
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp)
+                ) {
                 // Top navigation bar
                 Row(
                     modifier = Modifier
@@ -311,6 +327,7 @@ fun ReceiptSorterModal(
         }
     }
 }
+}
 
 @Composable
 private fun ScannedItemRow(
@@ -407,19 +424,22 @@ private fun ScannedItemRow(
 
             Spacer(Modifier.height(10.dp))
 
-            // Need / Want classification buttons
+            // Need / Want classification buttons with tactile recoil
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val isNeed = item.type == EntryType.NEED
                 val isWant = item.type == EntryType.WANT
+                val needInteraction = remember { MutableInteractionSource() }
+                val wantInteraction = remember { MutableInteractionSource() }
 
                 // NEED Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(34.dp)
+                        .pressRecoil(needInteraction)
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isNeed) palette.marketGreen else palette.marketGreen.copy(alpha = 0.08f))
                         .border(
@@ -429,7 +449,7 @@ private fun ScannedItemRow(
                             ),
                             RoundedCornerShape(8.dp)
                         )
-                        .clickable { onTypeSelect(EntryType.NEED) },
+                        .clickable(interactionSource = needInteraction, indication = null) { onTypeSelect(EntryType.NEED) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -444,6 +464,7 @@ private fun ScannedItemRow(
                     modifier = Modifier
                         .weight(1f)
                         .height(34.dp)
+                        .pressRecoil(wantInteraction)
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isWant) palette.crimson else palette.crimson.copy(alpha = 0.08f))
                         .border(
@@ -453,7 +474,7 @@ private fun ScannedItemRow(
                             ),
                             RoundedCornerShape(8.dp)
                         )
-                        .clickable { onTypeSelect(EntryType.WANT) },
+                        .clickable(interactionSource = wantInteraction, indication = null) { onTypeSelect(EntryType.WANT) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

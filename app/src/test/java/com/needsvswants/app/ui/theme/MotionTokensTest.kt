@@ -28,6 +28,7 @@ class MotionTokensTest {
         assertEquals(1, Motion.stamp<Float>().durationMillis)
         assertEquals(1, Motion.budget<Float>().durationMillis)
         assertEquals(1, Motion.number<Float>().durationMillis)
+        assertEquals(1, Motion.odometer<Float>().durationMillis)
     }
 
     @Test
@@ -41,12 +42,14 @@ class MotionTokensTest {
         assertEquals(Motion.BudgetMs, Motion.budget<Float>().durationMillis)
         assertEquals(Motion.StampMs, Motion.number<Float>().durationMillis)
         assertEquals(Motion.PageFlipMs, Motion.pageFlip<Float>().durationMillis)
+        assertEquals(Motion.OdometerRollMs, Motion.odometer<Float>().durationMillis)
     }
 
     @Test
     fun pageFlip_collapsesWhenReducedMotion() {
         enableMotion(false)
         assertEquals(1, Motion.pageFlip<Float>().durationMillis)
+        assertEquals(1, Motion.odometer<Float>().durationMillis)
     }
 
     @Test
@@ -59,6 +62,20 @@ class MotionTokensTest {
         assertEquals(1, (Motion.selectionSpring() as TweenSpec<Float>).durationMillis)
         assertEquals(1, (Motion.sealSpring() as TweenSpec<Float>).durationMillis)
         assertEquals(1, (Motion.pressSpring() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.recoilSpring() as TweenSpec<Float>).durationMillis)
+        assertEquals(1, (Motion.tabGlideSpring() as TweenSpec<Float>).durationMillis)
+    }
+
+    @Test
+    fun enabled_recoilAndTabGlideSpringsKeepProfiles() {
+        enableMotion(true)
+        val recoil = Motion.recoilSpring() as SpringSpec<Float>
+        assertEquals(Spring.DampingRatioMediumBouncy, recoil.dampingRatio)
+        assertEquals(Spring.StiffnessMedium, recoil.stiffness)
+
+        val tabGlide = Motion.tabGlideSpring() as SpringSpec<Float>
+        assertEquals(Spring.DampingRatioNoBouncy, tabGlide.dampingRatio)
+        assertEquals(Spring.StiffnessMediumLow, tabGlide.stiffness)
     }
 
     @Test

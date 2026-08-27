@@ -31,6 +31,10 @@ object Motion {
     const val StaggerStepMs = 60
     const val PagerSettleMs = 350
     const val SealHoldMs = 1200
+    const val OdometerRollMs = 500
+    const val RecoilMs = 160
+    const val TabGlideMs = 260
+    const val ReceiptUnrollMs = 420
     /** Idle breath period — slow ambient pulse for hero rings. */
     const val IdleMs = 2400
     /** Floating Gemini orb vertical float cycle. */
@@ -81,6 +85,12 @@ object Motion {
     val EaseStandard: Easing = FastOutSlowInEasing
     /** Paper land — soft ease-out-cubic matching notepad settle (D32 family). */
     val EasePaperFlip: Easing = CubicBezierEasing(0.32f, 0.72f, 0.25f, 1f)
+    /** Spring recoil overshoot for tactile buttons. */
+    val EaseSpringRecoil: Easing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+    /** Odometer vertical roll deceleration curve. */
+    val EaseOdometerRoll: Easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
+    /** Fluid tab glide easing. */
+    val EaseTabGlide: Easing = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
     /** Whether custom motion should run. False when system scale is 0 or user reduced-motion is on. */
     var enabled: Boolean = true
@@ -238,6 +248,32 @@ object Motion {
     } else {
         tween<Float>(1)
     }
+
+    /** Tactile recoil spring for NEED / WANT buttons on release. */
+    fun recoilSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    } else {
+        tween<Float>(1)
+    }
+
+    /** Elastic fluid glide for the floating navigation tab indicator. */
+    fun tabGlideSpring(): FiniteAnimationSpec<Float> = if (enabled) {
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    } else {
+        tween<Float>(1)
+    }
+
+    /** Vertical odometer digit roll deceleration spec. */
+    fun <T> odometer(): TweenSpec<T> = tween(
+        durationMillis = if (enabled) OdometerRollMs else 1,
+        easing = EaseOdometerRoll
+    )
 }
 
 /**

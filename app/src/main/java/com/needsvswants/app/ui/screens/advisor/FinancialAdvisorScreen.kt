@@ -137,9 +137,19 @@ fun FinancialAdvisorScreen(
         Spacer(Modifier.height(16.dp))
 
         if (uiState.isLoading) {
+            val breathAlpha = com.needsvswants.app.ui.theme.rememberIdleBreathAlpha()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(palette.gold.copy(alpha = 0.08f * breathAlpha))
+                    .border(
+                        androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f * breathAlpha)),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
@@ -149,8 +159,8 @@ fun FinancialAdvisorScreen(
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "Reading your ledger…",
-                    style = AppType.bodySm,
-                    color = palette.textMuted
+                    style = AppType.bodySm.copy(fontWeight = FontWeight.Medium),
+                    color = palette.gilt
                 )
             }
             Spacer(Modifier.height(8.dp))

@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.theme
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -7,18 +8,28 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -54,6 +65,23 @@ fun Modifier.pressScale(
         targetValue = if (pressed && enabled) 0.97f else 1f,
         animationSpec = Motion.pressSpring(),
         label = "pressScale"
+    )
+    this.scale(scale)
+}
+
+/**
+ * Tactile recoil modifier — drops to 0.94 on touch down, springs past 1.0 with slight
+ * micro-overshoot on release before settling at 1.0 via [Motion.recoilSpring].
+ */
+fun Modifier.pressRecoil(
+    interaction: MutableInteractionSource,
+    enabled: Boolean = true
+): Modifier = composed {
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) 0.94f else 1f,
+        animationSpec = if (pressed) Motion.pressSpring() else Motion.recoilSpring(),
+        label = "pressRecoil"
     )
     this.scale(scale)
 }
@@ -186,4 +214,103 @@ fun rememberIdleBreathAlpha(): Float {
         label = "idleBreathAlpha"
     )
     return alpha
+}
+
+/**
+ * Animated Odometer Money count-up with independent vertical digit roll animation.
+ *
+ * Digits roll vertically into place using [Motion.odometer], while formatting
+ * through [toMoney] or [toMoneyWhole] with [symbol].
+ */
+@Composable
+fun AnimatedOdometerMoney(
+    cents: Long,
+    symbol: String,
+    style: TextStyle = AppType.moneyLg,
+    color: Color? = null,
+    wholeOnly: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val text = if (wholeOnly) cents.toMoneyWhole(symbol) else cents.toMoney(symbol)
+    if (!Motion.enabled) {
+        Text(
+            text = text,
+            modifier = modifier,
+            style = style,
+            color = color ?: Color.Unspecified
+        )
+        return
+    }
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        text.forEachIndexed { index, char ->
+            if (char.isDigit()) {
+                AnimatedContent(
+                    targetState = char,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            (slideInVertically(animationSpec = Motion.odometer()) { height -> height } + fadeIn(Motion.odometer()))
+                                .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeOut(Motion.odometer()))
+                        } else {
+                            (slideInVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeIn(Motion.odometer()))
+                                .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> height } + fadeOut(Motion.odometer()))
+                        }
+                    },
+                    label = "odometerChar$index"
+                ) { digit ->
+                    Text(
+                        text = digit.toString(),
+                        style = style,
+                        color = color ?: Color.Unspecified
+                    )
+                }
+            } else {
+                Text(
+                    text = char.toString(),
+                    style = style,
+                    color = color ?: Color.Unspecified
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Specular shine modifier — sweeps a subtle luxury gold reflection across
+ * cards or dials when motion is enabled.
+ */
+@Composable
+fun Modifier.specularShine(
+    glowColor: Color = AppTheme.colors.gold,
+    alpha: Float = 0.22f
+): Modifier = composed {
+    if (!Motion.enabled) return@composed this
+    val transition = rememberInfiniteTransition(label = "specularShine")
+    val progress by transition.animateFloat(
+        initialValue = -0.5f,
+        targetValue = 1.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(Motion.OrbShineMs, easing = Motion.EaseStandard),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shineProgress"
+    )
+    this.drawBehind {
+        val w = size.width
+        val h = size.height
+        val startX = progress * w
+        val sweepBrush = Brush.linearGradient(
+            colors = listOf(
+                Color.Transparent,
+                glowColor.copy(alpha = alpha),
+                Color.Transparent
+            ),
+            start = Offset(startX, 0f),
+            end = Offset(startX + w * 0.35f, h)
+        )
+        drawRect(sweepBrush)
+    }
 }

@@ -63,7 +63,11 @@ fun SparklineChart(
                             haptics?.tick()
                         },
                         onHorizontalDrag = { change, _ ->
-                            scrubIndex = nearestIndex(safety.size, change.position.x, size.width.toFloat())
+                            val newIndex = nearestIndex(safety.size, change.position.x, size.width.toFloat())
+                            if (newIndex != scrubIndex && newIndex in safety.indices) {
+                                scrubIndex = newIndex
+                                haptics?.tick()
+                            }
                         },
                         onDragEnd = { scrubIndex = -1 },
                         onDragCancel = { scrubIndex = -1 }
