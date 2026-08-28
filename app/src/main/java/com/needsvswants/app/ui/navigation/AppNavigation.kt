@@ -225,8 +225,8 @@ fun AppNavigation(
                                 else -> AppTheme.colors.crimson
                             }
 
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                                BoxWithConstraints(modifier = Modifier.matchParentSize()) {
                                     val tabWidth = maxWidth / tabs.size
                                     Box(
                                         modifier = Modifier
