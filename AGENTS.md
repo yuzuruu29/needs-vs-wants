@@ -96,8 +96,11 @@ If no graph exists yet for the relevant scope, run a **scoped** graphify build (
 [ ] Obsidian: Memory Index + Summary + Tasks + Decisions (+ task notes) loaded
 [ ] Context7: docs pulled for any library/API involved (or N/A / official-docs fallback noted)
 [ ] Graphify: existing graph queried (or scoped update) for blast radius
+[ ] UI-touching tasks: run the UI QA subset per docs/UI_GUIDELINES.md (tokens, states, a11y, motion, XL text)
 [ ] Only then: edit code
 ```
+
+**UI policy (D185):** `docs/UI_GUIDELINES.md` holds the surface-adapted rules adopted from the vault guides (Frontend Reference & Anti-AI-Slop, Icon Resource & Implementation): app icon weight = Outlined (nav selected/unselected Filled/Outlined pairs are the documented exception), motion token mapping, normalization pass, anti-slop list, tiered QA. Website icon provenance inventory: `docs/ICON_AUDIT.md`.
 
 ---
 
