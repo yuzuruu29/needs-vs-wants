@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.21",
-  "versionCode": 29,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.21.apk",
-  "sha256": "1ef73fbfd1c7e8c766dc0c4c3409d7a0c97a80a5148060cd21a7c1c400bb14fb",
-  "notes": "Date-scoped daily budgets; balanced billing selector; Room migration",
-  "updatedAt": "2026-08-23T06:04:03.588Z"
+  "versionName": "2.0.22",
+  "versionCode": 30,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.22.apk",
+  "sha256": "efef025553f0cbb226da676e514507f80a2bfe306b0ff908c6a782ae7e27ad87",
+  "notes": "Premium motion polish; consistent Outlined icon set",
+  "updatedAt": "2026-08-28T14:51:48.000Z"
 }
