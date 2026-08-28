@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.BuildConfig
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.screens.advisor.FinancialAdvisorScreen
 import com.needsvswants.app.ui.screens.history.HistoryScreen
 import com.needsvswants.app.ui.screens.input.InputScreen
@@ -200,7 +201,7 @@ fun AppNavigation(
                             )
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(26.dp),
+                            shape = AppShapes.r28,
                             color = AppTheme.colors.surfaceCard.copy(alpha = 0.96f),
                             shadowElevation = 12.dp,
                             tonalElevation = 0.dp,
@@ -239,11 +240,11 @@ fun AppNavigation(
                                             .width(tabWidth)
                                             .fillMaxHeight()
                                             .padding(horizontal = 3.dp, vertical = 4.dp)
-                                            .clip(RoundedCornerShape(20.dp))
+                                            .clip(AppShapes.r20)
                                             .background(activePillColor.copy(alpha = 0.12f))
                                             .border(
                                                 androidx.compose.foundation.BorderStroke(1.dp, activePillColor.copy(alpha = 0.35f)),
-                                                RoundedCornerShape(20.dp)
+                                                AppShapes.r20
                                             )
                                     )
                                 }
@@ -434,7 +435,7 @@ private fun NavPill(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(AppShapes.r16)
             .clickable(onClick = onClick, role = Role.Tab)
             // TalkBack: announce which tab is active, not just its name.
             .semantics { this.selected = selected }

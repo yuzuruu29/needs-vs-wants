@@ -247,13 +247,13 @@ fun SummaryScreen(
 
         // Period selector — gold-edge pill bar
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = AppShapes.r16,
             color = Color.Transparent,
             modifier = Modifier
                 .fillMaxWidth()
                 .paperSurface(
                     rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                    RoundedCornerShape(16.dp)
+                    AppShapes.r16
                 )
         ) {
             Row(
@@ -285,7 +285,7 @@ fun SummaryScreen(
                         modifier = Modifier
                             .weight(1f)
                             .heightIn(min = scaledSpacing(40f))
-                            .background(pillColor, RoundedCornerShape(12.dp))
+                            .background(pillColor, AppShapes.r12)
                             .clickable {
                                 haptics.tick()
                                 viewModel.setPeriod(p)
@@ -403,10 +403,10 @@ fun SummaryScreen(
                         } else {
                             // Period empty but history exists — keep the orb + contextual copy.
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                FloatingGeminiOrb(
+                                SpendDial(
                                     needsSweepDegrees = 0f,
                                     empty = true,
-                                    orbSize = 200.dp
+                                    dialSize = 200.dp
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Eyebrow("READY", color = palette.textMuted, size = 10)
@@ -439,10 +439,10 @@ fun SummaryScreen(
                             label = "donutNeedsSweep"
                         )
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingGeminiOrb(
+                            SpendDial(
                                 needsSweepDegrees = needsSweep,
                                 empty = false,
-                                orbSize = 210.dp,
+                                dialSize = 210.dp,
                                 onClick = {
                                     haptics.tick()
                                     showSplitPortal = true
@@ -648,7 +648,7 @@ private fun SplitSummaryCard(
         modifier = modifier
             .paperSurface(
                 rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                RoundedCornerShape(16.dp)
+                AppShapes.r16
             )
             .clickable(onClick = onOpenPortal)
             .padding(scaledSpacing(16f))
@@ -706,7 +706,7 @@ private fun SplitSummaryCard(
             Modifier
                 .fillMaxWidth()
                 .height(10.dp)
-                .clip(RoundedCornerShape(5.dp))
+                .clip(AppShapes.r6)
         ) {
             drawRect(color = palette.want, size = size)
             drawRect(color = palette.need, size = Size(size.width * n, size.height))
@@ -785,7 +785,7 @@ private fun SplitPercentagePortal(
                     }
                     .paperSurface(
                         rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                        RoundedCornerShape(22.dp)
+                        AppShapes.r20
                     )
                     .clickable(enabled = false, onClick = {})
                     .padding(22.dp),
@@ -879,7 +879,7 @@ private fun SplitPercentagePortal(
                     Modifier
                         .fillMaxWidth()
                         .height(14.dp)
-                        .clip(RoundedCornerShape(7.dp))
+                        .clip(AppShapes.r8)
                 ) {
                     drawRect(color = palette.want, size = size)
                     drawRect(color = palette.need, size = Size(size.width * n, size.height))
@@ -888,7 +888,7 @@ private fun SplitPercentagePortal(
                 if (dailyTotals.size >= 7) {
                     Spacer(Modifier.height(20.dp))
                     PremiumSurface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = AppShapes.r16,
                         goldEdge = true,
                         raised = true
                     ) {
@@ -925,7 +925,7 @@ private fun StatCard(
         modifier = modifier
             .paperSurface(
                 rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                RoundedCornerShape(16.dp)
+                AppShapes.r16
             )
             .padding(horizontal = scaledSpacing(12f), vertical = scaledSpacing(14f))
     ) {
@@ -983,7 +983,7 @@ private fun StreakBentoCard(
         modifier = modifier
             .paperSurface(
                 rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                RoundedCornerShape(16.dp)
+                AppShapes.r16
             )
             .padding(horizontal = scaledSpacing(12f), vertical = scaledSpacing(14f))
     ) {
@@ -1047,12 +1047,12 @@ fun InstructionsOverlay(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = AppShapes.r20,
             color = Color.Transparent,
             modifier = Modifier
                 .paperSurface(
                     rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                    RoundedCornerShape(20.dp)
+                    AppShapes.r20
                 )
                 .graphicsLayer {
                     scaleX = backScale
@@ -1151,7 +1151,7 @@ fun InstructionsOverlay(
                                 .size(if (i == currentPage) 8.dp else 6.dp)
                                 .background(
                                     if (i == currentPage) palette.crimson else palette.divider,
-                                    RoundedCornerShape(4.dp)
+                                    AppShapes.r6
                                 )
                         )
                     }
@@ -1202,8 +1202,8 @@ private fun GoalCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = selected), RoundedCornerShape(14.dp))
-            .border(BorderStroke(1.5.dp, edge), RoundedCornerShape(14.dp))
+            .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = selected), AppShapes.r14)
+            .border(BorderStroke(1.5.dp, edge), AppShapes.r14)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

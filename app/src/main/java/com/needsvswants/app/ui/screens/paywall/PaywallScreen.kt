@@ -55,6 +55,7 @@ import androidx.compose.ui.window.Dialog
 import com.needsvswants.app.data.billing.BillingPeriod
 import com.needsvswants.app.data.billing.BillingResult
 import com.needsvswants.app.data.billing.PaymentProvider
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.screens.auth.AuthViewModel
 import com.needsvswants.app.ui.screens.auth.EmailOtpState
 import com.needsvswants.app.ui.theme.AppTheme
@@ -695,7 +696,7 @@ fun PaywallScreen(
                 color = palette.surfaceCard,
                 shadowElevation = 8.dp,
                 tonalElevation = 0.dp,
-                shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -710,7 +711,7 @@ fun PaywallScreen(
                             .padding(bottom = 10.dp)
                             .height(3.dp)
                             .fillMaxWidth(0.12f)
-                            .background(palette.gold.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+                            .background(palette.gold.copy(alpha = 0.55f), AppShapes.r6)
                     )
                     GiltButton(
                         onClick = {
@@ -837,7 +838,7 @@ private fun BillingPeriodSelector(
 ) {
     val c = AppTheme.colors
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = AppShapes.r12,
         color = c.surfaceSunken,
         border = BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)),
         modifier = Modifier.fillMaxWidth()
@@ -880,7 +881,7 @@ private fun PeriodOption(
 ) {
     val c = AppTheme.colors
     Surface(
-        shape = RoundedCornerShape(9.dp),
+        shape = AppShapes.r8,
         color = if (selected) c.surfaceCard else Color.Transparent,
         border = BorderStroke(1.dp, if (selected) c.gold else c.gold.copy(alpha = 0.18f)),
         modifier = modifier
@@ -932,7 +933,7 @@ private fun ProviderOption(
 ) {
     val c = AppTheme.colors
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = AppShapes.r12,
         color = if (selected) c.surfaceCard else c.surfaceSunken,
         border = BorderStroke(1.dp, if (selected) c.gold else c.gold.copy(alpha = 0.28f)),
         modifier = Modifier.fillMaxWidth()
@@ -952,14 +953,14 @@ private fun ProviderOption(
             Box(
                 modifier = Modifier
                     .size(18.dp)
-                    .border(1.dp, if (selected) c.gold else c.textMuted.copy(alpha = 0.4f), RoundedCornerShape(9.dp))
+                    .border(1.dp, if (selected) c.gold else c.textMuted.copy(alpha = 0.4f), AppShapes.r8)
                     .padding(3.dp)
             ) {
                 if (selected) {
                     Box(
                         Modifier
                             .fillMaxSize()
-                            .background(c.gold, RoundedCornerShape(6.dp))
+                            .background(c.gold, AppShapes.r6)
                     )
                 }
             }
@@ -986,7 +987,7 @@ private fun EmailOtpDialog(
 
     Dialog(onDismissRequest = { if (!state.busy) onDismiss() }) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = AppShapes.r20,
             color = c.surfaceCard,
             border = BorderStroke(1.dp, c.gold.copy(alpha = 0.35f))
         ) {

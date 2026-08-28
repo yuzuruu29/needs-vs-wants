@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -53,7 +52,7 @@ fun EmptyDiaryIllustration(modifier: Modifier = Modifier) {
         val topY = h * 0.22f
         val bottomY = h * 0.82f
         val coverInset = w * 0.06f
-        val leaf = Color(0xFFF3F1EA)
+        val leaf = c.surfaceRaised
 
         // Shadow under the book.
         drawOval(

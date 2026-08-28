@@ -354,7 +354,7 @@ fun HistoryScreen(
                                             modifier = Modifier
                                                 .border(
                                                     BorderStroke(1.dp, AppTheme.colors.dividerStrong),
-                                                    RoundedCornerShape(20.dp)
+                                                    AppShapes.r20
                                                 )
                                                 .padding(horizontal = 10.dp, vertical = 5.dp)
                                         )
@@ -500,8 +500,8 @@ private fun DaySplitChip(
     val palette = AppTheme.colors
     Column(
         modifier = modifier
-            .background(palette.surfaceSunken, RoundedCornerShape(12.dp))
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.28f)), RoundedCornerShape(12.dp))
+            .background(palette.surfaceSunken, AppShapes.r12)
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.28f)), AppShapes.r12)
             .padding(horizontal = 10.dp, vertical = 10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -539,11 +539,11 @@ private fun EntryActionDialog(
     val typeColor = if (entry.type == EntryType.NEED) c.need else c.want
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = AppShapes.r20,
             color = Color.Transparent,
             modifier = Modifier.paperSurface(
                 rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                RoundedCornerShape(20.dp)
+                AppShapes.r20
             )
         ) {
             Column(modifier = Modifier.padding(22.dp)) {
@@ -573,7 +573,7 @@ private fun EntryActionDialog(
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = onDelete,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppShapes.r12,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = c.danger.copy(alpha = 0.14f),
                         contentColor = c.danger
@@ -626,11 +626,11 @@ private fun EditEntryDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = AppShapes.r20,
             color = Color.Transparent,
             modifier = Modifier.paperSurface(
                 rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                RoundedCornerShape(20.dp)
+                AppShapes.r20
             )
         ) {
             Column(modifier = Modifier.padding(22.dp)) {
@@ -727,7 +727,7 @@ private fun EditTypeChip(
     )
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = AppShapes.r12,
         color = bgColor,
         border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
         modifier = modifier.heightIn(min = 48.dp)

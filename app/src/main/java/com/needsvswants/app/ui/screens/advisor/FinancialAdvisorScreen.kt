@@ -31,6 +31,7 @@ import com.needsvswants.app.domain.AdvisorProtocols
 import com.needsvswants.app.domain.ChatMessage
 import com.needsvswants.app.domain.ChatSender
 import com.needsvswants.app.domain.advisorProtocolQuery
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -143,11 +144,11 @@ fun FinancialAdvisorScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(AppShapes.r12)
                     .background(palette.gold.copy(alpha = 0.08f * breathAlpha))
                     .border(
                         androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f * breathAlpha)),
-                        RoundedCornerShape(12.dp)
+                        AppShapes.r12
                     )
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
@@ -175,7 +176,7 @@ fun FinancialAdvisorScreen(
                 label = "todayInsightCard"
             ) {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = AppShapes.r16,
                     color = palette.surfaceCard,
                     border = androidx.compose.foundation.BorderStroke(1.dp, edge),
                     shadowElevation = 2.dp,
@@ -330,7 +331,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
     val palette = AppTheme.colors
     PremiumSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = AppShapes.r20,
         goldEdge = true,
         raised = true
     ) {
@@ -392,7 +393,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
 
     PremiumSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppShapes.r16,
         goldEdge = false,
         raised = false
     ) {
@@ -458,7 +459,7 @@ private fun QuickChip(label: String, onClick: () -> Unit) {
     val palette = AppTheme.colors
     Surface(
         color = palette.surfaceRaised,
-        shape = RoundedCornerShape(20.dp),
+        shape = AppShapes.r20,
         border = androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
         modifier = Modifier
             .heightIn(min = 40.dp)

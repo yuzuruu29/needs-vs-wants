@@ -55,7 +55,7 @@ fun NeedsVsWantsTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AppTypography,
-            shapes = AppShapes,
+            shapes = AppShapes.asMaterialShapes(),
             content = {
                 CompositionLocalProvider(LocalIndication provides inkWave) {
                     content()

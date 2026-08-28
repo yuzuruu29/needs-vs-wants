@@ -63,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.theme.pressRecoil
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -341,11 +342,11 @@ fun InputScreen(
                         // Scan Receipt Button
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
+                                .clip(AppShapes.r20)
                                 .background(palette.surfaceCard)
                                 .border(
                                     BorderStroke(1.dp, palette.gold.copy(alpha = if (hasProAccess) 0.8f else 0.45f)),
-                                    RoundedCornerShape(20.dp)
+                                    AppShapes.r20
                                 )
                                 .clickable {
                                     if (hasProAccess) {
@@ -845,9 +846,9 @@ fun InputScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(AppShapes.r8)
                                     .background(palette.surfaceRaised)
-                                    .border(BorderStroke(1.dp, palette.dividerStrong), RoundedCornerShape(10.dp))
+                                    .border(BorderStroke(1.dp, palette.dividerStrong), AppShapes.r8)
                                     .clickable {
                                         showPhotoSourceDialog = false
                                         launchReceiptCamera()
@@ -876,9 +877,9 @@ fun InputScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(AppShapes.r8)
                                     .background(palette.surfaceRaised)
-                                    .border(BorderStroke(1.dp, palette.dividerStrong), RoundedCornerShape(10.dp))
+                                    .border(BorderStroke(1.dp, palette.dividerStrong), AppShapes.r8)
                                     .clickable {
                                         showPhotoSourceDialog = false
                                         pickImageLauncher.launch("image/*")
@@ -982,7 +983,7 @@ private fun CompactChip(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = AppShapes.r8,
         color = if (selected) accent.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
         border = BorderStroke(1.dp, if (selected) accent else AppTheme.colors.dividerStrong)
     ) {
@@ -1012,7 +1013,7 @@ private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: ()
     Surface(
         onClick = onClick,
         interactionSource = interaction,
-        shape = RoundedCornerShape(12.dp),
+        shape = AppShapes.r12,
         color = bgColor,
         border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
         modifier = Modifier
@@ -1043,7 +1044,7 @@ private fun CoachChip(label: String, onClick: () -> Unit) {
     val palette = AppTheme.colors
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
+        shape = AppShapes.r20,
         color = palette.surfaceRaised,
         border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
         modifier = Modifier.heightIn(min = 36.dp)
@@ -1112,7 +1113,7 @@ private fun LogDailyBudgetSection(
         // Compact invite — do not eat half the screen when budget is off.
         !budgetOn && !editingBudget -> {
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = AppShapes.r14,
                 color = palette.surfaceCard,
                 border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f)),
                 modifier = Modifier.fillMaxWidth()

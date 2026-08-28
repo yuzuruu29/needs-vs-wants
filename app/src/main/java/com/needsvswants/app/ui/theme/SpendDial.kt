@@ -39,11 +39,11 @@ import androidx.compose.ui.unit.dp
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FloatingGeminiOrb(
+fun SpendDial(
     needsSweepDegrees: Float,
     empty: Boolean,
     modifier: Modifier = Modifier,
-    orbSize: Dp = 200.dp,
+    dialSize: Dp = 200.dp,
     onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
     center: @Composable BoxScope.() -> Unit
@@ -67,7 +67,7 @@ fun FloatingGeminiOrb(
 
     Box(
         modifier = modifier
-            .size(orbSize)
+            .size(dialSize)
             .graphicsLayer {
                 scaleX = pressScale
                 scaleY = pressScale
@@ -209,7 +209,7 @@ fun FloatingGeminiOrb(
         // Center hole for TOTAL + amount — slightly roomier so whole-unit
         // money can sit on the optical center of the paper disk.
         Box(
-            modifier = Modifier.size(orbSize * 0.56f),
+            modifier = Modifier.size(dialSize * 0.56f),
             contentAlignment = Alignment.Center,
             content = center
         )

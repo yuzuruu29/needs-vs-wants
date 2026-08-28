@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.needsvswants.app.domain.RecoveryPlan
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -54,7 +55,7 @@ fun RecoveryPlanCard(
         label = "recoveryPlanCard"
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = AppShapes.r16,
             color = palette.surfaceCard,
             border = BorderStroke(1.dp, palette.crimson.copy(alpha = 0.45f)),
             shadowElevation = 2.dp,

@@ -70,7 +70,7 @@ fun TierTag(
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.45f)), RoundedCornerShape(20.dp))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.45f)), AppShapes.r20)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
@@ -85,7 +85,7 @@ fun PopularRibbon(modifier: Modifier = Modifier) {
                 brush = Brush.horizontalGradient(
                     listOf(c.goldSoft, c.gold, c.goldSoft.copy(alpha = 0.92f))
                 ),
-                shape = RoundedCornerShape(20.dp)
+                shape = AppShapes.r20
             )
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
@@ -255,19 +255,17 @@ fun PlanTierCard(
             listOf(c.surfaceRaised, c.surfaceRaised)
         )
     }
-    val outerRadius = 22.dp
-    val innerRadius = 16.dp
 
     Box(
         modifier = modifier
             .scale(scale)
             .fillMaxWidth()
             .semantics { this.selected = selected }
-            .clip(RoundedCornerShape(outerRadius))
-            .background(shellBrush, RoundedCornerShape(outerRadius))
+            .clip(AppShapes.r20)
+            .background(shellBrush, AppShapes.r20)
             .border(
                 BorderStroke(if (selected) 1.5.dp else 1.dp, shellBorder),
-                RoundedCornerShape(outerRadius)
+                AppShapes.r20
             )
             .clickable(
                 enabled = enabled,
@@ -288,7 +286,7 @@ fun PlanTierCard(
                                 Color.Transparent
                             )
                         ),
-                        RoundedCornerShape(innerRadius)
+                        AppShapes.r16
                     )
             )
         }
@@ -296,11 +294,11 @@ fun PlanTierCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(innerRadius))
-                .background(c.surfaceCard, RoundedCornerShape(innerRadius))
+                .clip(AppShapes.r16)
+                .background(c.surfaceCard, AppShapes.r16)
                 .border(
                     BorderStroke(1.dp, c.divider.copy(alpha = 0.65f)),
-                    RoundedCornerShape(innerRadius)
+                    AppShapes.r16
                 )
         ) {
             // Top flag strip
@@ -501,9 +499,9 @@ fun TrialTimelineCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(AppShapes.r14)
             .background(c.surfaceSunken)
-            .border(BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)), RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.dp, c.gold.copy(alpha = 0.28f)), AppShapes.r14)
             .padding(14.dp)
     ) {
         when (provider) {
@@ -587,9 +585,9 @@ fun PaywallNoticeSurface(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(AppShapes.r16)
             .background(c.surfaceCard)
-            .border(BorderStroke(1.dp, accent.copy(alpha = 0.35f)), RoundedCornerShape(16.dp))
+            .border(BorderStroke(1.dp, accent.copy(alpha = 0.35f)), AppShapes.r16)
             .padding(14.dp),
         content = content
     )

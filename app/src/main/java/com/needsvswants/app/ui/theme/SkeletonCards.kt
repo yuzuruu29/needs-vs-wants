@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
  * cards they replace so the shimmer→content swap causes zero layout shift.
  */
 
-/** Matches the FloatingGeminiOrb hero (210dp circle). */
+/** Matches the SpendDial hero (210dp circle). */
 @Composable
 fun SummarySkeletonDonut(modifier: Modifier = Modifier) {
     Box(modifier = modifier.size(210.dp), contentAlignment = Alignment.Center) {
@@ -49,7 +49,7 @@ fun HistorySkeletonGroup(modifier: Modifier = Modifier) {
             .height(120.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        PaperShimmer(Modifier.fillMaxWidth().height(40.dp), RoundedCornerShape(14.dp))
-        PaperShimmer(Modifier.fillMaxWidth().height(40.dp), RoundedCornerShape(14.dp))
+        PaperShimmer(Modifier.fillMaxWidth().height(40.dp), AppShapes.r14)
+        PaperShimmer(Modifier.fillMaxWidth().height(40.dp), AppShapes.r14)
     }
 }

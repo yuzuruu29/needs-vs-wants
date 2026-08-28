@@ -400,7 +400,7 @@ fun SettingsScreen(
                                 if (hapticsEnabled) haptics.tick()
                                 viewModel.setSpendingGoal(value)
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppShapes.r12,
                             color = if (selected) palette.marketGreen.copy(alpha = 0.12f) else palette.surfaceRaised,
                             border = if (selected) BorderStroke(1.dp, palette.marketGreen) else null,
                             modifier = Modifier.weight(1f)
@@ -997,7 +997,7 @@ private fun PreferenceRow(
         Box(
             modifier = Modifier
                 .size(18.dp)
-                .border(1.dp, palette.inkDividerStrong, RoundedCornerShape(9.dp)),
+                .border(1.dp, palette.inkDividerStrong, AppShapes.r8),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -1005,7 +1005,7 @@ private fun PreferenceRow(
                     .fillMaxSize()
                     .background(
                         Brush.horizontalGradient(listOf(palette.gilt, palette.giltSoft)),
-                        RoundedCornerShape(9.dp)
+                        AppShapes.r8
                     )
                     .graphicsLayer { alpha = fillAlpha }
             )
@@ -1013,7 +1013,7 @@ private fun PreferenceRow(
                 modifier = Modifier
                     .padding(4.dp)
                     .fillMaxSize()
-                    .background(palette.background, RoundedCornerShape(3.dp))
+                    .background(palette.background, AppShapes.r6)
                     .graphicsLayer {
                         scaleX = dotScale
                         scaleY = dotScale
@@ -1035,18 +1035,18 @@ private fun ThemeSwatches(swatch: AppPalette) {
         Box(
             modifier = Modifier
                 .size(14.dp)
-                .background(swatch.background, RoundedCornerShape(3.dp))
-                .border(1.dp, swatch.divider, RoundedCornerShape(3.dp))
+                .background(swatch.background, AppShapes.r6)
+                .border(1.dp, swatch.divider, AppShapes.r6)
         )
         Box(
             modifier = Modifier
                 .size(14.dp)
-                .background(swatch.need, RoundedCornerShape(3.dp))
+                .background(swatch.need, AppShapes.r6)
         )
         Box(
             modifier = Modifier
                 .size(14.dp)
-                .background(swatch.want, RoundedCornerShape(3.dp))
+                .background(swatch.want, AppShapes.r6)
         )
     }
 }

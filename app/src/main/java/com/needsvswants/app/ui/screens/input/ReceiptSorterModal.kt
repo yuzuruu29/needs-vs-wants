@@ -59,6 +59,7 @@ import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
 import com.needsvswants.app.domain.toInputAmount
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.theme.AppTheme
 import com.needsvswants.app.ui.theme.AppType
 import com.needsvswants.app.ui.theme.Eyebrow
@@ -176,9 +177,9 @@ fun ReceiptSorterModal(
                     )
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(AppShapes.r16)
                             .background(palette.marketGreen.copy(alpha = 0.12f))
-                            .border(BorderStroke(1.dp, palette.marketGreen.copy(alpha = 0.4f)), RoundedCornerShape(16.dp))
+                            .border(BorderStroke(1.dp, palette.marketGreen.copy(alpha = 0.4f)), AppShapes.r16)
                             .clickable {
                                 haptics.tick()
                                 for (i in items.indices) {
@@ -195,9 +196,9 @@ fun ReceiptSorterModal(
                     }
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(AppShapes.r16)
                             .background(palette.crimson.copy(alpha = 0.12f))
-                            .border(BorderStroke(1.dp, palette.crimson.copy(alpha = 0.4f)), RoundedCornerShape(16.dp))
+                            .border(BorderStroke(1.dp, palette.crimson.copy(alpha = 0.4f)), AppShapes.r16)
                             .clickable {
                                 haptics.tick()
                                 for (i in items.indices) {
@@ -344,7 +345,7 @@ private fun ScannedItemRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(AppShapes.r12)
             .background(palette.surfaceCard)
             .border(
                 BorderStroke(
@@ -355,7 +356,7 @@ private fun ScannedItemRow(
                         null -> palette.divider.copy(alpha = 0.6f)
                     }
                 ),
-                RoundedCornerShape(12.dp)
+                AppShapes.r12
             )
             .padding(12.dp)
     ) {
@@ -440,14 +441,14 @@ private fun ScannedItemRow(
                         .weight(1f)
                         .height(34.dp)
                         .pressRecoil(needInteraction)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppShapes.r8)
                         .background(if (isNeed) palette.marketGreen else palette.marketGreen.copy(alpha = 0.08f))
                         .border(
                             BorderStroke(
                                 1.dp,
                                 if (isNeed) palette.marketGreen else palette.marketGreen.copy(alpha = 0.35f)
                             ),
-                            RoundedCornerShape(8.dp)
+                            AppShapes.r8
                         )
                         .clickable(interactionSource = needInteraction, indication = null) { onTypeSelect(EntryType.NEED) },
                     contentAlignment = Alignment.Center
@@ -465,14 +466,14 @@ private fun ScannedItemRow(
                         .weight(1f)
                         .height(34.dp)
                         .pressRecoil(wantInteraction)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(AppShapes.r8)
                         .background(if (isWant) palette.crimson else palette.crimson.copy(alpha = 0.08f))
                         .border(
                             BorderStroke(
                                 1.dp,
                                 if (isWant) palette.crimson else palette.crimson.copy(alpha = 0.35f)
                             ),
-                            RoundedCornerShape(8.dp)
+                            AppShapes.r8
                         )
                         .clickable(interactionSource = wantInteraction, indication = null) { onTypeSelect(EntryType.WANT) },
                     contentAlignment = Alignment.Center

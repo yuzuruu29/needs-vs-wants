@@ -110,7 +110,7 @@ fun themedInkWash(): Brush {
 @Composable
 fun PremiumSurface(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(18.dp),
+    shape: Shape = AppShapes.r20,
     goldEdge: Boolean = true,
     raised: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
@@ -190,7 +190,7 @@ fun DailyBudgetMeter(
             pulse.animateTo(1f, Motion.feedback())
         }
     }
-    val guardShape = RoundedCornerShape(16.dp)
+    val guardShape = AppShapes.r16
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -273,7 +273,7 @@ fun SettingsPanel(
 ) {
     PremiumSurface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppShapes.r16,
         goldEdge = true,
         raised = true,
         content = content
@@ -287,8 +287,8 @@ fun SettingsPanel(
 @Composable
 fun DoubleBezelCard(
     modifier: Modifier = Modifier,
-    outerShape: Shape = RoundedCornerShape(20.dp),
-    innerShape: Shape = RoundedCornerShape(15.dp),
+    outerShape: Shape = AppShapes.r20,
+    innerShape: Shape = AppShapes.r14,
     goldEdge: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -349,13 +349,13 @@ fun HeaderIconWell(
             .then(
                 if (filled) {
                     Modifier
-                        .background(if (enabled) bg else bg.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
-                        .border(border, RoundedCornerShape(14.dp))
+                        .background(if (enabled) bg else bg.copy(alpha = 0.45f), AppShapes.r14)
+                        .border(border, AppShapes.r14)
                 } else {
                     // Solid paper chip — gold hairline, no translucent chrome
                     Modifier.paperSurface(
                         rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                        RoundedCornerShape(14.dp)
+                        AppShapes.r14
                     )
                 }
             )
@@ -443,7 +443,7 @@ fun GiltButton(
         onClick = onClick,
         enabled = enabled,
         interactionSource = interaction,
-        shape = RoundedCornerShape(14.dp),
+        shape = AppShapes.r14,
         colors = ButtonDefaults.buttonColors(
             containerColor = AppTheme.colors.crimson,
             contentColor = AppTheme.colors.surfaceCard,
@@ -613,11 +613,11 @@ fun PremiumDialog(
             )
         ) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = AppShapes.r20,
                 color = Color.Transparent,
                 modifier = Modifier.paperSurface(
                     rememberPaperSpec(PaperKind.RAISED, goldEdge = true),
-                    RoundedCornerShape(20.dp)
+                    AppShapes.r20
                 )
             ) {
                 Column(modifier = Modifier.padding(22.dp)) {
@@ -650,7 +650,7 @@ fun PremiumDialog(
                         if (confirmDanger) {
                             Button(
                                 onClick = { confirmed = true },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = AppShapes.r12,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = c.danger.copy(alpha = 0.18f),
                                     contentColor = c.danger
@@ -887,7 +887,7 @@ fun EntryLedgerRow(
                 Box(
                     modifier = Modifier
                         .size(ledgerScaled(28f))
-                        .border(BorderStroke(1.2.dp, typeColor), RoundedCornerShape(7.dp)),
+                        .border(BorderStroke(1.2.dp, typeColor), AppShapes.r8),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -909,7 +909,7 @@ fun EntryLedgerRow(
                 // stock and is clipped to the card shape (ripple convention).
                 .paperSurface(
                     rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                    RoundedCornerShape(12.dp)
+                    AppShapes.r12
                 )
                 .then(press)
         ) {
@@ -970,7 +970,7 @@ fun InsightStrip(
             .fillMaxWidth()
             .paperSurface(
                 rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
-                RoundedCornerShape(16.dp)
+                AppShapes.r16
             )
             .padding(14.dp)
     ) {
@@ -978,7 +978,7 @@ fun InsightStrip(
             Box(
                 modifier = Modifier
                     .size(8.dp)
-                    .background(accentColor, RoundedCornerShape(4.dp))
+                    .background(accentColor, AppShapes.r6)
             )
             Spacer(Modifier.width(8.dp))
             Eyebrow(insight.title.uppercase(), color = accentColor, size = 10)

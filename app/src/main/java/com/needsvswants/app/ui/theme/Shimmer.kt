@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun PaperShimmer(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp)
+    shape: Shape = AppShapes.r16
 ) {
     val palette = AppTheme.colors
     if (!Motion.enabled) {

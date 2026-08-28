@@ -2,7 +2,6 @@ package com.needsvswants.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -31,6 +30,12 @@ import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.di.WidgetEntryPoint
 import com.needsvswants.app.domain.StreakMath
 import com.needsvswants.app.domain.toMoney
+import com.needsvswants.app.ui.theme.Crimson
+import com.needsvswants.app.ui.theme.Gold
+import com.needsvswants.app.ui.theme.MarketGreen
+import com.needsvswants.app.ui.theme.Surface
+import com.needsvswants.app.ui.theme.TextMuted
+import com.needsvswants.app.ui.theme.TextPrimary
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
@@ -95,16 +100,18 @@ private data class WidgetSnapshot(
 
 @Composable
 private fun WidgetContent(snapshot: WidgetSnapshot) {
-    // Light supermarket tokens (D7) as compose Colors for Glance ColorProvider.
-    // Glance's ColorProvider(Color) overload takes androidx.compose.ui.graphics.Color
-    // (a Long-backed value); passing an android.graphics.Color.parseColor Int would
-    // resolve to the @RestrictedApi resource-id overload (lint ResourceType error).
-    val bg = ColorProvider(Color(0xFFFAFAF7))
-    val textPrimary = ColorProvider(Color(0xFF1A1714))
-    val textMuted = ColorProvider(Color(0xFF6B6560))
-    val crimson = ColorProvider(Color(0xFFC8102E))
-    val green = ColorProvider(Color(0xFF0B6B3A))
-    val gold = ColorProvider(Color(0xFFE8A92A))
+    // Single-sourced light supermarket tokens from ui/theme/Color.kt (D7). The widget
+    // is fixed-light by design, so it reads the light palette constants directly
+    // instead of re-declaring hex values that drift. Glance's ColorProvider(Color)
+    // overload takes androidx.compose.ui.graphics.Color (a Long-backed value); passing
+    // an android.graphics.Color.parseColor Int would resolve to the @RestrictedApi
+    // resource-id overload (lint ResourceType error).
+    val bg = ColorProvider(Surface)
+    val textPrimary = ColorProvider(TextPrimary)
+    val textMuted = ColorProvider(TextMuted)
+    val crimson = ColorProvider(Crimson)
+    val green = ColorProvider(MarketGreen)
+    val gold = ColorProvider(Gold)
 
     Column(
         modifier = GlanceModifier
