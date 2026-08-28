@@ -305,7 +305,7 @@ fun InputScreen(
                             color = palette.textPrimary
                         )
                         Column(horizontalAlignment = Alignment.End) {
-                            Eyebrow("SHEET", color = palette.textMuted, size = 10)
+                            Eyebrow("SHEET", color = palette.textMuted, size = 11)
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 if (hasProAccess) "$filled · unlimited" else "$filled / 20",
@@ -314,9 +314,7 @@ fun InputScreen(
                             )
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    GiltRule(width = 40.dp)
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(14.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -583,7 +581,7 @@ fun InputScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Eyebrow("SEALED TODAY", color = palette.gilt, size = 10)
+                            Eyebrow("SEALED TODAY", color = palette.gilt, size = 11)
                             Text(
                                 "$filled sealed",
                                 style = AppType.caption,
@@ -1126,7 +1124,7 @@ private fun LogDailyBudgetSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Eyebrow("DAILY BUDGET", color = palette.gilt, size = 10)
+                        Eyebrow("DAILY BUDGET", color = palette.gilt, size = 11)
                         Spacer(Modifier.height(2.dp))
                         Text(
                             "Optional. Off until you set a limit.",

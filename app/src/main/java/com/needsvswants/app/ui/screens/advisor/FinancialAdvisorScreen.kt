@@ -96,9 +96,7 @@ fun FinancialAdvisorScreen(
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        GiltRule(width = 40.dp)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = if (uiState.hasMaxAccess) {
                 "Cited coaching from the app's built-in economic study notes."
@@ -119,7 +117,7 @@ fun FinancialAdvisorScreen(
         // ── Unlocked Max content ──────────────────────────────────────────
         PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("SOURCE OF TRUTH", color = palette.marketGreen, size = 10)
+                Eyebrow("SOURCE OF TRUTH", color = palette.marketGreen, size = 11)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = uiState.sourceOfTruthTitle,
@@ -187,7 +185,7 @@ fun FinancialAdvisorScreen(
                         Eyebrow(
                             "TODAY'S INSIGHT",
                             color = if (insight.isWarning) palette.crimson else palette.marketGreen,
-                            size = 10
+                            size = 11
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -204,7 +202,7 @@ fun FinancialAdvisorScreen(
                         Spacer(Modifier.height(12.dp))
                         GiltRule(width = 28.dp)
                         Spacer(Modifier.height(10.dp))
-                        Eyebrow("CITATION", color = palette.gilt, size = 10)
+                        Eyebrow("CITATION", color = palette.gilt, size = 11)
                         Text(
                             text = insight.citation.title,
                             style = AppType.bodySmEmph,
@@ -235,7 +233,7 @@ fun FinancialAdvisorScreen(
 
         PremiumSurface(goldEdge = false, raised = false) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("QUICK PROTOCOLS", color = palette.gilt, size = 10)
+                Eyebrow("QUICK PROTOCOLS", color = palette.gilt, size = 11)
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -259,7 +257,7 @@ fun FinancialAdvisorScreen(
 
         PremiumSurface(goldEdge = true) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 10)
+                Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 11)
                 Spacer(Modifier.height(12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -316,7 +314,7 @@ fun FinancialAdvisorScreen(
 
         PremiumSurface(goldEdge = false, raised = false) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("ECONOMIC STUDY NOTEBOOKS", color = palette.gilt, size = 10)
+                Eyebrow("ECONOMIC STUDY NOTEBOOKS", color = palette.gilt, size = 11)
                 Spacer(Modifier.height(10.dp))
                 StudyTopicRow("Notebook 1", "Budgetary equilibrium and Need/Want ratio")
                 StudyTopicRow("Notebook 2", "Real-time transaction behavioral control")
@@ -398,7 +396,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
         raised = false
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Eyebrow("INCLUDED WITH MAX", color = palette.gilt, size = 10)
+            Eyebrow("INCLUDED WITH MAX", color = palette.gilt, size = 11)
             Spacer(Modifier.height(10.dp))
             ReceiptFeatureLine("Real-time Need vs Want coaching", palette.crimson)
             ReceiptFeatureLine("Overspend recovery prompts", palette.crimson)

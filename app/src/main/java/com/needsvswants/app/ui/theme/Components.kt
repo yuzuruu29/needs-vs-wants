@@ -981,7 +981,7 @@ fun InsightStrip(
                     .background(accentColor, AppShapes.r6)
             )
             Spacer(Modifier.width(8.dp))
-            Eyebrow(insight.title.uppercase(), color = accentColor, size = 10)
+            Eyebrow(insight.title.uppercase(), color = accentColor, size = 11)
         }
         Spacer(Modifier.height(6.dp))
         Text(

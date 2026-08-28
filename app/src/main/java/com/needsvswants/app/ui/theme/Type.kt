@@ -13,17 +13,18 @@ import androidx.compose.ui.unit.sp
 import com.needsvswants.app.R
 
 /**
- * Soft pencil display face (hybrid type B, D94).
- * Titles / stamp only — never money or dense UI.
+ * Calm display serif for screen titles (Option A, D189). Fraunces, SIL OFL 1.1,
+ * static instances bundled from Google Fonts. Titles / hero lockups only.
  */
 val DisplayFont = FontFamily(
-    Font(R.font.caveat_regular, FontWeight.Normal),
-    Font(R.font.caveat_bold, FontWeight.Bold)
+    Font(R.font.fraunces_semibold, FontWeight.SemiBold),
+    Font(R.font.fraunces_bold, FontWeight.Bold)
 )
 
-/** Legacy Playfair SC kept bundled for any one-off call sites / seals that still need it. */
-val DisplayFontSerif = FontFamily(
-    Font(R.font.playfair_display_sc_bold, FontWeight.Bold)
+/** Pencil script for seals, stamps, and annotations only — never titles (D189). */
+val ScriptFont = FontFamily(
+    Font(R.font.caveat_regular, FontWeight.Normal),
+    Font(R.font.caveat_bold, FontWeight.Bold)
 )
 
 /**
@@ -38,30 +39,30 @@ val BodyFont = FontFamily(
 )
 
 /**
- * Hybrid type system: Caveat titles + Source Sans 3 body/money.
+ * Hybrid type system: Fraunces titles + Source Sans 3 body/money + Caveat stamps.
  *
  * Scale notes (2026-08-07 readability pass):
  * - Default step is ~1 step larger than the old Inter ladder (Source Sans reads smaller).
- * - lineHeight stays ≥ 1.35× fontSize on body, ≥ 1.2× on display (Caveat needs air).
+ * - lineHeight stays ≥ 1.35× fontSize on body, ≥ 1.2× on display.
  * - Spacing that must breathe with Large/Extra large uses [scaledSpacing].
  */
 object AppType {
-    /** Screen titles only — Caveat pencil. Max ~one per screen. */
+    /** Screen titles only — Fraunces serif. Max ~one per screen. */
     val screenTitle = TextStyle(
         fontFamily = DisplayFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
-        letterSpacing = 0.15.sp,
-        lineHeight = 44.sp
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 34.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 42.sp
     )
 
     /** Slightly smaller screen title (paywall hero, two-line lockups). */
     val screenTitleSm = TextStyle(
         fontFamily = DisplayFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 30.sp,
         letterSpacing = 0.1.sp,
-        lineHeight = 40.sp
+        lineHeight = 38.sp
     )
 
     /** Dialog / sheet titles. */
@@ -220,6 +221,26 @@ object AppType {
         fontFeatureSettings = "tnum"
     )
 
+    /** Large numerals — split percentages, period totals (D189 ladder restore). */
+    val moneyXl = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        letterSpacing = 0.05.sp,
+        lineHeight = 36.sp,
+        fontFeatureSettings = "tnum"
+    )
+
+    /** Display numerals — portal stat pairs at 36sp. */
+    val moneyDisplay = TextStyle(
+        fontFamily = BodyFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp,
+        letterSpacing = 0.02.sp,
+        lineHeight = 44.sp,
+        fontFeatureSettings = "tnum"
+    )
+
     val moneyMd = TextStyle(
         fontFamily = BodyFont,
         fontWeight = FontWeight.SemiBold,
@@ -255,9 +276,9 @@ object AppType {
         lineHeight = 24.sp
     )
 
-    /** Seal stamp wordmark — Caveat bold. */
+    /** Seal stamp wordmark — Caveat bold, the one script role left (D189). */
     val stamp = TextStyle(
-        fontFamily = DisplayFont,
+        fontFamily = ScriptFont,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         letterSpacing = 1.5.sp,

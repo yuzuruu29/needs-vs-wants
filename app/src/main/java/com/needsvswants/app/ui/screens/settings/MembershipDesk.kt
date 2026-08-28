@@ -104,7 +104,7 @@ fun MembershipDesk(
                     Eyebrow(
                         text = if (isMax) "MAX DIARY" else "PRO DIARY",
                         color = accent,
-                        size = 10
+                        size = 11
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -153,7 +153,7 @@ fun MembershipDesk(
 
             // Unlocked benefits checklist — mirrors the paywall Pro/Max bullets
             // so members read the same feature names they subscribed to.
-            Eyebrow("UNLOCKED", color = accent, size = 10)
+            Eyebrow("UNLOCKED", color = accent, size = 11)
             Spacer(Modifier.height(6.dp))
             ReceiptFeatureLine(text = "Unlimited entries per log sheet", accent = accent, emphasize = true)
             ReceiptFeatureLine(text = "Receipt scanner & line-item sorter", accent = accent, emphasize = true)

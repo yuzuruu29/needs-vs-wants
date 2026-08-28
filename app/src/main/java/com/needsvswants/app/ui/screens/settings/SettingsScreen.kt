@@ -147,16 +147,12 @@ fun SettingsScreen(
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
     ) {
-        Eyebrow("PREFERENCES", color = palette.crimson, maxLines = 1)
-        Spacer(Modifier.height(6.dp))
         Text(
             "SETTINGS",
             style = AppType.screenTitle,
             color = palette.textPrimary,
             maxLines = 2
         )
-        Spacer(Modifier.height(8.dp))
-        GiltRule(width = 40.dp)
 
         Spacer(Modifier.height(28.dp))
 

@@ -65,7 +65,7 @@ fun RecoveryPlanCard(
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Eyebrow("RECOVERY PLAN", color = palette.crimson, size = 10)
+                        Eyebrow("RECOVERY PLAN", color = palette.crimson, size = 11)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = "3-day plan · over by ${plan.overByCents.toMoney(currencySymbol)}",
@@ -103,7 +103,7 @@ fun RecoveryPlanCard(
                 Spacer(Modifier.height(12.dp))
                 GiltRule(width = 28.dp)
                 Spacer(Modifier.height(10.dp))
-                Eyebrow("CITATION", color = palette.gilt, size = 10)
+                Eyebrow("CITATION", color = palette.gilt, size = 11)
                 Text(
                     text = plan.citation,
                     style = AppType.bodySm,

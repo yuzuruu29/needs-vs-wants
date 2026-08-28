@@ -133,7 +133,7 @@ fun SparklineChart(
         if (scrubIndex in labels.indices) {
             androidx.compose.material3.Text(
                 text = tooltip(scrubIndex),
-                style = AppType.meta.copy(fontSize = 9.sp),
+                style = AppType.meta.copy(fontSize = 11.sp),
                 color = palette.textPrimary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier

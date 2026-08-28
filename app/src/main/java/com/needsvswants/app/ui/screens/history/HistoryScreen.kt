@@ -99,11 +99,6 @@ fun HistoryScreen(
             verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Eyebrow(
-                    if (isPro) "LIFETIME HISTORY" else "HISTORY",
-                    color = if (isPro) AppTheme.colors.gilt else AppTheme.colors.crimson
-                )
-                Spacer(Modifier.height(6.dp))
                 Text("LEDGER", style = AppType.screenTitle, color = AppTheme.colors.textPrimary)
             }
             Row(
@@ -144,9 +139,7 @@ fun HistoryScreen(
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        GiltRule(width = 40.dp)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(14.dp))
         if (entries.isNotEmpty()) {
             val oldest = entries.lastOrNull()?.date
             val newest = entries.firstOrNull()?.date
@@ -322,7 +315,7 @@ fun HistoryScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Eyebrow(displayDate, color = AppTheme.colors.crimson, size = 10)
+                                        Eyebrow(displayDate, color = AppTheme.colors.crimson, size = 11)
                                         Spacer(Modifier.height(6.dp))
                                         Text(
                                             dayTotal.toMoney(symbol),

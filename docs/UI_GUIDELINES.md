@@ -50,7 +50,7 @@ Most product UI stays at levels 0 to 3. Levels 4 and 5 are reserved for the exis
 
 Any pattern borrowed from a reference, a screenshot, or an AI suggestion becomes native before merge.
 
-- Typography matches the Inter Tight and Playfair Display SC roles and the D95 text-scale system.
+- Typography matches the Fraunces display, Caveat script (seals and stamps only), and Source Sans 3 body roles and the D95 text-scale system.
 - Geometry uses the DoubleBezelCard and panel vocabulary. No foreign radius, shadow, or border.
 - Color comes from the D7 supermarket-premium palette. No imported hex values.
 - Spacing, elevation, and density follow the receiving screen, not the source design.

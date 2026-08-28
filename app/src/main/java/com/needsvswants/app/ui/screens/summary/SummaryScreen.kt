@@ -197,12 +197,10 @@ fun SummaryScreen(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "NEEDS\nvs WANTS",
-                    style = AppType.screenTitle,
+                    style = AppType.screenTitleSm,
                     color = palette.textPrimary
                 )
                 Spacer(Modifier.height(8.dp))
-                GiltRule(width = 40.dp)
-                Spacer(Modifier.height(6.dp))
                 Text(
                     "Seal every purchase. Learn the split.",
                     color = palette.textSecondary,
@@ -409,7 +407,7 @@ fun SummaryScreen(
                                     dialSize = 200.dp
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Eyebrow("READY", color = palette.textMuted, size = 10)
+                                        Eyebrow("READY", color = palette.textMuted, size = 11)
                                         Spacer(Modifier.height(2.dp))
                                         Text(
                                             "—",
@@ -459,7 +457,7 @@ fun SummaryScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 4.dp)
                                 ) {
-                                    Eyebrow("TOTAL", color = palette.textMuted, size = 10)
+                                    Eyebrow("TOTAL", color = palette.textMuted, size = 11)
                                     Spacer(Modifier.height(4.dp))
                                     // Whole units only — ".00" cramps the dial and shifts alignment.
                                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -672,7 +670,7 @@ private fun SplitSummaryCard(
                 Text("Need", style = AppType.meta, color = palette.need)
                 Text(
                     "$needsPct%",
-                    style = AppType.moneyLg.copy(fontSize = 28.sp, color = palette.need)
+                    style = AppType.moneyXl.copy(color = palette.need)
                 )
                 Text(
                     needsCents.toMoney(symbol),
@@ -690,7 +688,7 @@ private fun SplitSummaryCard(
                 Text("Want", style = AppType.meta, color = palette.want)
                 Text(
                     "$wantsPct%",
-                    style = AppType.moneyLg.copy(fontSize = 28.sp, color = palette.want)
+                    style = AppType.moneyXl.copy(color = palette.want)
                 )
                 Text(
                     wantsCents.toMoney(symbol),
@@ -796,7 +794,7 @@ private fun SplitPercentagePortal(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Eyebrow(periodLabel.uppercase(), color = palette.crimson, size = 10)
+                    Eyebrow(periodLabel.uppercase(), color = palette.crimson, size = 11)
                     HeaderIconWell(
                         onClick = onDismiss,
                         contentDescription = "Close split"
@@ -824,10 +822,10 @@ private fun SplitPercentagePortal(
                 Spacer(Modifier.height(18.dp))
                 Text(
                     totalCents.toMoney(symbol),
-                    style = AppType.moneyLg.copy(fontSize = 26.sp),
+                    style = AppType.moneyXl,
                     color = palette.textPrimary
                 )
-                Eyebrow("TOTAL", color = palette.textMuted, size = 10)
+                Eyebrow("TOTAL", color = palette.textMuted, size = 11)
                 Spacer(Modifier.height(20.dp))
                 GiltRule(width = 40.dp)
                 Spacer(Modifier.height(20.dp))
@@ -840,7 +838,7 @@ private fun SplitPercentagePortal(
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "$needsPct%",
-                            style = AppType.moneyLg.copy(fontSize = 36.sp, color = palette.need)
+                            style = AppType.moneyDisplay.copy(color = palette.need)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -863,7 +861,7 @@ private fun SplitPercentagePortal(
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "$wantsPct%",
-                            style = AppType.moneyLg.copy(fontSize = 36.sp, color = palette.want)
+                            style = AppType.moneyDisplay.copy(color = palette.want)
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -991,7 +989,7 @@ private fun StreakBentoCard(
         Spacer(Modifier.height(scaledSpacing(6f)))
         Text(
             if (currentStreak == 1) "Day 1" else "Day $currentStreak",
-            style = AppType.moneyMd.copy(fontSize = 20.sp, color = palette.textPrimary),
+            style = AppType.moneyLg.copy(color = palette.textPrimary),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

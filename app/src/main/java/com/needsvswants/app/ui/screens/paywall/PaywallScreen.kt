@@ -417,9 +417,7 @@ fun PaywallScreen(
                     softWrap = true,
                     overflow = TextOverflow.Clip
                 )
-                Spacer(Modifier.height(8.dp))
-                GiltRule(width = 40.dp)
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
                 Text(
                     text = "Free keeps 20 entries per sheet over a 30-day window. Pro lifts the caps. Max adds the AI Financial Advisor with cited notebooks.",
                     style = PaywallType.screenLede,

@@ -329,7 +329,7 @@ fun PlanTierCard(
                             MembershipPlan.Pro -> c.gold
                             MembershipPlan.Max -> c.crimson
                         },
-                        size = 10,
+                        size = 11,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     if (plan == MembershipPlan.Max) {
@@ -509,7 +509,7 @@ fun TrialTimelineCard(
                 Eyebrow(
                     if (period == BillingPeriod.ANNUAL) "BILLED ANNUALLY" else "BILLED MONTHLY",
                     color = c.gilt,
-                    size = 10
+                    size = 11
                 )
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "Max unlocks after PayPal approval.")
@@ -519,7 +519,7 @@ fun TrialTimelineCard(
                 )
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             } else {
-                Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 10)
+                Eyebrow("TRIAL ON PAYPAL", color = c.gilt, size = 11)
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "After PayPal approval, Pro unlocks on this device.")
                 TimelineRow(
@@ -529,14 +529,14 @@ fun TrialTimelineCard(
                 TimelineRow("Anytime", "Cancel in your PayPal account / subscription settings.")
             }
             PaymentProvider.PAYMONGO -> {
-                Eyebrow("WHEN YOU NEED IT", color = c.gilt, size = 10)
+                Eyebrow("WHEN YOU NEED IT", color = c.gilt, size = 11)
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "After payment, $planWord unlocks on this device.")
                 TimelineRow("Expiry", "Access lasts until your expiry date — no auto-charge.")
                 TimelineRow("Renew", "Pay again only when you're ready to continue.")
             }
             PaymentProvider.GOOGLE_PLAY -> {
-                Eyebrow("GOOGLE PLAY SUBSCRIPTION", color = c.gilt, size = 10)
+                Eyebrow("GOOGLE PLAY SUBSCRIPTION", color = c.gilt, size = 11)
                 Spacer(Modifier.height(8.dp))
                 TimelineRow("Today", "$planWord unlocks immediately after Google Play confirmation.")
                 TimelineRow(
