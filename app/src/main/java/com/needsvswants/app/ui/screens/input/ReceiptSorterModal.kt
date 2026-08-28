@@ -26,8 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -149,7 +149,7 @@ fun ReceiptSorterModal(
                             .background(palette.surfaceRaised, CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Outlined.Close,
                             contentDescription = "Close",
                             tint = palette.textSecondary,
                             modifier = Modifier.size(20.dp)
@@ -414,7 +414,7 @@ private fun ScannedItemRow(
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DeleteOutline,
+                        imageVector = Icons.Outlined.DeleteOutline,
                         contentDescription = "Delete item",
                         tint = palette.textMuted,
                         modifier = Modifier.size(18.dp)

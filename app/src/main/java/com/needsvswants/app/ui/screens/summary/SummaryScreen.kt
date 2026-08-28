@@ -24,12 +24,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -217,7 +217,7 @@ fun SummaryScreen(
                     contentDescription = "How it works"
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.HelpOutline,
+                        Icons.AutoMirrored.Outlined.HelpOutline,
                         contentDescription = null,
                         tint = palette.crimson,
                         modifier = Modifier.size(20.dp)
@@ -234,7 +234,7 @@ fun SummaryScreen(
                     contentDescription = "Share summary"
                 ) {
                     Icon(
-                        Icons.Default.Share,
+                        Icons.Outlined.Share,
                         contentDescription = null,
                         tint = palette.crimson,
                         modifier = Modifier.size(20.dp)
@@ -802,7 +802,7 @@ private fun SplitPercentagePortal(
                         contentDescription = "Close split"
                     ) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Outlined.Close,
                             contentDescription = null,
                             tint = palette.textSecondary,
                             modifier = Modifier.size(20.dp)
@@ -1097,21 +1097,21 @@ fun InstructionsOverlay(
                     )
                     Spacer(Modifier.height(14.dp))
                     GoalCard(
-                        icon = { Icon(Icons.Default.Edit, contentDescription = null, tint = palette.crimson, modifier = Modifier.size(20.dp)) },
+                        icon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = palette.crimson, modifier = Modifier.size(20.dp)) },
                         text = "Track every purchase",
                         selected = goal == "track",
                         onClick = { goal = "track" }
                     )
                     Spacer(Modifier.height(8.dp))
                     GoalCard(
-                        icon = { Icon(Icons.Default.Savings, contentDescription = null, tint = palette.marketGreen, modifier = Modifier.size(20.dp)) },
+                        icon = { Icon(Icons.Outlined.Savings, contentDescription = null, tint = palette.marketGreen, modifier = Modifier.size(20.dp)) },
                         text = "Stay under a daily budget",
                         selected = goal == "budget",
                         onClick = { goal = "budget" }
                     )
                     Spacer(Modifier.height(8.dp))
                     GoalCard(
-                        icon = { Icon(Icons.Default.BarChart, contentDescription = null, tint = palette.gilt, modifier = Modifier.size(20.dp)) },
+                        icon = { Icon(Icons.Outlined.BarChart, contentDescription = null, tint = palette.gilt, modifier = Modifier.size(20.dp)) },
                         text = "See where my money goes",
                         selected = goal == "analyze",
                         onClick = { goal = "analyze" }

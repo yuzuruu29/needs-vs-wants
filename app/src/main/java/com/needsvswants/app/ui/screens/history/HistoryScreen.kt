@@ -33,8 +33,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -124,7 +124,7 @@ fun HistoryScreen(
                         contentDescription = "Export CSV"
                     ) {
                         Icon(
-                            Icons.Default.Share,
+                            Icons.Outlined.Share,
                             contentDescription = null,
                             tint = AppTheme.colors.crimson,
                             modifier = Modifier.size(20.dp)
@@ -136,7 +136,7 @@ fun HistoryScreen(
                     contentDescription = "Import CSV"
                 ) {
                     Icon(
-                        Icons.Default.FileUpload,
+                        Icons.Outlined.FileUpload,
                         contentDescription = null,
                         tint = AppTheme.colors.crimson,
                         modifier = Modifier.size(20.dp)

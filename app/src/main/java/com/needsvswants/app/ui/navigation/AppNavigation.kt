@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PieChart
@@ -386,7 +386,7 @@ fun AppNavigation(
                         .navigationBarsPadding()
                         .shadow(8.dp, CircleShape)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Quick log")
+                    Icon(Icons.Outlined.Add, contentDescription = "Quick log")
                 }
             }
         }

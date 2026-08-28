@@ -42,8 +42,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -359,7 +359,7 @@ fun InputScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CameraAlt,
+                                imageVector = Icons.Outlined.CameraAlt,
                                 contentDescription = "Scan Receipt",
                                 tint = palette.gold,
                                 modifier = Modifier.size(15.dp)
@@ -859,7 +859,7 @@ fun InputScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.CameraAlt,
+                                        imageVector = Icons.Outlined.CameraAlt,
                                         contentDescription = null,
                                         tint = palette.textPrimary,
                                         modifier = Modifier.size(18.dp)
@@ -890,7 +890,7 @@ fun InputScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PhotoLibrary,
+                                        imageVector = Icons.Outlined.PhotoLibrary,
                                         contentDescription = null,
                                         tint = palette.textPrimary,
                                         modifier = Modifier.size(18.dp)
