@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -64,7 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import com.needsvswants.app.ui.theme.AppShapes
-import com.needsvswants.app.ui.theme.pressRecoil
+import com.needsvswants.app.ui.theme.SelectChip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
@@ -480,7 +479,7 @@ fun InputScreen(
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Spacer(Modifier.width(10.dp))
-                                            TypeChip("NEED", type == EntryType.NEED, palette.need) {
+                                            SelectChip("NEED", type == EntryType.NEED, palette.need) {
                                                 if (type != EntryType.NEED) {
                                                     haptics.tick()
                                                     sfx.tap()
@@ -489,7 +488,7 @@ fun InputScreen(
                                                 viewModel.trySeal()
                                             }
                                             Spacer(Modifier.width(8.dp))
-                                            TypeChip("WANT", type == EntryType.WANT, palette.want) {
+                                            SelectChip("WANT", type == EntryType.WANT, palette.want) {
                                                 if (type != EntryType.WANT) {
                                                     haptics.tick()
                                                     sfx.tap()
@@ -995,43 +994,6 @@ private fun CompactChip(
     }
 }
 
-@Composable
-private fun TypeChip(label: String, selected: Boolean, color: Color, onClick: () -> Unit) {
-    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    val bgColor by animateColorAsState(
-        targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
-        animationSpec = Motion.state(),
-        label = "chipBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) color else AppTheme.colors.dividerStrong,
-        animationSpec = Motion.state(),
-        label = "chipBorder"
-    )
-    Surface(
-        onClick = onClick,
-        interactionSource = interaction,
-        shape = AppShapes.r12,
-        color = bgColor,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .pressRecoil(interaction)
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                label,
-                color = if (selected) color else AppTheme.colors.textSecondary,
-                style = AppType.button.copy(
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                )
-            )
-        }
-    }
-}
 
 /**
  * Quiet Max coach affordance for a pending Want consult (Task 3). Static

@@ -164,26 +164,30 @@ fun HistoryScreen(
                 onValueChange = viewModel::setSearchQuery,
                 label = "Search item or date"
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
+            // Row labels: two chip groups that both start with "All" otherwise
+            // read as one bank with a duplicate (D190).
+            Eyebrow("TYPE", color = AppTheme.colors.textMuted, size = 11)
+            Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                EditTypeChip(
+                SelectChip(
                     label = "All",
                     selected = typeFilter == null,
                     color = AppTheme.colors.gilt,
                     onClick = { viewModel.setTypeFilter(null) },
                     modifier = Modifier.weight(1f)
                 )
-                EditTypeChip(
+                SelectChip(
                     label = "Need",
                     selected = typeFilter == EntryType.NEED,
                     color = AppTheme.colors.need,
                     onClick = { viewModel.setTypeFilter(EntryType.NEED) },
                     modifier = Modifier.weight(1f)
                 )
-                EditTypeChip(
+                SelectChip(
                     label = "Want",
                     selected = typeFilter == EntryType.WANT,
                     color = AppTheme.colors.want,
@@ -191,33 +195,35 @@ fun HistoryScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
+            Eyebrow("PERIOD", color = AppTheme.colors.textMuted, size = 11)
+            Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                EditTypeChip(
+                SelectChip(
                     label = "All",
                     selected = periodFilter == Period.ALL,
                     color = AppTheme.colors.gilt,
                     onClick = { viewModel.setPeriodFilter(Period.ALL) },
                     modifier = Modifier.weight(1f)
                 )
-                EditTypeChip(
+                SelectChip(
                     label = "Day",
                     selected = periodFilter == Period.DAY,
                     color = AppTheme.colors.gilt,
                     onClick = { viewModel.setPeriodFilter(Period.DAY) },
                     modifier = Modifier.weight(1f)
                 )
-                EditTypeChip(
+                SelectChip(
                     label = "Week",
                     selected = periodFilter == Period.WEEK,
                     color = AppTheme.colors.gilt,
                     onClick = { viewModel.setPeriodFilter(Period.WEEK) },
                     modifier = Modifier.weight(1f)
                 )
-                EditTypeChip(
+                SelectChip(
                     label = "Month",
                     selected = periodFilter == Period.MONTH,
                     color = AppTheme.colors.gilt,
@@ -657,14 +663,14 @@ private fun EditEntryDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    EditTypeChip(
+                    SelectChip(
                         label = "Need",
                         selected = type == EntryType.NEED,
                         color = c.need,
                         onClick = { type = EntryType.NEED; error = false },
                         modifier = Modifier.weight(1f)
                     )
-                    EditTypeChip(
+                    SelectChip(
                         label = "Want",
                         selected = type == EntryType.WANT,
                         color = c.want,
@@ -702,40 +708,3 @@ private fun EditEntryDialog(
     }
 }
 
-@Composable
-private fun EditTypeChip(
-    label: String,
-    selected: Boolean,
-    color: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val bgColor by animateColorAsState(
-        targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
-        label = "editChipBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) color else AppTheme.colors.dividerStrong,
-        label = "editChipBorder"
-    )
-    Surface(
-        onClick = onClick,
-        shape = AppShapes.r12,
-        color = bgColor,
-        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
-        modifier = modifier.heightIn(min = 48.dp)
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                label,
-                color = if (selected) color else AppTheme.colors.textSecondary,
-                style = AppType.button.copy(
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                )
-            )
-        }
-    }
-}

@@ -324,14 +324,14 @@ fun PaywallScreen(
     val primaryLabel = when (selected) {
         MembershipPlan.Free -> "Continue free"
         MembershipPlan.Pro -> if (isPro) "You're on Pro" else when (effectiveProvider) {
-            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play · Pro"
-            PaymentProvider.PAYPAL -> "Continue with PayPal · Pro (3-day trial)"
-            PaymentProvider.PAYMONGO -> "Continue with PayMongo · Pro"
+            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play"
+            PaymentProvider.PAYPAL -> "Continue with PayPal"
+            PaymentProvider.PAYMONGO -> "Continue with PayMongo"
         }
         MembershipPlan.Max -> if (hasMaxAccess) "You're on Max" else when (effectiveProvider) {
-            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play · Max"
-            PaymentProvider.PAYPAL -> "Continue with PayPal · Max"
-            PaymentProvider.PAYMONGO -> "Continue with PayMongo · Max"
+            PaymentProvider.GOOGLE_PLAY -> "Subscribe on Google Play"
+            PaymentProvider.PAYPAL -> "Continue with PayPal"
+            PaymentProvider.PAYMONGO -> "Continue with PayMongo"
         }
     }
     val primaryEnabled = when (selected) {

@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -992,3 +993,51 @@ fun InsightStrip(
     }
 }
 
+/**
+ * The one selectable filter chip (D190). Tinted fill + stronger border when
+ * selected; tactile press recoil. TypeChip and EditTypeChip were near-duplicates
+ * and are consolidated here.
+ */
+@Composable
+fun SelectChip(
+    label: String,
+    selected: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) color.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
+        animationSpec = Motion.state(),
+        label = "selectChipBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) color else AppTheme.colors.dividerStrong,
+        animationSpec = Motion.state(),
+        label = "selectChipBorder"
+    )
+    Surface(
+        onClick = onClick,
+        interactionSource = interaction,
+        shape = AppShapes.r12,
+        color = bgColor,
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .pressRecoil(interaction)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                label,
+                color = if (selected) color else AppTheme.colors.textSecondary,
+                style = AppType.button.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                )
+            )
+        }
+    }
+}

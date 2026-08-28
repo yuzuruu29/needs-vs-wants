@@ -766,10 +766,12 @@ private fun SplitPercentagePortal(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.42f * scrim.value))
+                .padding(vertical = 24.dp)
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
-            // Paper sheet with percentages
+            // Paper sheet with percentages. Content scrolls at XL text (D190);
+            // the paper itself stays put so the hairline edges hold.
             Column(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
@@ -786,7 +788,8 @@ private fun SplitPercentagePortal(
                         AppShapes.r20
                     )
                     .clickable(enabled = false, onClick = {})
-                    .padding(22.dp),
+                    .padding(22.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -1059,7 +1062,9 @@ fun InstructionsOverlay(
                 }
         ) {
             Column(
-                modifier = Modifier.padding(22.dp),
+                modifier = Modifier
+                    .padding(22.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Progress bar — (currentPage+1)/totalPages (design audit #9).

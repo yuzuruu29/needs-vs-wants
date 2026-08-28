@@ -297,12 +297,14 @@ fun FinancialAdvisorScreen(
                         contentDescription = "Send",
                         enabled = inputText.isNotBlank(),
                         filled = true,
-                        fillColor = palette.marketGreen
+                        // Action accent, not the Need semantic (D190). Ink is the
+                        // same card-white GiltButton uses on crimson fills.
+                        fillColor = palette.crimson
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.Send,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = palette.surfaceCard,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -428,12 +430,8 @@ private fun ChatBubble(message: ChatMessage) {
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(
-                    text = if (isUser) "YOU" else "ADVISOR",
-                    style = AppType.eyebrowSm,
-                    color = if (isUser) palette.marketGreen else palette.gold
-                )
-                Spacer(Modifier.height(4.dp))
+                // No YOU/ADVISOR labels — alignment and tint already say who
+                // speaks, and the label was louder than the message (D190).
                 Text(
                     text = message.text,
                     style = AppType.bodySm,
