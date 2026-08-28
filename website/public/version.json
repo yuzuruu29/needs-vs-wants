@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.23",
-  "versionCode": 31,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.23.apk",
-  "sha256": "e958863ceea1d1864a82c412842537368825eb2bba6bf48bb5cecd7d88b70e6c",
-  "notes": "Fix floating bottom bar overlay; premium motion; Outlined icons",
-  "updatedAt": "2026-08-28T15:40:18.000Z"
+  "versionName": "2.0.24",
+  "versionCode": 32,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.24.apk",
+  "sha256": "2ffa3079db088bb57240f320f8d35545bc64d649ab918e80bc902f7f053cf7cf",
+  "notes": "Fraunces serif titles, quiet per-screen headers, one corner scale, XL-safe scrollable sheets",
+  "updatedAt": "2026-08-29T00:00:00.000Z"
 }
