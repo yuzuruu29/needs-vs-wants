@@ -102,71 +102,6 @@ fun themedInkWash(): Brush {
 }
 
 /**
- * Rich multi-blob background for the faux-glass look.
- *
- * Paints a soft base gradient, then several large, muted crimson/green/gold radial
- * blobs behind everything. The translucent glass surfaces sit on top, so this color
- * depth bleeds through the cards — that translucency-over-depth is what makes frosted
- * glass read as glass instead of just flat transparency.
- *
- * On HighContrast this falls back to the flat [themedInkWash] to preserve contrast.
- *
- * Apply in place of a plain `.background(themedInkWash())`:
- * `Column(Modifier.fillMaxSize().glassBlobBackground())`
- */
-@Composable
-fun Modifier.glassBlobBackground(): Modifier = if (
-    AppTheme.colors.glassFillAlpha > 0.95f
-) {
-    this.background(themedInkWash())
-} else {
-    val c = AppTheme.colors
-    this.drawBehind {
-        // Base vertical wash.
-        drawRect(
-            brush = themedInkWashBrush(c),
-            size = size
-        )
-        val w = size.width
-        val h = size.height
-        // Dark backgrounds need stronger blobs so the brand color shows through
-        // the translucent glass rather than vanishing into the near-black wash.
-        val boost = if (c.isLightStatusBars) 1f else 1.55f
-        // Brand blobs — strong enough that their depth visibly bleeds through the
-        // translucent cards (net tint ≈ 0.15-0.20). Cores stay under 0.5 so they
-        // read atmospheric. The top-left region stays gentle (it sits behind the
-        // header title/subtitle drawn on the raw wash), depth gathers lower/side.
-        val blobs = listOf(
-            Triple(c.crimson.copy(alpha = 0.18f * boost), Offset(w * 0.12f, h * 0.08f), size.width * 0.7f),
-            Triple(c.marketGreen.copy(alpha = 0.30f * boost), Offset(w * 0.90f, h * 0.26f), size.width * 0.75f),
-            Triple(c.gold.copy(alpha = 0.34f * boost), Offset(w * 0.26f, h * 0.90f), size.width * 0.66f),
-            Triple(c.crimson.copy(alpha = 0.20f * boost), Offset(w * 0.84f, h * 0.84f), size.width * 0.45f),
-            Triple(c.want.copy(alpha = 0.22f * boost), Offset(w * 0.04f, h * 0.55f), size.width * 0.5f),
-        )
-        for ((color, center, radius) in blobs) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(color, color.copy(alpha = 0f)),
-                    center = center,
-                    radius = radius
-                ),
-                radius = radius,
-                center = center
-            )
-        }
-    }
-}
-
-/** Non-composable vertical base wash so [glassBlobBackground] can read palette colors. */
-private fun themedInkWashBrush(c: AppPalette): Brush = Brush.verticalGradient(
-    colorStops = arrayOf(
-        0.0f to c.background,
-        0.55f to c.background,
-        1.0f to c.surfaceSunken
-    )
-)
-
-/**
  * Ledger paper card: near-opaque stock, optional rules (raised), gold or ink
  * hairline, soft desk shadow. Prefer over bare [Surface] on main screens.
  *
@@ -189,11 +124,6 @@ fun PremiumSurface(
         Column(content = content)
     }
 }
-
-/** Faint gold radial glow used behind hero elements (donut, stat hero). */
-fun giltGlow(gold: Color, alpha: Float = 0.16f) = Brush.radialGradient(
-    colors = listOf(gold.copy(alpha = alpha), Color.Transparent)
-)
 
 /** Eyebrow label — Inter tracked micro heading (Option A). */
 @Composable
@@ -237,10 +167,6 @@ fun GiltRule(modifier: Modifier = Modifier, width: Dp = 32.dp, height: Dp = 1.5.
         .background(AppTheme.colors.gold)
     )
 }
-
-/** Backwards-compatible name originally used by screens. */
-@Composable
-fun GoldUnderline() = GiltRule(width = 28.dp)
 
 /** Spent / budget meter with Remaining or Over-by line — Summary Day and Log when budget is on. */
 @Composable
@@ -494,17 +420,6 @@ fun fittingMoneySize(text: String, base: TextUnit, maxWidth: Dp): TextUnit {
     val estimated = text.length * basePx * 0.58f
     val scale = if (estimated <= maxPx) 1f else (maxPx / estimated).coerceIn(0.38f, 1f)
     return (base.value * scale).coerceAtLeast(11f).sp
-}
-
-/** Premium card — glossy surface with gold edge. */
-@Composable
-fun GiltCard(
-    modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp),
-    giltAccent: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    PremiumSurface(modifier = modifier, shape = shape, goldEdge = true || giltAccent, content = content)
 }
 
 /** Primary action button — solid crimson with white text, tactile recoil physics and nested icon support. */
@@ -1010,59 +925,6 @@ fun EntryLedgerRow(
 @Composable
 private fun ledgerHeaderStyle(letterSpacing: TextUnit = 1.0.sp): TextStyle =
     AppType.ledgerHeader.copy(letterSpacing = letterSpacing)
-
-/**
- * Quiet ledger footnote for consecutive logging days.
- * Not a habit-app badge card — hairline rule + two short lines under stats.
- * Hidden when streak is 0 so the donut keeps the hero role.
- */
-@Composable
-fun StreakLine(
-    currentStreak: Int,
-    bestStreak: Int,
-    modifier: Modifier = Modifier
-) {
-    if (currentStreak <= 0) return
-    val c = AppTheme.colors
-    val next = StreakMilestone.nextAfter(currentStreak)
-    // One secondary phrase only — never middot-chain day + progress + best.
-    val secondary = when {
-        next != null -> {
-            val left = next.days - currentStreak
-            val unit = if (left == 1) "day" else "days"
-            "$left $unit to ${next.label}"
-        }
-        bestStreak > currentStreak -> "Best $bestStreak"
-        else -> "Full cycle"
-    }
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        GiltRule(width = 28.dp)
-        Spacer(Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = if (currentStreak == 1) "Day 1 logged" else "Day $currentStreak logged",
-                style = AppType.titleSm,
-                color = c.textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = secondary,
-                style = AppType.meta,
-                color = c.textMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
 
 /** Quiet milestone mark — uses shared PremiumDialog chrome. */
 @Composable

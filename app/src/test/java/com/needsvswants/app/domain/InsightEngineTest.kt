@@ -33,7 +33,7 @@ class InsightEngineTest {
 
     @Test
     fun empty_entries_even_with_streak_returns_empty_streak_owned_by_ui() {
-        // Streak is not an insight anymore — Summary StreakLine owns it.
+        // Streak is not an insight anymore — the Summary streak card owns it.
         val result = InsightEngine.generateInsights(emptyList(), Period.DAY, "₱")
         assertTrue(result.isEmpty())
     }

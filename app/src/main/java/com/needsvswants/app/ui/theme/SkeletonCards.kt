@@ -40,12 +40,6 @@ fun SummarySkeletonStatRow(modifier: Modifier = Modifier) {
     }
 }
 
-/** Matches the SparklineChart band (full-width × 60dp). */
-@Composable
-fun SummarySkeletonSparkline(modifier: Modifier = Modifier) {
-    PaperShimmer(modifier.fillMaxWidth().height(60.dp))
-}
-
 /** Matches a History day-group card. */
 @Composable
 fun HistorySkeletonGroup(modifier: Modifier = Modifier) {

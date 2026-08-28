@@ -34,19 +34,3 @@ val Danger = Color(0xFFC8102E)
 val TextPrimary = Color(0xFF1A1A1A)      // near-ink, ≥16:1 on white
 val TextSecondary = Color(0xFF454545)
 val TextMuted = Color(0xFF6E6E6E)
-
-// Aliases for any screens still referencing the old Ink-era names during migration.
-val Ink = Surface
-val InkElevated = SurfaceCard
-val InkRaised = SurfaceRaised
-val InkDivider = Divider
-val InkDividerStrong = DividerStrong
-val Gilt = Gold
-val GiltSoft = GoldSoft
-val GiltDeep = GoldDeep
-val PrimarySky = Need
-val SecondaryRose = Want
-val GoldTrim = Gold
-val SurfaceNight = Surface
-val SurfaceCardAlt = SurfaceRaised
-val TextPrimary_Warm = TextPrimary

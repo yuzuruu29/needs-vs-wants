@@ -2,7 +2,7 @@ package com.needsvswants.app.domain
 
 /**
  * Only types the engine actually produces.
- * Streak is owned by Summary [StreakLine] — not duplicated as an insight.
+ * Streak is owned by the Summary streak card — not duplicated as an insight.
  */
 enum class InsightType {
     BUDGET_OVER,

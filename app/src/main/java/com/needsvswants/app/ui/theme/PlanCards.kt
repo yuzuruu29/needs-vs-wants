@@ -92,7 +92,7 @@ fun PopularRibbon(modifier: Modifier = Modifier) {
         Text(
             text = "MOST POPULAR",
             style = AppType.eyebrowSm.copy(fontWeight = FontWeight.Bold),
-            color = Color(0xFF1A1208),
+            color = c.onGold,
             maxLines = 1
         )
     }
@@ -141,7 +141,7 @@ fun MembershipSealBadge(
                 // Above the 11sp legibility floor used elsewhere: at Extra large this
                 // renders ≈11.2sp inside the fixed 36dp seal.
                 style = AppType.eyebrowSm.copy(fontSize = (size.value * 0.264f).sp, fontWeight = FontWeight.Bold),
-                color = Color(0xFF1A1208),
+                color = c.onGold,
                 maxLines = 1
             )
         }

@@ -29,22 +29,12 @@ object Motion {
     const val StampMs = 450
     const val BudgetMs = 600
     const val StaggerStepMs = 60
-    const val PagerSettleMs = 350
     const val SealHoldMs = 1200
     const val OdometerRollMs = 500
-    const val RecoilMs = 160
-    const val TabGlideMs = 260
-    const val ReceiptUnrollMs = 420
     /** Idle breath period — slow ambient pulse for hero rings. */
     const val IdleMs = 2400
-    /** Floating Gemini orb vertical float cycle. */
-    const val OrbFloatMs = 3200
-    /** Floating Gemini orb scale breath cycle. */
-    const val OrbBreathMs = 2800
     /** Specular shine full rotation. */
     const val OrbShineMs = 9000
-    /** Ambient glow pulse behind the orb core. */
-    const val OrbBeamMs = 3600
     /**
      * Main-tab paper page-turn duration. Snappier than the website notepad
      * (700ms) so five-tab navigation stays fluid while still reading as paper.
@@ -85,12 +75,8 @@ object Motion {
     val EaseStandard: Easing = FastOutSlowInEasing
     /** Paper land — soft ease-out-cubic matching notepad settle (D32 family). */
     val EasePaperFlip: Easing = CubicBezierEasing(0.32f, 0.72f, 0.25f, 1f)
-    /** Spring recoil overshoot for tactile buttons. */
-    val EaseSpringRecoil: Easing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
     /** Odometer vertical roll deceleration curve. */
     val EaseOdometerRoll: Easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
-    /** Fluid tab glide easing. */
-    val EaseTabGlide: Easing = CubicBezierEasing(0.25f, 1f, 0.5f, 1f)
 
     /** Whether custom motion should run. False when system scale is 0 or user reduced-motion is on. */
     var enabled: Boolean = true

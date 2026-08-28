@@ -328,10 +328,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        SectionLabelWithIcon(Icons.Outlined.CurrencyExchange, "CURRENCY", AppTheme.colors.crimson)
-
-        Spacer(Modifier.height(28.dp))
-
         val freeLogs = dailyFreeLogs
         // Only render the section (title + panel) when the quota applies —
         // i.e. the user is Free. Pro/Max get no DAILY FREE LOGS header at all.
