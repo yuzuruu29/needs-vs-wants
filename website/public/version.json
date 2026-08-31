@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.24",
-  "versionCode": 32,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.24.apk",
-  "sha256": "2ffa3079db088bb57240f320f8d35545bc64d649ab918e80bc902f7f053cf7cf",
-  "notes": "Fraunces serif titles, quiet per-screen headers, one corner scale, XL-safe scrollable sheets",
-  "updatedAt": "2026-08-29T00:00:00.000Z"
+  "versionName": "2.0.25",
+  "versionCode": 33,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.25.apk",
+  "sha256": "4be5da4dc30b323db37b09aea1d9062046d61c7b5e6afe9832338d157d367c31",
+  "notes": "Narrative onboarding, first-seal beats, starter chips, empty sheet flow hints, reverse-chat advisor",
+  "updatedAt": "2026-09-01T00:00:00.000Z"
 }
