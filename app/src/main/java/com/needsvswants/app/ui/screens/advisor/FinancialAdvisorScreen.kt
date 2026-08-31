@@ -3,14 +3,15 @@ package com.needsvswants.app.ui.screens.advisor
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,30 +49,36 @@ import com.needsvswants.app.ui.theme.NeedWantSealMark
 import com.needsvswants.app.ui.theme.PaywallCopy
 import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.ReceiptFeatureLine
-import com.needsvswants.app.ui.navigation.verticalScrollFirst
+import com.needsvswants.app.ui.theme.SelectChip
 import com.needsvswants.app.ui.theme.TierTag
+import com.needsvswants.app.ui.theme.rememberAppHaptics
+import com.needsvswants.app.ui.theme.rememberIdleBreathAlpha
 import com.needsvswants.app.ui.theme.themedInkWash
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FinancialAdvisorScreen(
     onOpenPaywall: () -> Unit = {},
     viewModel: FinancialAdvisorViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scrollState = rememberScrollState()
     var inputText by remember { mutableStateOf("") }
     var recoveryDismissed by rememberSaveable { mutableStateOf(false) }
     val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    val listState = rememberLazyListState()
+    val gateScroll = rememberScrollState()
+    val screenW = LocalConfiguration.current.screenWidthDp.dp
 
+    // Full-height chat surface (D191): header + insight stay fixed, the
+    // conversation fills the rest, and the input never scrolls away. The
+    // locked gate keeps its own scroll for small screens and XL text.
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(themedInkWash())
+            .imePadding()
             .padding(horizontal = 20.dp)
             .padding(top = 20.dp, bottom = 12.dp)
-            .verticalScrollFirst()
-            .verticalScroll(scrollState)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -99,7 +108,7 @@ fun FinancialAdvisorScreen(
         Spacer(Modifier.height(12.dp))
         Text(
             text = if (uiState.hasMaxAccess) {
-                "Cited coaching from the app's built-in economic study notes."
+                "Cited coaching from ${uiState.sourceOfTruthTitle} — everything works offline."
             } else {
                 "Conversational coaching with footnotes. Max tier only."
             },
@@ -107,63 +116,20 @@ fun FinancialAdvisorScreen(
             color = palette.textSecondary
         )
 
-        Spacer(Modifier.height(22.dp))
-
         if (!uiState.hasMaxAccess) {
-            MaxLockedGate(onOpenPaywall = onOpenPaywall)
+            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(gateScroll)
+            ) {
+                MaxLockedGate(onOpenPaywall = onOpenPaywall)
+            }
             return@Column
         }
 
-        // ── Unlocked Max content ──────────────────────────────────────────
-        PremiumSurface(goldEdge = true) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("SOURCE OF TRUTH", color = palette.marketGreen, size = 11)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = uiState.sourceOfTruthTitle,
-                    style = AppType.titleMd,
-                    color = palette.textPrimary
-                )
-                Text(
-                    text = "Recommendations cite the built-in study notes — everything works offline.",
-                    style = AppType.bodySm,
-                    color = palette.textSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        }
-
         Spacer(Modifier.height(16.dp))
-
-        if (uiState.isLoading) {
-            val breathAlpha = com.needsvswants.app.ui.theme.rememberIdleBreathAlpha()
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clip(AppShapes.r12)
-                    .background(palette.gold.copy(alpha = 0.08f * breathAlpha))
-                    .border(
-                        androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f * breathAlpha)),
-                        AppShapes.r12
-                    )
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = palette.gilt
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    "Reading your ledger…",
-                    style = AppType.bodySm.copy(fontWeight = FontWeight.Medium),
-                    color = palette.gilt
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-        }
 
         uiState.insight?.let { insight ->
             val edge = if (insight.isWarning) palette.crimson.copy(alpha = 0.45f)
@@ -231,96 +197,94 @@ fun FinancialAdvisorScreen(
             }
         }
 
-        PremiumSurface(goldEdge = false, raised = false) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("QUICK PROTOCOLS", color = palette.gilt, size = 11)
-                Spacer(Modifier.height(12.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    AdvisorProtocols.ALL.forEach { protocol ->
-                        QuickChip(protocol) {
-                            if (protocol == AdvisorProtocols.OVERSPEND) {
-                                // Re-surfaces the live recovery plan (rebuilt from current context in the VM).
-                                recoveryDismissed = false
-                            }
-                            viewModel.sendUserQuery(advisorProtocolQuery(protocol))
-                        }
-                    }
-                }
+        // Conversation (D191): reverse layout anchors the newest message, the
+        // thinking indicator reads as the advisor's reply-in-progress, and the
+        // protocol suggestions + input stay pinned below.
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            reverseLayout = true,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)
+        ) {
+            if (uiState.isLoading) {
+                item(key = "advisor-thinking") { ThinkingRow() }
             }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        PremiumSurface(goldEdge = true) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 11)
-                Spacer(Modifier.height(12.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    uiState.chatMessages.forEach { msg ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(Motion.state()),
-                            label = "chatBubble"
-                        ) {
-                            ChatBubble(message = msg)
+            if (uiState.chatMessages.isEmpty()) {
+                item(key = "advisor-empty") {
+                    EmptyChatHint(
+                        onSelectStarterPrompt = { prompt ->
+                            viewModel.sendUserQuery(prompt)
                         }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    LedgerField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        label = "Ask",
-                        singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 10.dp)
                     )
-                    HeaderIconWell(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
-                                viewModel.sendUserQuery(inputText)
-                                inputText = ""
-                            }
-                        },
-                        contentDescription = "Send",
-                        enabled = inputText.isNotBlank(),
-                        filled = true,
-                        // Action accent, not the Need semantic (D190). Ink is the
-                        // same card-white GiltButton uses on crimson fills.
-                        fillColor = palette.crimson
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Send,
-                            contentDescription = null,
-                            tint = palette.surfaceCard,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                }
+            } else {
+                items(uiState.chatMessages.asReversed()) { msg ->
+                    ChatBubble(message = msg, maxBubbleWidth = screenW * 0.85f)
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AdvisorProtocols.ALL.forEach { protocol ->
+                SelectChip(
+                    label = protocol,
+                    selected = false,
+                    color = palette.gold,
+                    compact = true,
+                    onClick = {
+                        haptics.tick()
+                        // Re-surfaces the live recovery plan (rebuilt from current context in the VM).
+                        if (protocol == AdvisorProtocols.OVERSPEND) recoveryDismissed = false
+                        viewModel.sendUserQuery(advisorProtocolQuery(protocol))
+                    }
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
 
-        PremiumSurface(goldEdge = false, raised = false) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Eyebrow("ECONOMIC STUDY NOTEBOOKS", color = palette.gilt, size = 11)
-                Spacer(Modifier.height(10.dp))
-                StudyTopicRow("Notebook 1", "Budgetary equilibrium and Need/Want ratio")
-                StudyTopicRow("Notebook 2", "Real-time transaction behavioral control")
-                StudyTopicRow("Notebook 3", "Impulse recovery and compensatory sinking")
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            LedgerField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                label = "Ask",
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 10.dp)
+            )
+            HeaderIconWell(
+                onClick = {
+                    if (inputText.isNotBlank()) {
+                        haptics.tick()
+                        viewModel.sendUserQuery(inputText)
+                        inputText = ""
+                    }
+                },
+                contentDescription = "Send",
+                enabled = inputText.isNotBlank(),
+                filled = true,
+                // Action accent, not the Need semantic (D190). Ink is the
+                // same card-white GiltButton uses on crimson fills.
+                fillColor = palette.crimson
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Send,
+                    contentDescription = null,
+                    tint = palette.surfaceCard,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -408,7 +372,7 @@ private fun MaxLockedGate(onOpenPaywall: () -> Unit) {
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage) {
+private fun ChatBubble(message: ChatMessage, maxBubbleWidth: Dp) {
     val isUser = message.sender == ChatSender.USER
     val palette = AppTheme.colors
     Row(
@@ -420,14 +384,16 @@ private fun ChatBubble(message: ChatMessage) {
             shape = RoundedCornerShape(
                 topStart = 14.dp,
                 topEnd = 14.dp,
-                bottomStart = if (isUser) 14.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 14.dp
+                bottomStart = if (isUser) 14.dp else 6.dp,
+                bottomEnd = if (isUser) 6.dp else 14.dp
             ),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
                 if (isUser) palette.marketGreen.copy(alpha = 0.28f) else palette.gold.copy(alpha = 0.28f)
             ),
-            modifier = Modifier.widthIn(max = 280.dp)
+            // Proportional cap: a fixed 280dp wrapped long answers into narrow
+            // towers at XL text; 85% of the screen scales with the surface (D191).
+            modifier = Modifier.widthIn(max = maxBubbleWidth)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 // No YOU/ADVISOR labels — alignment and tint already say who
@@ -450,50 +416,80 @@ private fun ChatBubble(message: ChatMessage) {
     }
 }
 
+/** The advisor's reply-in-progress, styled as the last turn in the conversation. */
 @Composable
-private fun QuickChip(label: String, onClick: () -> Unit) {
+private fun ThinkingRow() {
     val palette = AppTheme.colors
-    Surface(
-        color = palette.surfaceRaised,
-        shape = AppShapes.r20,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
+    val breathAlpha = rememberIdleBreathAlpha()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .heightIn(min = 40.dp)
-            .clickable(onClick = onClick)
+            .clip(AppShapes.r12)
+            .background(palette.gold.copy(alpha = 0.08f * breathAlpha))
+            .border(
+                androidx.compose.foundation.BorderStroke(1.dp, palette.gold.copy(alpha = 0.28f * breathAlpha)),
+                AppShapes.r12
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(16.dp),
+            strokeWidth = 2.dp,
+            color = palette.gilt
+        )
+        Spacer(Modifier.width(10.dp))
         Text(
-            text = label,
-            style = AppType.meta,
-            color = palette.textPrimary,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+            "Reading your ledger…",
+            style = AppType.bodySm.copy(fontWeight = FontWeight.Medium),
+            color = palette.gilt
         )
     }
 }
 
+/** Quiet first-run prompt when the conversation has no messages yet. */
 @Composable
-private fun StudyTopicRow(title: String, description: String) {
+private fun EmptyChatHint(
+    onSelectStarterPrompt: (String) -> Unit = {}
+) {
     val palette = AppTheme.colors
-    Row(
-        verticalAlignment = Alignment.Top,
+    val haptics = rememberAppHaptics()
+    val starterPrompts = listOf(
+        "What is the 30-day rule?",
+        "How do I curb impulse Wants?",
+        "Explain my spending split"
+    )
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 7.dp)
+            .padding(vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .padding(top = 5.dp)
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(palette.marketGreen)
+        Eyebrow("ASK YOUR ADVISOR", color = palette.gilt, size = 11)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Ask about your ledger, a Want you're weighing, or the day's budget. Answers cite the study notes.",
+            style = AppType.bodyMd,
+            color = palette.textSecondary,
+            textAlign = TextAlign.Center
         )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                title,
-                style = AppType.titleSm,
-                color = palette.textPrimary
-            )
-            Text(description, style = AppType.bodySm, color = palette.textSecondary)
+        Spacer(Modifier.height(14.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            starterPrompts.forEach { prompt ->
+                SelectChip(
+                    label = prompt,
+                    selected = false,
+                    color = palette.gilt,
+                    compact = true,
+                    onClick = {
+                        haptics.tick()
+                        onSelectStarterPrompt(prompt)
+                    }
+                )
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,16 +60,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import com.needsvswants.app.ui.theme.AppShapes
 import com.needsvswants.app.ui.theme.SelectChip
+import com.needsvswants.app.ui.theme.pressRecoil
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.Entry
@@ -93,6 +94,9 @@ import com.needsvswants.app.ui.theme.PremiumSurface
 import com.needsvswants.app.ui.theme.SealStampOverlay
 import com.needsvswants.app.ui.theme.DailyBudgetMeter
 import com.needsvswants.app.ui.theme.TierTag
+import com.needsvswants.app.ui.theme.PaperKind
+import com.needsvswants.app.ui.theme.paperSurface
+import com.needsvswants.app.ui.theme.rememberPaperSpec
 import com.needsvswants.app.ui.navigation.verticalScrollFirst
 import com.needsvswants.app.ui.theme.rememberAppHaptics
 import com.needsvswants.app.ui.theme.rememberAppSfx
@@ -107,6 +111,12 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+
+private val STARTER_CHIPS = listOf(
+    "Jeepney" to EntryType.NEED,
+    "Lunch" to EntryType.NEED,
+    "Coffee" to EntryType.WANT
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -152,6 +162,8 @@ fun InputScreen(
     var editingBudget by remember { mutableStateOf(false) }
     var showNewSheetConfirm by remember { mutableStateOf(false) }
     var showSealStamp by remember { mutableStateOf(false) }
+    var sealStampLabel by remember { mutableStateOf("SEALED") }
+    var sealStampCaption by remember { mutableStateOf<String?>(null) }
     var showBackupNudge by remember { mutableStateOf(false) }
     LaunchedEffect(backupNudgeVisible) {
         if (backupNudgeVisible) showBackupNudge = true
@@ -251,8 +263,30 @@ fun InputScreen(
                 haptics.seal()
                 // Newest entry is at the top of the list.
                 listState.animateScrollToItem(0)
-                if (event.sheetComplete) {
-                    haptics.success()
+                // Peak beats (D191): the sheet-complete stamp stays; the very
+                // first seal and the first seal of each day land their own
+                // restrained stamp so the streak moment happens where the
+                // seal happens, not on a later Summary visit.
+                var label: String? = null
+                var caption: String? = null
+                when {
+                    event.sheetComplete -> {
+                        haptics.success()
+                        label = "SEALED"
+                    }
+                    event.firstEver -> {
+                        haptics.success()
+                        label = "DAY 1"
+                        caption = "First entry sealed · the diary is live"
+                    }
+                    event.firstOfDay -> {
+                        label = "DAY ${event.streakDay}"
+                        caption = "First seal of the day · streak day ${event.streakDay}"
+                    }
+                }
+                if (label != null) {
+                    sealStampLabel = label
+                    sealStampCaption = caption
                     showSealStamp = true
                     delay(Motion.SealHoldMs.toLong())
                     showSealStamp = false
@@ -337,6 +371,7 @@ fun InputScreen(
                         }
 
                         // Scan Receipt Button
+                        val scanInteraction = remember { MutableInteractionSource() }
                         Row(
                             modifier = Modifier
                                 .clip(AppShapes.r20)
@@ -345,14 +380,21 @@ fun InputScreen(
                                     BorderStroke(1.dp, palette.gold.copy(alpha = if (hasProAccess) 0.8f else 0.45f)),
                                     AppShapes.r20
                                 )
-                                .clickable {
+                                .heightIn(min = 44.dp)
+                                .pressRecoil(scanInteraction)
+                                .clickable(
+                                    interactionSource = scanInteraction,
+                                    indication = null,
+                                    role = Role.Button
+                                ) {
+                                    haptics.tick()
                                     if (hasProAccess) {
                                         showPhotoSourceDialog = true
                                     } else {
                                         showProGateDialog = true
                                     }
                                 }
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -436,17 +478,20 @@ fun InputScreen(
                             if (!sheetFull) {
                                 PremiumSurface(raised = false) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        if (item.isBlank() && lastItemChips.isNotEmpty()) {
+                                        if (item.isBlank()) {
+                                            val chipsToShow = if (lastItemChips.isNotEmpty()) lastItemChips else STARTER_CHIPS
                                             Row(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .horizontalScroll(rememberScrollState()),
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                lastItemChips.forEach { (replayItem, replayType) ->
-                                                    CompactChip(
+                                                chipsToShow.forEach { (replayItem, replayType) ->
+                                                    SelectChip(
                                                         label = replayItem,
-                                                        accent = if (replayType == EntryType.NEED) palette.need else palette.want,
+                                                        selected = false,
+                                                        color = if (replayType == EntryType.NEED) palette.need else palette.want,
+                                                        compact = true,
                                                         onClick = {
                                                             haptics.tick()
                                                             sfx.tap()
@@ -505,10 +550,11 @@ fun InputScreen(
                                                 .horizontalScroll(rememberScrollState()),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            CompactChip(
+                                            SelectChip(
                                                 label = "Now",
-                                                accent = palette.gilt,
                                                 selected = sealHour == null,
+                                                color = palette.gilt,
+                                                compact = true,
                                                 onClick = {
                                                     haptics.tick()
                                                     viewModel.setSealHour(null)
@@ -516,10 +562,11 @@ fun InputScreen(
                                             )
                                             val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
                                             for (hour in 6..currentHour) {
-                                                CompactChip(
+                                                SelectChip(
                                                     label = String.format("%02d:00", hour),
-                                                    accent = palette.gilt,
                                                     selected = sealHour == hour,
+                                                    color = palette.gilt,
+                                                    compact = true,
                                                     onClick = {
                                                         haptics.tick()
                                                         viewModel.setSealHour(hour)
@@ -619,20 +666,42 @@ fun InputScreen(
                 }
             } else {
                 item(key = "log-empty") {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(horizontal = 20.dp, vertical = 20.dp)
+                            .paperSurface(
+                                rememberPaperSpec(PaperKind.CHIP, goldEdge = true),
+                                AppShapes.r16
+                            )
+                            .padding(horizontal = 18.dp, vertical = 18.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Eyebrow("EMPTY SHEET", color = palette.textMuted)
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Type an item, cost, then NEED or WANT.\nThe row seals itself.",
-                            style = AppType.bodyMd,
-                            color = palette.textSecondary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Eyebrow("SEAL YOUR FIRST ENTRY", color = palette.gilt, size = 11)
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("1. Name item", style = AppType.caption, color = palette.textPrimary)
+                                Text("→", style = AppType.caption, color = palette.gilt)
+                                Text("2. Enter cost", style = AppType.caption, color = palette.textPrimary)
+                                Text("→", style = AppType.caption, color = palette.gilt)
+                                Text("3. NEED or WANT", style = AppType.caption, color = palette.textPrimary)
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                "The row seals immediately upon choosing type.",
+                                style = AppType.bodyMd,
+                                color = palette.textSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -839,14 +908,21 @@ fun InputScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            val cameraInteraction = remember { MutableInteractionSource() }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
+                                    .pressRecoil(cameraInteraction)
                                     .clip(AppShapes.r8)
                                     .background(palette.surfaceRaised)
                                     .border(BorderStroke(1.dp, palette.dividerStrong), AppShapes.r8)
-                                    .clickable {
+                                    .clickable(
+                                        interactionSource = cameraInteraction,
+                                        indication = null,
+                                        role = Role.Button
+                                    ) {
+                                        haptics.tick()
                                         showPhotoSourceDialog = false
                                         launchReceiptCamera()
                                     },
@@ -864,20 +940,27 @@ fun InputScreen(
                                     )
                                     Text(
                                         "Camera",
-                                        style = AppType.button.copy(fontSize = 13.sp),
+                                        style = AppType.meta,
                                         color = palette.textPrimary
                                     )
                                 }
                             }
 
+                            val galleryInteraction = remember { MutableInteractionSource() }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
+                                    .pressRecoil(galleryInteraction)
                                     .clip(AppShapes.r8)
                                     .background(palette.surfaceRaised)
                                     .border(BorderStroke(1.dp, palette.dividerStrong), AppShapes.r8)
-                                    .clickable {
+                                    .clickable(
+                                        interactionSource = galleryInteraction,
+                                        indication = null,
+                                        role = Role.Button
+                                    ) {
+                                        haptics.tick()
                                         showPhotoSourceDialog = false
                                         pickImageLauncher.launch("image/*")
                                     },
@@ -895,7 +978,7 @@ fun InputScreen(
                                     )
                                     Text(
                                         "Gallery",
-                                        style = AppType.button.copy(fontSize = 13.sp),
+                                        style = AppType.meta,
                                         color = palette.textPrimary
                                     )
                                 }
@@ -966,34 +1049,12 @@ fun InputScreen(
 
         SealStampOverlay(
             visible = showSealStamp,
+            label = sealStampLabel,
+            caption = sealStampCaption,
             modifier = Modifier.fillMaxSize()
         )
     }
 }
-
-@Composable
-private fun CompactChip(
-    label: String,
-    accent: Color,
-    selected: Boolean = false,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        shape = AppShapes.r8,
-        color = if (selected) accent.copy(alpha = 0.16f) else AppTheme.colors.surfaceSunken,
-        border = BorderStroke(1.dp, if (selected) accent else AppTheme.colors.dividerStrong)
-    ) {
-        Text(
-            label,
-            style = AppType.button.copy(fontSize = 12.sp),
-            color = if (selected) accent else AppTheme.colors.textSecondary,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
-    }
-}
-
 
 /**
  * Quiet Max coach affordance for a pending Want consult (Task 3). Static
@@ -1002,18 +1063,22 @@ private fun CompactChip(
 @Composable
 private fun CoachChip(label: String, onClick: () -> Unit) {
     val palette = AppTheme.colors
+    val interaction = remember { MutableInteractionSource() }
     Surface(
         onClick = onClick,
+        interactionSource = interaction,
         shape = AppShapes.r20,
         color = palette.surfaceRaised,
         border = BorderStroke(1.dp, palette.gold.copy(alpha = 0.40f)),
-        modifier = Modifier.heightIn(min = 36.dp)
+        modifier = Modifier
+            .heightIn(min = 44.dp)
+            .pressRecoil(interaction)
     ) {
         Text(
             text = label,
             style = AppType.meta,
             color = palette.textPrimary,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         )
     }
 }

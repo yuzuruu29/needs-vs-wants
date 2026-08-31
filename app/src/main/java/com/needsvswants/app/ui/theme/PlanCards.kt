@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,29 +72,6 @@ fun TierTag(
             .border(BorderStroke(1.dp, color.copy(alpha = 0.45f)), AppShapes.r20)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     )
-}
-
-/** Gold "Most popular" ribbon — website `.pri-popular`. */
-@Composable
-fun PopularRibbon(modifier: Modifier = Modifier) {
-    val c = AppTheme.colors
-    Box(
-        modifier = modifier
-            .background(
-                brush = Brush.horizontalGradient(
-                    listOf(c.goldSoft, c.gold, c.goldSoft.copy(alpha = 0.92f))
-                ),
-                shape = AppShapes.r20
-            )
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(
-            text = "MOST POPULAR",
-            style = AppType.eyebrowSm.copy(fontWeight = FontWeight.Bold),
-            color = c.onGold,
-            maxLines = 1
-        )
-    }
 }
 
 /** Gold circular seal stamp — website Max `.pri-success`. */
@@ -216,7 +192,15 @@ fun PlanTierCard(
     features: List<Pair<String, Boolean>>,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    statusNote: String? = null
+    statusNote: String? = null,
+    /**
+     * Flagship treatment (D191): the featured card carries a larger price
+     * numeral and an always-on heavy border so the hierarchy reads Max, Pro,
+     * Free instead of three equal cards.
+     */
+    featured: Boolean = false,
+    /** Quiet treatment: features collapse to one wrapped line (Free tier). */
+    compact: Boolean = false
 ) {
     val c = AppTheme.colors
 
@@ -264,7 +248,7 @@ fun PlanTierCard(
             .clip(AppShapes.r20)
             .background(shellBrush, AppShapes.r20)
             .border(
-                BorderStroke(if (selected) 1.5.dp else 1.dp, shellBorder),
+                BorderStroke(if (selected || featured) 1.5.dp else 1.dp, shellBorder),
                 AppShapes.r20
             )
             .clickable(
@@ -349,11 +333,6 @@ fun PlanTierCard(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (plan == MembershipPlan.Pro) {
-                    Spacer(Modifier.height(10.dp))
-                    PopularRibbon()
-                }
-
                 Spacer(Modifier.height(10.dp))
                 TierTag(
                     text = tag,
@@ -371,7 +350,7 @@ fun PlanTierCard(
                 ) {
                     Text(
                         text = price,
-                        style = PaywallType.planPrice,
+                        style = if (featured) AppType.moneyDisplay else PaywallType.planPrice,
                         color = c.textPrimary,
                         maxLines = 1
                     )
@@ -404,12 +383,22 @@ fun PlanTierCard(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                features.forEach { (line, emphasize) ->
-                    ReceiptFeatureLine(
-                        text = line,
-                        accent = accent,
-                        emphasize = emphasize
+                if (compact) {
+                    Text(
+                        text = features.joinToString(" · ") { it.first },
+                        style = PaywallType.planFeature,
+                        color = c.textSecondary,
+                        maxLines = 3,
+                        softWrap = true
                     )
+                } else {
+                    features.forEach { (line, emphasize) ->
+                        ReceiptFeatureLine(
+                            text = line,
+                            accent = accent,
+                            emphasize = emphasize
+                        )
+                    }
                 }
 
                 if (statusNote != null) {
@@ -418,11 +407,11 @@ fun PlanTierCard(
                     // "You're on Pro/Max" reads as a sealed state, not muted text.
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
+                            .clip(CircleShape)
                             .background(c.marketGreen.copy(alpha = 0.10f))
                             .border(
                                 BorderStroke(1.dp, c.marketGreen.copy(alpha = 0.35f)),
-                                RoundedCornerShape(50)
+                                CircleShape
                             )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {

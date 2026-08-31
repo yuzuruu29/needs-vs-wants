@@ -313,15 +313,31 @@ fun AppNavigation(
                         .verticalScrollFirst()
                 ) {
                     when (MainTab.visibleEntries()[page]) {
-                        MainTab.Home -> SummaryScreen(onNavigateToInput = {
-                            lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
-                            scope.launch {
-                                pagerState.animateScrollToPage(
-                                    page = MainTab.visibleEntries().indexOf(MainTab.Log),
-                                    animationSpec = Motion.pageFlip()
-                                )
+                        MainTab.Home -> SummaryScreen(
+                            onNavigateToInput = {
+                                lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = MainTab.visibleEntries().indexOf(MainTab.Log),
+                                        animationSpec = Motion.pageFlip()
+                                    )
+                                }
+                            },
+                            onOnboardingStartLogging = {
+                                // The first-run narrative now ends in a real seal —
+                                // hold the soft paywall for this session so the aha
+                                // moment is not interrupted (D191). A later cold
+                                // start still offers it.
+                                launchVm.dismissSoftPaywallForSession()
+                                lastTappedPage = MainTab.visibleEntries().indexOf(MainTab.Log)
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        page = MainTab.visibleEntries().indexOf(MainTab.Log),
+                                        animationSpec = Motion.pageFlip()
+                                    )
+                                }
                             }
-                        })
+                        )
                         MainTab.Log -> InputScreen(
                             onOpenPaywall = {
                                 paywallOpen = true

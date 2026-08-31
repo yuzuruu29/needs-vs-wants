@@ -284,6 +284,15 @@ object AppType {
         letterSpacing = 1.5.sp,
         lineHeight = 40.sp
     )
+
+    /** Handwritten margin notes (end-of-day closure). Caveat, but quiet — never titles. */
+    val note = TextStyle(
+        fontFamily = ScriptFont,
+        fontWeight = FontWeight.Normal,
+        fontSize = 20.sp,
+        letterSpacing = 0.4.sp,
+        lineHeight = 27.sp
+    )
 }
 
 /**

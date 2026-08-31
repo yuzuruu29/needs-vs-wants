@@ -58,7 +58,6 @@ fun HistoryScreen(
     val periodFilter by viewModel.periodFilter.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
-    val isPro by viewModel.isPro.collectAsStateWithLifecycle()
     var editTarget by remember { mutableStateOf<Entry?>(null) }
     var actionTarget by remember { mutableStateOf<Entry?>(null) }
     var importPending by remember { mutableStateOf<ImportUseCase.Result?>(null) }
@@ -279,6 +278,7 @@ fun HistoryScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     TextButton(onClick = {
+                        haptics.tick()
                         viewModel.setSearchQuery("")
                         viewModel.setTypeFilter(null)
                         viewModel.setPeriodFilter(Period.ALL)

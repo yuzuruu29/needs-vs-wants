@@ -427,29 +427,31 @@ fun PaywallScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Free
+                // Max — the flagship (D191): featured treatment, first on the desk.
+                // One hierarchy reads Max, Pro, Free instead of three equal cards.
                 PlanTierCard(
-                    plan = MembershipPlan.Free,
-                    selected = selected == MembershipPlan.Free,
-                    onClick = { selectPlan(MembershipPlan.Free) },
-                    eyebrow = "Free",
-                    title = "Trainer",
-                    tag = "On this device",
-                    price = "₱0",
-                    priceSuffix = "forever",
-                    subtitle = "Honest daily training. No account required.",
+                    plan = MembershipPlan.Max,
+                    selected = selected == MembershipPlan.Max,
+                    onClick = { selectPlan(MembershipPlan.Max) },
+                    featured = true,
+                    eyebrow = "Max",
+                    title = "AI Advisor",
+                    tag = "Includes Pro",
+                    price = maxPriceDisplay,
+                    priceSuffix = maxPriceSuffix,
+                    subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
                     features = listOf(
-                        "20 entries per sheet" to false,
-                        "30-day retention window" to false,
-                        "Daily budget meter" to false,
-                        "Four appearance themes" to false
+                        "Live insight card from your sealed ledger" to false,
+                        "Pre-seal Want coach + hold suggestions" to false,
+                        "3-day overspend recovery plans" to false,
+                        "Grounded citations on every answer" to true
                     ),
-                    statusNote = if (!isPro) "Active on this device" else null
+                    statusNote = if (hasMaxAccess) "You're on Max" else null
                 )
 
                 Spacer(Modifier.height(12.dp))
 
-                // Pro
+                // Pro — the everyday unlimited plan.
                 PlanTierCard(
                     plan = MembershipPlan.Pro,
                     selected = selected == MembershipPlan.Pro,
@@ -464,33 +466,31 @@ fun PaywallScreen(
                         "Unlimited entries per log sheet" to true,
                         "Receipt scanner & line-item sorter" to true,
                         "Lifetime history retention" to true,
-                        "Full period summary analytics" to false,
-                        "Everything in Free" to false
+                        "Full period summary analytics" to false
                     ),
                     statusNote = if (isPro && !hasMaxAccess) "You're on Pro" else null
                 )
 
                 Spacer(Modifier.height(12.dp))
 
-                // Max — short title so it never clips on narrow screens
+                // Free — quiet compact card; the lede already explains the caps.
                 PlanTierCard(
-                    plan = MembershipPlan.Max,
-                    selected = selected == MembershipPlan.Max,
-                    onClick = { selectPlan(MembershipPlan.Max) },
-                    eyebrow = "Max",
-                    title = "AI Advisor",
-                    tag = "Includes Pro",
-                    price = maxPriceDisplay,
-                    priceSuffix = maxPriceSuffix,
-                    subtitle = "Everything in Pro, plus cited AI coaching from economic study notebooks.",
+                    plan = MembershipPlan.Free,
+                    selected = selected == MembershipPlan.Free,
+                    onClick = { selectPlan(MembershipPlan.Free) },
+                    compact = true,
+                    eyebrow = "Free",
+                    title = "Trainer",
+                    tag = "On this device",
+                    price = PaywallCopy.FREE_PRICE,
+                    priceSuffix = "forever",
+                    subtitle = "Honest daily training. No account required.",
                     features = listOf(
-                        "Everything in Pro" to true,
-                        "Live insight card from your sealed ledger" to false,
-                        "Pre-seal Want coach + hold suggestions" to false,
-                        "3-day overspend recovery plans" to false,
-                        "Grounded citations on every answer" to false
+                        "20 entries per sheet" to false,
+                        "30-day retention window" to false,
+                        "Daily budget meter" to false
                     ),
-                    statusNote = if (hasMaxAccess) "You're on Max" else null
+                    statusNote = if (!isPro) "Active on this device" else null
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -734,21 +734,25 @@ fun PaywallScreen(
                         softWrap = true
                     )
                     if (selected != MembershipPlan.Free) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = when {
-                                needsSignInForPurchase && !isSignedIn ->
-                                    "First Google, then checkout opens in your browser."
-                                isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
-                                    "You're on Pro. Select Max for the AI Financial Advisor."
-                                else ->
-                                    "Browse free anytime. Sign-in only when you start Pro or Max."
-                            },
-                            style = PaywallType.stickyNote,
-                            color = palette.textMuted.copy(alpha = 0.9f),
-                            textAlign = TextAlign.Center,
-                            softWrap = true
-                        )
+                        // Context note only where it carries real information
+                        // (D191 cut the third "browse free anytime" reassurance).
+                        val contextNote = when {
+                            needsSignInForPurchase && !isSignedIn ->
+                                "First Google, then checkout opens in your browser."
+                            isPro && selected == MembershipPlan.Pro && !hasMaxAccess ->
+                                "You're on Pro. Select Max for the AI Financial Advisor."
+                            else -> null
+                        }
+                        if (contextNote != null) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = contextNote,
+                                style = PaywallType.stickyNote,
+                                color = palette.textMuted.copy(alpha = 0.9f),
+                                textAlign = TextAlign.Center,
+                                softWrap = true
+                            )
+                        }
                     }
                 }
             }

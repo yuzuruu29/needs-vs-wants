@@ -576,6 +576,94 @@ class InputViewModelTest {
         assertTrue(vm.receiptScanState.value is ReceiptScanUiState.Ready || vm.receiptScanState.value is ReceiptScanUiState.Idle)
     }
 
+    // --- Seal peak beats (D191): first-ever, first-of-day, streak day -------
+
+    @Test
+    fun sealEvents_firstEver_flagsFirstEverAndStreakDay1() = runTest(dispatcher) {
+        val vm = buildViewModel()
+        advanceUntilIdle()
+        val events = mutableListOf<SealEvent.Sealed>()
+        backgroundScope.launch { vm.sealEvents.collect { events.add(it as SealEvent.Sealed) } }
+
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(1, dao.entries.value.size)
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertTrue(event.firstEver)
+        assertTrue(event.firstOfDay)
+        assertEquals(1, event.streakDay)
+        assertFalse(event.sheetComplete)
+    }
+
+    @Test
+    fun sealEvents_secondSealSameDay_flagsNothing() = runTest(dispatcher) {
+        val vm = buildViewModel()
+        advanceUntilIdle()
+        val events = mutableListOf<SealEvent.Sealed>()
+        backgroundScope.launch { vm.sealEvents.collect { events.add(it as SealEvent.Sealed) } }
+
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+        fillForm(vm)
+        vm.activeItem.value = "Jeepney fare"
+        vm.activeType.value = EntryType.NEED
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(2, dao.entries.value.size)
+        assertEquals(2, events.size)
+        val second = events.last()
+        assertFalse(second.firstEver)
+        assertFalse(second.firstOfDay)
+        assertEquals(0, second.streakDay)
+    }
+
+    @Test
+    fun sealEvents_firstSealOfTheDay_extendsStreak() = runTest(dispatcher) {
+        dao.entries.value = listOf(seedEntry(dateUtc = System.currentTimeMillis() - 86_400_000L))
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        advanceUntilIdle()
+        val events = mutableListOf<SealEvent.Sealed>()
+        backgroundScope.launch { vm.sealEvents.collect { events.add(it as SealEvent.Sealed) } }
+
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(2, dao.entries.value.size)
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertFalse(event.firstEver)
+        assertTrue(event.firstOfDay)
+        assertEquals(2, event.streakDay)
+    }
+
+    @Test
+    fun sealEvents_sheetComplete_takesPrecedence_withNoStreakFlags() = runTest(dispatcher) {
+        dao.entries.value = List(19) { seedEntry(dateUtc = System.currentTimeMillis() - it) }
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        advanceUntilIdle()
+        val events = mutableListOf<SealEvent.Sealed>()
+        backgroundScope.launch { vm.sealEvents.collect { events.add(it as SealEvent.Sealed) } }
+
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(20, dao.entries.value.size)
+        assertEquals(1, events.size)
+        val event = events.single()
+        assertTrue(event.sheetComplete)
+        assertFalse(event.firstEver)
+        assertFalse(event.firstOfDay)
+    }
+
     private class FakeEntitlementRemote : EntitlementRemote {
         override suspend fun fetchEntitlement(accessToken: String?): Entitlement? = null
     }

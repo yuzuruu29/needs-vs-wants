@@ -20,6 +20,9 @@ object PaywallCopy {
     const val MAX_MONTHLY = "₱99"
     const val MAX_ANNUAL = "₱990"
 
+    /** Free tier price row, so every price on the desk renders from this object. */
+    const val FREE_PRICE = "₱0"
+
     fun proPrice(isAnnual: Boolean): String = if (isAnnual) PRO_ANNUAL else PRO_MONTHLY
     fun maxPrice(isAnnual: Boolean): String = if (isAnnual) MAX_ANNUAL else MAX_MONTHLY
 

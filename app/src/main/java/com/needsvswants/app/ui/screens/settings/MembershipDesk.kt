@@ -52,7 +52,7 @@ fun PlanSealBadge(entitlement: Entitlement, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = label,
-            style = AppType.eyebrowSm.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+            style = AppType.eyebrowSm.copy(fontWeight = FontWeight.Bold),
             color = c.onGold,
             maxLines = 1
         )

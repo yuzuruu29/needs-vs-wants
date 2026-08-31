@@ -439,7 +439,7 @@ private fun ScannedItemRow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(34.dp)
+                        .height(44.dp)
                         .pressRecoil(needInteraction)
                         .clip(AppShapes.r8)
                         .background(if (isNeed) palette.marketGreen else palette.marketGreen.copy(alpha = 0.08f))
@@ -456,7 +456,9 @@ private fun ScannedItemRow(
                     Text(
                         text = "NEED",
                         style = AppType.eyebrowSm.copy(fontWeight = FontWeight.Bold),
-                        color = if (isNeed) Color.White else palette.marketGreen
+                        // Card-paper ink on the filled tint: white fell to ~2.9:1
+                        // on the dark-theme tints (D191).
+                        color = if (isNeed) palette.surfaceCard else palette.marketGreen
                     )
                 }
 
@@ -464,7 +466,7 @@ private fun ScannedItemRow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(34.dp)
+                        .height(44.dp)
                         .pressRecoil(wantInteraction)
                         .clip(AppShapes.r8)
                         .background(if (isWant) palette.crimson else palette.crimson.copy(alpha = 0.08f))
@@ -481,7 +483,7 @@ private fun ScannedItemRow(
                     Text(
                         text = "WANT",
                         style = AppType.eyebrowSm.copy(fontWeight = FontWeight.Bold),
-                        color = if (isWant) Color.White else palette.crimson
+                        color = if (isWant) palette.surfaceCard else palette.crimson
                     )
                 }
             }

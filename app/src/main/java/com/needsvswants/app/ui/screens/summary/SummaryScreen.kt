@@ -18,8 +18,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -56,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import android.content.Intent
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.BudgetStatus
 import com.needsvswants.app.domain.DailySpend
 import com.needsvswants.app.domain.Period
@@ -74,6 +79,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SummaryScreen(
     onNavigateToInput: () -> Unit = {},
+    /** First-run onboarding ended in "Log your first purchase" (D191). */
+    onOnboardingStartLogging: () -> Unit = {},
     viewModel: SummaryViewModel = hiltViewModel()
 ) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -99,6 +106,7 @@ fun SummaryScreen(
     var refreshing by remember { mutableStateOf(false) }
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
+    val sfx = rememberAppSfx()
     val context = LocalContext.current
 
     // First cold start: How It Works before soft paywall (LaunchPaywall waits on !isFirstLaunch).
@@ -124,6 +132,7 @@ fun SummaryScreen(
     if (showInstructions) {
         InstructionsOverlay(
             paid = paid,
+            firstLaunch = isFirstLaunch,
             onSelectGoal = {
                 viewModel.setSpendingGoal(it)
                 if (it == "budget") viewModel.setBudgetNudgePending(true)
@@ -131,7 +140,13 @@ fun SummaryScreen(
             onDismiss = {
                 showInstructions = false
                 if (isFirstLaunch) viewModel.dismissFirstLaunch()
-            }
+            },
+            onStartLogging = {
+                showInstructions = false
+                if (isFirstLaunch) viewModel.dismissFirstLaunch()
+                onOnboardingStartLogging()
+            },
+            symbol = symbol
         )
     }
 
@@ -257,7 +272,8 @@ fun SummaryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp),
+                    .padding(4.dp)
+                    .selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 val pillPeriods = if (paid) paidPeriods else freePeriods
@@ -282,12 +298,17 @@ fun SummaryScreen(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = scaledSpacing(40f))
+                            .heightIn(min = scaledSpacing(44f))
                             .background(pillColor, AppShapes.r12)
-                            .clickable {
-                                haptics.tick()
-                                viewModel.setPeriod(p)
-                            },
+                            .selectable(
+                                selected = selected,
+                                role = Role.Tab,
+                                onClick = {
+                                    haptics.tick()
+                                    sfx.tap()
+                                    viewModel.setPeriod(p)
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -462,21 +483,17 @@ fun SummaryScreen(
                                     // Whole units only — ".00" cramps the dial and shifts alignment.
                                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                                         val totalText = stats.totalCents.toMoneyWhole(symbol)
-                                        AnimatedMoney(
+                                        val dialMoney = fittingMoneySize(totalText, 22.sp, maxWidth)
+                                        // Odometer digit roll — the signature money moment (D184/D191).
+                                        AnimatedOdometerMoney(
                                             cents = stats.totalCents,
                                             symbol = symbol,
                                             wholeOnly = true,
                                             style = AppType.moneyLg.copy(
-                                                fontSize = fittingMoneySize(totalText, 22.sp, maxWidth),
-                                                lineHeight = fittingMoneySize(totalText, 22.sp, maxWidth) * 1.15f,
-                                                color = palette.textPrimary,
-                                                textAlign = TextAlign.Center
-                                            ),
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Clip,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.fillMaxWidth(),
+                                                fontSize = dialMoney,
+                                                lineHeight = dialMoney * 1.15f,
+                                                color = palette.textPrimary
+                                            )
                                         )
                                     }
                                 }
@@ -590,6 +607,13 @@ fun SummaryScreen(
         if (topInsight != null) {
             Spacer(Modifier.height(12.dp))
             InsightStrip(insight = topInsight, modifier = Modifier.staggerIn(4))
+        }
+
+        // Close-of-day ending beat (D191): quiet affirmation, never a nudge.
+        val isEvening = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) >= 18 }
+        if (period == Period.DAY && stats.totalCents > 0L && isEvening) {
+            Spacer(Modifier.height(12.dp))
+            EndOfDayCard(streakDays = streakDays, modifier = Modifier.staggerIn(5))
         }
 
         Spacer(Modifier.height(20.dp))
@@ -1011,28 +1035,33 @@ private fun StreakBentoCard(
 fun InstructionsOverlay(
     onDismiss: () -> Unit,
     paid: Boolean = false,
-    onSelectGoal: (String) -> Unit = {}
+    /** True on the very first launch: a guided narrative that ends in a real seal. */
+    firstLaunch: Boolean = false,
+    onSelectGoal: (String) -> Unit = {},
+    /** First-launch final CTA: hands off to the Log tab for the first seal (D191). */
+    onStartLogging: () -> Unit = {},
+    symbol: String = "₱"
 ) {
     var currentPage by remember { mutableIntStateOf(0) }
     var goal by remember { mutableStateOf("track") }
     val palette = AppTheme.colors
-    val totalPages = 5
-    // Steps 1..4 are the existing info cards; step 0 is the new goal selector (#9).
-    val titles = listOf(
-        "",
-        "Every purchase is a Need or a Want",
-        if (paid) "Your diary keeps every day" else "Your diary keeps 30 days",
-        "Rows seal themselves",
-        "Optional daily budget on Log"
-    )
-    val bodies = listOf(
-        "",
-        "Each entry forces a binary choice. There is no middle ground. That is the lesson.",
-        if (paid) "Your history stays for life. Pro keeps the whole diary — no auto-removal." else "Older entries are removed automatically. The window is always 30 days.",
-        "When item, cost, and type are filled, the row seals. Delete any row you sealed by mistake.",
-        "Set a limit on Log. Watch spent vs remaining. Sealing past the line asks \"Log anyway?\" first."
-    )
+    val haptics = rememberAppHaptics()
+    // First launch runs goal → choice demo → retention → start (4 pages). The
+    // reference pass (Summary "?" / Settings How it works) is the 3 info cards.
+    val totalPages = if (firstLaunch) 4 else 3
     val lastPage = totalPages - 1
+    val ruleTitle = "Every purchase is a Need or a Want"
+    val ruleBody = "Each entry forces a binary choice. There is no middle ground. That is the lesson."
+    val retentionTitle = if (paid) "Your diary keeps every day" else "Your diary keeps 30 days"
+    val retentionBody = if (paid) {
+        "Your history stays for life. Pro keeps the whole diary — no auto-removal."
+    } else {
+        "Older entries are removed automatically. The window is always 30 days."
+    }
+    val budgetTitle = "Optional daily budget on Log"
+    val budgetBody = "Set a limit on Log. Watch spent vs remaining. Sealing past the line asks \"Log anyway?\" first."
+    val startTitle = "Seal your first entry"
+    val startBody = "Your sheet is waiting on the Log tab. Seal one real purchase and the diary begins."
 
     // Predictive back (design audit #10): scale the instructions sheet down with
     // the system back gesture, then dismiss on commit.
@@ -1087,104 +1116,125 @@ fun InstructionsOverlay(
                 GiltRule(width = 32.dp)
                 Spacer(Modifier.height(14.dp))
 
-                if (currentPage == 0) {
-                    // Goal selector — progressive profiling (design audit #9).
-                    OnboardingHandIllustration(modifier = Modifier.size(160.dp, 104.dp))
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "What's your spending goal?",
-                        style = AppType.dialogTitle,
-                        color = palette.textPrimary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    GoalCard(
-                        icon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = palette.crimson, modifier = Modifier.size(20.dp)) },
-                        text = "Track every purchase",
-                        selected = goal == "track",
-                        onClick = { goal = "track" }
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    GoalCard(
-                        icon = { Icon(Icons.Outlined.Savings, contentDescription = null, tint = palette.marketGreen, modifier = Modifier.size(20.dp)) },
-                        text = "Stay under a daily budget",
-                        selected = goal == "budget",
-                        onClick = { goal = "budget" }
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    GoalCard(
-                        icon = { Icon(Icons.Outlined.BarChart, contentDescription = null, tint = palette.gilt, modifier = Modifier.size(20.dp)) },
-                        text = "See where my money goes",
-                        selected = goal == "analyze",
-                        onClick = { goal = "analyze" }
-                    )
-                } else {
-                    AnimatedContent(
-                        targetState = currentPage,
-                        transitionSpec = {
-                            fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
-                        },
-                        label = "instructionsPage"
-                    ) { page ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                titles[page],
-                                style = AppType.dialogTitle,
-                                color = palette.textPrimary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(14.dp))
-                            Text(
-                                bodies[page],
-                                style = AppType.body,
-                                color = palette.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
+                AnimatedContent(
+                    targetState = currentPage,
+                    transitionSpec = {
+                        fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
+                    },
+                    label = "instructionsPage"
+                ) { page ->
+                    when {
+                        firstLaunch && page == 0 -> {
+                            // Goal selector — progressive profiling (design audit #9).
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                OnboardingHandIllustration(modifier = Modifier.size(160.dp, 104.dp))
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    "What's your spending goal?",
+                                    style = AppType.dialogTitle,
+                                    color = palette.textPrimary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                GoalCard(
+                                    icon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = palette.crimson, modifier = Modifier.size(20.dp)) },
+                                    text = "Track every purchase",
+                                    selected = goal == "track",
+                                    onClick = { haptics.tick(); goal = "track" }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                GoalCard(
+                                    icon = { Icon(Icons.Outlined.Savings, contentDescription = null, tint = palette.marketGreen, modifier = Modifier.size(20.dp)) },
+                                    text = "Stay under a daily budget",
+                                    selected = goal == "budget",
+                                    onClick = { haptics.tick(); goal = "budget" }
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                GoalCard(
+                                    icon = { Icon(Icons.Outlined.BarChart, contentDescription = null, tint = palette.gilt, modifier = Modifier.size(20.dp)) },
+                                    text = "See where my money goes",
+                                    selected = goal == "analyze",
+                                    onClick = { haptics.tick(); goal = "analyze" }
+                                )
+                            }
+                        }
+                        firstLaunch && page == 1 -> OnboardingChoiceDemo(symbol = symbol)
+                        else -> {
+                            val isRetentionPage = page == if (firstLaunch) 2 else 1
+                            val (infoTitle, infoBody) = when {
+                                firstLaunch && page == 2 -> retentionTitle to retentionBody
+                                firstLaunch -> startTitle to startBody
+                                page == 0 -> ruleTitle to ruleBody
+                                page == 1 -> retentionTitle to retentionBody
+                                else -> budgetTitle to budgetBody
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                if (isRetentionPage) {
+                                    EmptyDiaryIllustration(modifier = Modifier.size(160.dp, 120.dp))
+                                    Spacer(Modifier.height(12.dp))
+                                }
+                                Text(
+                                    infoTitle,
+                                    style = AppType.dialogTitle,
+                                    color = palette.textPrimary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(14.dp))
+                                Text(
+                                    infoBody,
+                                    style = AppType.body,
+                                    color = palette.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
                 Spacer(Modifier.height(18.dp))
-                Row(horizontalArrangement = Arrangement.Center) {
-                    repeat(totalPages) { i ->
-                        Box(
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .size(if (i == currentPage) 8.dp else 6.dp)
-                                .background(
-                                    if (i == currentPage) palette.crimson else palette.divider,
-                                    AppShapes.r6
-                                )
-                        )
-                    }
-                }
-                Spacer(Modifier.height(20.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GhostTextAction(text = "Skip", onClick = onDismiss)
-                    if (currentPage < lastPage) {
-                        GhostTextAction(
-                            text = "Next",
-                            onClick = {
-                                currentPage++
-                                // Persist the goal as soon as the user leaves the selector.
-                                if (currentPage == 1) onSelectGoal(goal)
-                            }
-                        )
-                    } else {
-                        GiltButton(
-                            onClick = {
-                                onSelectGoal(goal)
-                                onDismiss()
-                            },
-                            text = "Begin",
-                            height = 46.dp,
-                            modifier = Modifier.widthIn(min = 120.dp)
-                        )
+                // The gold bar + step counter carry progress; the old dot row was
+                // a third redundant signal and is gone (D191).
+                if (firstLaunch && currentPage == lastPage) {
+                    GiltButton(
+                        onClick = {
+                            onSelectGoal(goal)
+                            onStartLogging()
+                        },
+                        text = "Log your first purchase",
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 48.dp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    GhostTextAction(
+                        text = "I'll look around first",
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        GhostTextAction(text = "Skip", onClick = onDismiss)
+                        if (currentPage < lastPage) {
+                            GhostTextAction(
+                                text = "Next",
+                                onClick = {
+                                    // Persist the goal as soon as the user leaves the selector.
+                                    if (firstLaunch && currentPage == 0) onSelectGoal(goal)
+                                    currentPage++
+                                }
+                            )
+                        } else {
+                            GiltButton(
+                                onClick = onDismiss,
+                                text = "Done",
+                                height = 46.dp,
+                                modifier = Modifier.widthIn(min = 120.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1201,13 +1251,15 @@ private fun GoalCard(
     onClick: () -> Unit
 ) {
     val palette = AppTheme.colors
+    val interaction = remember { MutableInteractionSource() }
     val edge = if (selected) palette.crimson else palette.gold.copy(alpha = 0.28f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressRecoil(interaction)
             .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = selected), AppShapes.r14)
             .border(BorderStroke(1.5.dp, edge), AppShapes.r14)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1228,6 +1280,134 @@ private fun GoalCard(
                 Box(Modifier.fillMaxSize().background(palette.surfaceCard, CircleShape))
             }
         }
+    }
+}
+
+/**
+ * Onboarding choice demo (D191): the guided narrative lets the user classify a
+ * sample row before sealing a real one. Pure UI — nothing is persisted.
+ */
+@Composable
+private fun OnboardingChoiceDemo(symbol: String) {
+    val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    var picked by remember { mutableStateOf<EntryType?>(null) }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            "Every purchase is a choice",
+            style = AppType.dialogTitle,
+            color = palette.textPrimary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(14.dp))
+        // Sample row styled like a sheet line so the Log screen feels familiar.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = true), AppShapes.r12)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Milk tea",
+                    style = AppType.ledgerItem,
+                    color = palette.textPrimary
+                )
+                Text(
+                    "Sample row",
+                    style = AppType.caption,
+                    color = palette.textMuted
+                )
+            }
+            Text(
+                12_000L.toMoney(symbol),
+                style = AppType.moneySm,
+                color = palette.textPrimary
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SelectChip(
+                label = "NEED",
+                selected = picked == EntryType.NEED,
+                color = palette.need,
+                onClick = {
+                    if (picked == null) haptics.tick()
+                    picked = EntryType.NEED
+                }
+            )
+            SelectChip(
+                label = "WANT",
+                selected = picked == EntryType.WANT,
+                color = palette.want,
+                onClick = {
+                    if (picked == null) haptics.tick()
+                    picked = EntryType.WANT
+                }
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        AnimatedContent(
+            targetState = picked,
+            transitionSpec = { fadeIn(Motion.state()) togetherWith fadeOut(Motion.feedback()) },
+            label = "choiceDemoVerdict"
+        ) { choice ->
+            val (verdict, line) = when (choice) {
+                EntryType.NEED -> "SEALED AS NEED" to "Staples keep the diary green."
+                EntryType.WANT -> "SEALED AS WANT" to "No middle ground. That is the lesson."
+                null -> "TRY IT" to "Classify this sample row. The row seals either way."
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Eyebrow(verdict, color = when (choice) {
+                    EntryType.NEED -> palette.need
+                    EntryType.WANT -> palette.want
+                    null -> palette.textMuted
+                })
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    line,
+                    style = AppType.bodyMd,
+                    color = palette.textSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Close-of-day ending beat (D191): the quiet affirmation after the insight
+ * strip. Day period, evening, and a logged day only — a reason to return,
+ * never a marketing nudge.
+ */
+@Composable
+private fun EndOfDayCard(streakDays: Int, modifier: Modifier = Modifier) {
+    val palette = AppTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .paperSurface(rememberPaperSpec(PaperKind.CHIP, goldEdge = true), AppShapes.r16)
+            .padding(horizontal = scaledSpacing(16f), vertical = scaledSpacing(14f))
+    ) {
+        Eyebrow("END OF DAY", color = palette.gilt, size = 11)
+        Spacer(Modifier.height(scaledSpacing(6f)))
+        Text(
+            "That's the day, sealed.",
+            style = AppType.note,
+            color = palette.textPrimary
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (streakDays > 1) {
+                "Streak day $streakDays · tomorrow's sheet opens at zero."
+            } else {
+                "Tomorrow's sheet opens at zero."
+            },
+            style = AppType.caption,
+            color = palette.textSecondary
+        )
     }
 }
 

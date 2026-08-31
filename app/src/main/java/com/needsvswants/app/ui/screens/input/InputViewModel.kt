@@ -21,6 +21,7 @@ import com.needsvswants.app.domain.QuotaState
 import com.needsvswants.app.domain.ReceiptOcrProcessor
 import com.needsvswants.app.domain.ReceiptScanResult
 import com.needsvswants.app.domain.ScannedLineItem
+import com.needsvswants.app.domain.StreakMath
 import com.needsvswants.app.domain.WantHold
 import com.needsvswants.app.domain.filterAmountInput
 import com.needsvswants.app.domain.parseCents
@@ -38,7 +39,18 @@ import java.util.*
 import javax.inject.Inject
 
 sealed class SealEvent {
-    data class Sealed(val sheetComplete: Boolean) : SealEvent()
+    /**
+     * Peak-moment payload for the Log seal choreography (D191). [firstEver]
+     * marks the diary's very first entry; [firstOfDay] the first seal of the
+     * local day, the instant a logging streak extends, with [streakDay] as the
+     * streak length that seal creates. 0 when not applicable.
+     */
+    data class Sealed(
+        val sheetComplete: Boolean,
+        val firstEver: Boolean = false,
+        val firstOfDay: Boolean = false,
+        val streakDay: Int = 0
+    ) : SealEvent()
 }
 
 data class QuotaBlocked(val item: String, val costCents: Long, val type: EntryType)
@@ -386,7 +398,16 @@ class InputViewModel @Inject constructor(
             }.timeInMillis
         } ?: now
         sealHourOverride.value = null
-        val willComplete = !entitlement.value.hasProAccessAt(now) && sheetEntries.value.size + 1 >= 20
+        val existing = sheetEntries.value
+        val willComplete = !entitlement.value.hasProAccessAt(now) && existing.size + 1 >= 20
+        val firstEver = existing.isEmpty()
+        val firstOfDay = existing.none { it.date == todayString() }
+        val streakDay = if (firstOfDay) {
+            StreakMath.currentStreak(
+                existing.map { it.date }.distinct() + dateFormat.format(Date(stamp)),
+                now
+            )
+        } else 0
         viewModelScope.launch {
             entries.insert(
                 Entry(
@@ -407,7 +428,14 @@ class InputViewModel @Inject constructor(
             activeCost.value = ""
             activeType.value = null
             isSealing = false
-            _sealEvents.tryEmit(SealEvent.Sealed(sheetComplete = willComplete))
+            _sealEvents.tryEmit(
+                SealEvent.Sealed(
+                    sheetComplete = willComplete,
+                    firstEver = firstEver,
+                    firstOfDay = firstOfDay,
+                    streakDay = streakDay
+                )
+            )
             appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
@@ -492,12 +520,26 @@ class InputViewModel @Inject constructor(
             )
         }
 
+        val existing = sheetEntries.value
+        val firstEver = existing.isEmpty()
+        val firstOfDay = existing.none { it.date == dateStr }
+        val streakDay = if (firstOfDay) {
+            StreakMath.currentStreak(existing.map { it.date }.distinct() + dateStr, now)
+        } else 0
+
         isSealing = true
         viewModelScope.launch {
             try {
                 entries.insertAll(entriesToInsert)
                 _receiptScanState.value = ReceiptScanUiState.Idle
-                _sealEvents.tryEmit(SealEvent.Sealed(sheetComplete = false))
+                _sealEvents.tryEmit(
+                    SealEvent.Sealed(
+                        sheetComplete = false,
+                        firstEver = firstEver,
+                        firstOfDay = firstOfDay,
+                        streakDay = streakDay
+                    )
+                )
                 appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
             } finally {
                 isSealing = false

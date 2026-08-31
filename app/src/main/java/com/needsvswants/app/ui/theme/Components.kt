@@ -683,7 +683,8 @@ fun PremiumDialog(
 fun SealStampOverlay(
     visible: Boolean,
     modifier: Modifier = Modifier,
-    label: String = "SEALED"
+    label: String = "SEALED",
+    caption: String? = null
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -705,11 +706,21 @@ fun SealStampOverlay(
                 .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = label,
-                style = AppType.stamp,
-                color = AppTheme.colors.gold.copy(alpha = 0.92f)
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = label,
+                    style = AppType.stamp,
+                    color = AppTheme.colors.gold.copy(alpha = 0.92f)
+                )
+                if (caption != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = caption,
+                        style = AppType.meta,
+                        color = AppTheme.colors.textSecondary
+                    )
+                }
+            }
         }
     }
 }
@@ -1004,6 +1015,8 @@ fun SelectChip(
     selected: Boolean,
     color: Color,
     modifier: Modifier = Modifier,
+    /** Dense variant for scrolled chip rows (hour stamps, replay, suggestions). */
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -1020,23 +1033,32 @@ fun SelectChip(
     Surface(
         onClick = onClick,
         interactionSource = interaction,
-        shape = AppShapes.r12,
+        shape = if (compact) AppShapes.r8 else AppShapes.r12,
         color = bgColor,
         border = BorderStroke(if (selected) 1.5.dp else 1.dp, borderColor),
         modifier = modifier
-            .heightIn(min = 48.dp)
+            .heightIn(min = if (compact) 44.dp else 48.dp)
             .pressRecoil(interaction)
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(
+                if (compact) PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                else PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+            ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 label,
                 color = if (selected) color else AppTheme.colors.textSecondary,
-                style = AppType.button.copy(
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
-                )
+                style = if (compact) {
+                    AppType.meta.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                    )
+                } else {
+                    AppType.button.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                    )
+                }
             )
         }
     }

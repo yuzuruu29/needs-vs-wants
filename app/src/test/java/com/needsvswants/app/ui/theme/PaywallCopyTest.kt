@@ -27,6 +27,11 @@ class PaywallCopyTest {
         assertEquals("₱990", PaywallCopy.maxPrice(isAnnual = true))
     }
 
+    @Test
+    fun freePrice_rendersFromThisObject() {
+        assertEquals("₱0", PaywallCopy.FREE_PRICE)
+    }
+
     // ── One amount per tier/period across every surface ──────────────────
 
     @Test
