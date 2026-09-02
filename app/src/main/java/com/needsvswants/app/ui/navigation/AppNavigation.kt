@@ -233,7 +233,12 @@ fun AppNavigation(
                                 else -> AppTheme.colors.crimson
                             }
 
-                            Box(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                            // No IntrinsicSize.Min here: it forces an intrinsic query
+                            // onto this Box's children, and BoxWithConstraints is a
+                            // SubcomposeLayout whose intrinsics throw — that crashed
+                            // every startup since 2.0.23. matchParentSize alone ties
+                            // the pill layer to the tab Row's measured height.
+                            Box(modifier = Modifier.fillMaxWidth()) {
                                 BoxWithConstraints(modifier = Modifier.matchParentSize()) {
                                     val tabWidth = maxWidth / tabs.size
                                     Box(
