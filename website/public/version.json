@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.25",
-  "versionCode": 33,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.25.apk",
-  "sha256": "4be5da4dc30b323db37b09aea1d9062046d61c7b5e6afe9832338d157d367c31",
-  "notes": "Narrative onboarding, first-seal beats, starter chips, empty sheet flow hints, reverse-chat advisor",
-  "updatedAt": "2026-09-01T00:00:00.000Z"
+  "versionName": "2.0.26",
+  "versionCode": 34,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.26.apk",
+  "sha256": "bc3676768b4c6034ca293b4d29a8b7bc6ee0ee6522c2a51bfbf200b8fe549ef7",
+  "notes": "Tilt-foil seals, ink-bleed stamps, tear-to-delete diary, sparkline loupe, wax-seal pull refresh, primitive haptics, keyboard float",
+  "updatedAt": "2026-09-03T00:00:00.000Z"
 }
