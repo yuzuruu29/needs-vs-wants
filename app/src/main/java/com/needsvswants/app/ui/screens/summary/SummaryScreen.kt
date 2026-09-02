@@ -35,7 +35,6 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,8 +45,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -162,20 +164,19 @@ fun SummaryScreen(
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = {
-            haptics.tick()
+            // Wax seal press lands on release (D195).
+            haptics.seal()
             refreshing = true
             viewModel.refresh()
         },
         state = pullState,
         indicator = {
-            // Gold spinner on a paper chip (design audit #11). Positional args:
-            // (state, isRefreshing, modifier, containerColor, indicatorColor).
-            PullToRefreshDefaults.Indicator(
-                pullState,
-                refreshing,
-                Modifier.align(Alignment.TopCenter),
-                palette.surfaceCard,
-                palette.gold
+            // Mechanical seal-cord pull: the cord stretches, the wax seal
+            // presses home on release. Replaces the stock gold spinner (D195).
+            SealPullIndicator(
+                distanceFraction = pullState.distanceFraction,
+                refreshing = refreshing,
+                modifier = Modifier.align(Alignment.TopCenter)
             )
         },
         modifier = Modifier.fillMaxSize()
@@ -457,11 +458,15 @@ fun SummaryScreen(
                             animationSpec = Motion.entrance(),
                             label = "donutNeedsSweep"
                         )
+                        // Budget tension feeds the dial's breathing halo + heavier press (D195).
+                        val budgetTension = (budgetStatus as? BudgetStatus.On)
+                            ?.let { dialTension(it.progress) } ?: 0f
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             SpendDial(
                                 needsSweepDegrees = needsSweep,
                                 empty = false,
                                 dialSize = 210.dp,
+                                tensionLevel = budgetTension,
                                 onClick = {
                                     haptics.tick()
                                     showSplitPortal = true
@@ -956,22 +961,19 @@ private fun StatCard(
     ) {
         Eyebrow(label, color = palette.textMuted, size = 11)
         Spacer(Modifier.height(scaledSpacing(6f)))
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val moneyText = cents.toMoney(symbol)
-            val size = fittingMoneySize(moneyText, 17.sp, maxWidth)
-            AnimatedMoney(
-                cents = cents,
-                symbol = symbol,
-                style = AppType.moneyMd.copy(
-                    fontSize = size,
-                    color = accent
-                ),
-                maxLines = 1,
-                softWrap = false,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val moneyText = cents.toMoney(symbol)
+                val size = fittingMoneySize(moneyText, 17.sp, maxWidth)
+                AnimatedOdometerMoney(
+                    cents = cents,
+                    symbol = symbol,
+                    style = AppType.moneyMd.copy(
+                        fontSize = size,
+                        color = accent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         Spacer(Modifier.height(6.dp))
         Text(
             "$pct% of spend",
@@ -1462,5 +1464,80 @@ private fun emptyPeriodCopy(
         Period.WEEK -> "QUIET WEEK" to "No spend in this week window yet.\nLog a purchase to start the split."
         Period.MONTH -> "QUIET MONTH" to "No spend in this month window yet.\nLog a purchase to fill the chart."
         Period.ALL -> "NO ENTRIES" to "Nothing in the active window.\nLog a purchase to fill the chart."
+    }
+}
+
+/**
+ * Mechanical seal-cord pull-to-refresh indicator (D195): a gold cord with a wax
+ * seal at its end stretches under the pull; on release the seal presses home
+ * with a squash and leaves a gold ink ring on the paper. Reduced motion skips
+ * the press animation. Replaces the stock spinner (D128/D133 lineage).
+ */
+@Composable
+private fun SealPullIndicator(
+    distanceFraction: Float,
+    refreshing: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    var crossed by remember { mutableStateOf(false) }
+    LaunchedEffect(distanceFraction) {
+        if (distanceFraction >= 1f && !crossed) {
+            crossed = true
+            haptics.primitiveTick(0.9f)
+        } else if (distanceFraction < 0.85f) {
+            crossed = false
+        }
+    }
+    val press = remember { Animatable(0f) }
+    LaunchedEffect(refreshing) {
+        if (refreshing && Motion.enabled) {
+            press.animateTo(1f, Motion.seal())
+        } else if (!refreshing) {
+            press.snapTo(0f)
+        }
+    }
+    val pull = distanceFraction.coerceIn(0f, 1.5f)
+    if (pull <= 0.02f && !refreshing) return
+    Canvas(modifier.size(width = 64.dp, height = 92.dp)) {
+        val cx = size.width / 2f
+        val restY = size.height * 0.42f
+        val stretch = (pull / 1.5f).coerceIn(0f, 1f)
+        val pressT = press.value
+        val sealY = if (refreshing) restY else restY + stretch * size.height * 0.30f
+        val sealR = size.width * 0.26f * (0.75f + 0.25f * stretch)
+        drawLine(
+            color = palette.gold.copy(alpha = 0.9f),
+            start = Offset(cx, 0f),
+            end = Offset(cx, sealY - sealR * 0.9f),
+            strokeWidth = 1.8f.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        if (refreshing || pressT > 0f) {
+            drawCircle(
+                color = palette.gold.copy(alpha = 0.35f * (1f - pressT * 0.6f)),
+                radius = sealR * (1.25f + 0.15f * pressT),
+                center = Offset(cx, restY),
+                style = Stroke(width = 2f.dp.toPx())
+            )
+        }
+        withTransform({ scale(1f + 0.18f * pressT, 1f - 0.18f * pressT, pivot = Offset(cx, sealY)) }) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(palette.crimson, palette.crimsonDeep),
+                    center = Offset(cx - sealR * 0.2f, sealY - sealR * 0.25f),
+                    radius = sealR * 1.3f
+                ),
+                radius = sealR,
+                center = Offset(cx, sealY)
+            )
+            drawCircle(
+                color = palette.gold.copy(alpha = 0.55f),
+                radius = sealR * 0.45f,
+                center = Offset(cx, sealY),
+                style = Stroke(width = 1.2f.dp.toPx())
+            )
+        }
     }
 }

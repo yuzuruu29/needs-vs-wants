@@ -205,11 +205,20 @@ fun DailyBudgetMeter(
         Column(modifier = Modifier.padding(scaledSpacing(16f))) {
             Eyebrow("DAILY BUDGET", color = if (over) AppTheme.colors.crimson else AppTheme.colors.gilt)
             Spacer(Modifier.height(scaledSpacing(8f)))
-            Text(
-                "${status.spentCents.toMoney(symbol)} / ${status.budgetCents.toMoney(symbol)}",
-                style = AppType.moneyMd,
-                color = AppTheme.colors.textPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AnimatedOdometerMoney(
+                    cents = status.spentCents,
+                    symbol = symbol,
+                    style = AppType.moneyMd,
+                    color = AppTheme.colors.textPrimary
+                )
+                Spacer(Modifier.width(scaledSpacing(6f)))
+                Text(
+                    "/ ${status.budgetCents.toMoney(symbol)}",
+                    style = AppType.moneyMd,
+                    color = AppTheme.colors.textSecondary
+                )
+            }
             Spacer(Modifier.height(scaledSpacing(8f)))
             LinearProgressIndicator(
                 progress = { animatedProgress },
@@ -706,19 +715,25 @@ fun SealStampOverlay(
                 .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = label,
-                    style = AppType.stamp,
-                    color = AppTheme.colors.gold.copy(alpha = 0.92f)
-                )
-                if (caption != null) {
-                    Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .inkBleedStamp(active = visible, ink = AppTheme.colors.gold)
+                    .padding(horizontal = 36.dp, vertical = 26.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = caption,
-                        style = AppType.meta,
-                        color = AppTheme.colors.textSecondary
+                        text = label,
+                        style = AppType.stamp,
+                        color = AppTheme.colors.gold.copy(alpha = 0.92f)
                     )
+                    if (caption != null) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = caption,
+                            style = AppType.meta,
+                            color = AppTheme.colors.textSecondary
+                        )
+                    }
                 }
             }
         }
@@ -831,7 +846,9 @@ fun EntryLedgerRow(
     symbol: String,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    showCard: Boolean = false
+    showCard: Boolean = false,
+    /** Optional tap action (History row expansion); default stays tap-sfx only. */
+    onClick: (() -> Unit)? = null
 ) {
     val typeColor = if (entry.type == EntryType.NEED) AppTheme.colors.need else AppTheme.colors.want
     val money = entry.costCents.toMoney(symbol)
@@ -839,7 +856,10 @@ fun EntryLedgerRow(
     // Indication comes from the theme-wide ink wave (D99) via LocalIndication.
     val sfx = rememberAppSfx()
     val press = Modifier.combinedClickable(
-        onClick = { sfx.tap() },
+        onClick = {
+            sfx.tap()
+            onClick?.invoke()
+        },
         onLongClick = {
             sfx.longPress()
             onDelete()

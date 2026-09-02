@@ -5,17 +5,22 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.entitlement.PayPalReturnHandler
 import com.needsvswants.app.ui.AppAppearanceViewModel
 import com.needsvswants.app.ui.navigation.AppNavigation
+import com.needsvswants.app.ui.theme.AppPalette
 import com.needsvswants.app.ui.theme.LocalAppSfx
 import com.needsvswants.app.ui.theme.LocalHapticsEnabled
 import com.needsvswants.app.ui.theme.NeedsVsWantsTheme
@@ -45,6 +50,19 @@ class MainActivity : ComponentActivity() {
                 .start()
         }
         super.onCreate(savedInstanceState)
+        // Edge-to-edge (D195): Compose owns the insets, so imePadding /
+        // navigationBarsPadding go live and the ledger floats over the keyboard
+        // on the animated IME track instead of a window resize jump.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        )
         // Fresh process launched by a PayPal / PayMongo checkout deep link.
         handleCheckoutDeepLink(intent?.data)
         val openTab = intent?.getStringExtra(EXTRA_OPEN_TAB)
@@ -56,6 +74,13 @@ class MainActivity : ComponentActivity() {
             val hapticsEnabled by appearanceVm.hapticsEnabled.collectAsStateWithLifecycle()
             val reducedMotion by appearanceVm.reducedMotion.collectAsStateWithLifecycle()
             val sfx = rememberBoundAppSfx(enabled = sfxEnabled)
+            val systemDark = isSystemInDarkTheme()
+            // Status-bar ink follows the app palette (may differ from system dark).
+            val palette = remember(themeId, systemDark) { AppPalette.forTheme(themeId, systemDark) }
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView)
+                    .isAppearanceLightStatusBars = palette.isLightStatusBars
+            }
             val startRoute = remember(openTab) {
                 when (openTab) {
                     TAB_LOG -> "input"
@@ -69,7 +94,7 @@ class MainActivity : ComponentActivity() {
                 NeedsVsWantsTheme(
                     themeId = themeId,
                     fontScaleStep = fontScaleStep,
-                    systemDark = isSystemInDarkTheme(),
+                    systemDark = systemDark,
                     userReducedMotion = reducedMotion,
                 ) {
                     AppNavigation(startDestination = startRoute ?: "summary")

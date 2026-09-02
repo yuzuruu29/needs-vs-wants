@@ -1,5 +1,6 @@
 package com.needsvswants.app.ui.theme
 
+import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
@@ -20,8 +21,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -29,8 +33,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -220,7 +226,8 @@ fun rememberIdleBreathAlpha(): Float {
  * Animated Odometer Money count-up with independent vertical digit roll animation.
  *
  * Digits roll vertically into place using [Motion.odometer], while formatting
- * through [toMoney] or [toMoneyWhole] with [symbol].
+ * through [toMoney] or [toMoneyWhole] with [symbol]. Each roll carries a brief
+ * velocity motion blur (API 31+; a no-op below Android S and under reduced motion).
  */
 @Composable
 fun AnimatedOdometerMoney(
@@ -248,25 +255,7 @@ fun AnimatedOdometerMoney(
     ) {
         text.forEachIndexed { index, char ->
             if (char.isDigit()) {
-                AnimatedContent(
-                    targetState = char,
-                    transitionSpec = {
-                        if (targetState > initialState) {
-                            (slideInVertically(animationSpec = Motion.odometer()) { height -> height } + fadeIn(Motion.odometer()))
-                                .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeOut(Motion.odometer()))
-                        } else {
-                            (slideInVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeIn(Motion.odometer()))
-                                .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> height } + fadeOut(Motion.odometer()))
-                        }
-                    },
-                    label = "odometerChar$index"
-                ) { digit ->
-                    Text(
-                        text = digit.toString(),
-                        style = style,
-                        color = color ?: Color.Unspecified
-                    )
-                }
+                RollingDigit(char = char, style = style, color = color)
             } else {
                 Text(
                     text = char.toString(),
@@ -274,6 +263,83 @@ fun AnimatedOdometerMoney(
                     color = color ?: Color.Unspecified
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RollingDigit(
+    char: Char,
+    style: TextStyle,
+    color: Color?,
+) {
+    var previous by remember { mutableStateOf(char) }
+    AnimatedContent(
+        targetState = char,
+        transitionSpec = {
+            if (targetState > initialState) {
+                (slideInVertically(animationSpec = Motion.odometer()) { height -> height } + fadeIn(Motion.odometer()))
+                    .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeOut(Motion.odometer()))
+            } else {
+                (slideInVertically(animationSpec = Motion.odometer()) { height -> -height } + fadeIn(Motion.odometer()))
+                    .togetherWith(slideOutVertically(animationSpec = Motion.odometer()) { height -> height } + fadeOut(Motion.odometer()))
+            }
+        },
+        label = "odometerDigit"
+    ) { digit ->
+        val rolling = digit != previous
+        val blur = remember(rolling) { Animatable(if (rolling) 1f else 0f) }
+        LaunchedEffect(digit, rolling) {
+            if (rolling) blur.animateTo(0f, Motion.odometer())
+        }
+        Text(
+            text = digit.toString(),
+            style = style,
+            color = color ?: Color.Unspecified,
+            modifier = Modifier.graphicsLayer {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blur.value > 0.05f) {
+                    val radius = 3.dp.toPx() * blur.value
+                    renderEffect = runCatching { BlurEffect(radius, radius * 0.6f) }.getOrNull()
+                } else {
+                    renderEffect = null
+                }
+            }
+        )
+    }
+    SideEffect { if (char != previous) previous = char }
+}
+
+/**
+ * Pure sheet-open phase of the two-stage origami unfold: rotateX in degrees for
+ * a slip hinged at its top edge. Progress 0..[Motion.UnfoldSheetPortion] unfolds
+ * the sheet; the remainder of the progress window belongs to the seal landing.
+ */
+fun unfoldSheetRotationX(progress: Float): Float =
+    -(1f - (progress / Motion.UnfoldSheetPortion).coerceIn(0f, 1f)) * Motion.UnfoldMaxDegrees
+
+/** Pure: the sheet-opening share of the unfold progress (0..1). */
+fun unfoldSheetProgress(progress: Float): Float =
+    (progress / Motion.UnfoldSheetPortion).coerceIn(0f, 1f)
+
+/** Pure: the seal-landing share of the unfold progress (0..1, stays 0 while the sheet opens). */
+fun unfoldSealProgress(progress: Float): Float =
+    ((progress - Motion.UnfoldSheetPortion) / (1f - Motion.UnfoldSheetPortion)).coerceIn(0f, 1f)
+
+/**
+ * Origami unfold modifier for paper slips hinged at the top edge: the sheet
+ * swings down from edge-on ([Motion.UnfoldMaxDegrees]) to flat while fading in,
+ * then settles with a short drop in the final tenth of [progress].
+ */
+fun Modifier.origamiUnfold(progress: Float, offsetYDp: Float = 6f): Modifier = composed {
+    val settlePx = with(LocalDensity.current) { offsetYDp.dp.toPx() }
+    this.graphicsLayer {
+        if (progress >= 1f) return@graphicsLayer
+        rotationX = unfoldSheetRotationX(progress)
+        alpha = (progress / 0.25f).coerceIn(0f, 1f)
+        transformOrigin = TransformOrigin(0.5f, 0f)
+        cameraDistance = Motion.PageFlipCameraDistance * density
+        if (progress > 0.9f) {
+            translationY = (1f - (progress - 0.9f) / 0.1f) * settlePx
         }
     }
 }

@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -118,7 +120,7 @@ private val STARTER_CHIPS = listOf(
     "Coffee" to EntryType.WANT
 )
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun InputScreen(
     viewModel: InputViewModel = hiltViewModel(),
@@ -260,7 +262,9 @@ fun InputScreen(
     LaunchedEffect(Unit) {
         viewModel.sealEvents.collect { event ->
             if (event is SealEvent.Sealed) {
-                haptics.seal()
+                // Deep thud + hum on the NEED/WANT seal hit (D195); the constant
+                // fallback chain lives inside AppHaptics.
+                haptics.sealThud()
                 // Newest entry is at the top of the list.
                 listState.animateScrollToItem(0)
                 // Peak beats (D191): the sheet-complete stamp stays; the very
@@ -468,15 +472,24 @@ fun InputScreen(
                     tonalElevation = 0.dp
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
-                        AnimatedContent(
-                            targetState = isFull,
-                            transitionSpec = {
-                                fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
-                            },
-                            label = "logFormOrComplete"
-                        ) { sheetFull ->
-                            if (!sheetFull) {
-                                PremiumSurface(raised = false) {
+                        // Container transform (D195): the quick-log input card and the
+                        // sheet-complete card share one morphing paper surface.
+                        SharedTransitionLayout {
+                            AnimatedContent(
+                                targetState = isFull,
+                                transitionSpec = {
+                                    fadeIn(Motion.state()) togetherWith fadeOut(Motion.state())
+                                },
+                                label = "logFormOrComplete"
+                            ) { sheetFull ->
+                                val morphModifier = Modifier.sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "log-seal-card"),
+                                    animatedVisibilityScope = this,
+                                    enter = fadeIn(Motion.state()),
+                                    exit = fadeOut(Motion.state())
+                                )
+                                if (!sheetFull) {
+                                    PremiumSurface(modifier = morphModifier, raised = false) {
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         if (item.isBlank()) {
                                             val chipsToShow = if (lastItemChips.isNotEmpty()) lastItemChips else STARTER_CHIPS
@@ -590,7 +603,7 @@ fun InputScreen(
                                     }
                                 }
                             } else {
-                                PremiumSurface(goldEdge = true) {
+                                PremiumSurface(modifier = morphModifier, goldEdge = true) {
                                     Column(
                                         modifier = Modifier.padding(20.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
@@ -611,6 +624,7 @@ fun InputScreen(
                                     }
                                 }
                             }
+                        }
                         }
                     }
                 }

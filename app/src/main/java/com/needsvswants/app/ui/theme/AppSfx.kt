@@ -10,8 +10,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.needsvswants.app.R
+import java.util.Random
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+
+/**
+ * Organic playback rate for repeated UI sounds: ±2% pitch variance so a row of
+ * identical taps never reads machine-stamped. Pure so tests can pin the bounds.
+ */
+internal fun organicRate(seed: Long = System.nanoTime()): Float =
+    1f + ((Random(seed).nextDouble() - 0.5) * 0.04).toFloat()
 
 /**
  * Short UI sonification for ledger taps, long-press, and the Summary orb.
@@ -132,7 +140,7 @@ class SoundPoolAppSfx(context: Context) : AppSfx {
         // Try play even if load callback has not fired yet — SoundPool returns 0 if not ready.
         runCatching {
             val v = volume.coerceIn(0f, 1f)
-            pool.play(soundId, v, v, /* priority */ 1, /* loop */ 0, /* rate */ 1f)
+            pool.play(soundId, v, v, /* priority */ 1, /* loop */ 0, /* rate */ organicRate())
         }
     }
 

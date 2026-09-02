@@ -185,8 +185,15 @@ fun AppNavigation(
     }
 
     // Desk under the ledger: warm paper wash. Individual tabs are opaque sheets
-    // that paper-flip on swipe / pill tap (see [PaperPagerPage]).
-    Box(modifier = Modifier.fillMaxSize().background(themedInkWash()).nestedScroll(fabScrollConnection)) {
+    // that paper-flip on swipe / pill tap (see [PaperPagerPage]). Edge-to-edge:
+    // the wash bleeds under the status bar while content pads below it (D195).
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(themedInkWash())
+            .statusBarsPadding()
+            .nestedScroll(fabScrollConnection)
+    ) {
         Scaffold(
             containerColor = AppTheme.colors.background,
             bottomBar = {

@@ -1,12 +1,14 @@
 package com.needsvswants.app.ui.screens.input
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,15 +37,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +75,7 @@ import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.pressRecoil
 import com.needsvswants.app.ui.theme.rememberAppHaptics
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.launch
 
 @Composable
 fun ReceiptSorterModal(
@@ -340,12 +347,70 @@ private fun ScannedItemRow(
     onDelete: () -> Unit
 ) {
     val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    val scope = rememberCoroutineScope()
     var rawAmount by remember(item.costCents) { mutableStateOf(item.costCents.toInputAmount()) }
+    // Elastic swipe-to-classify (D195): right stamps WANT, left stamps NEED,
+    // with rotational torque and an ink watermark surfacing beneath the card.
+    // Swipes starting on the text fields stay text selection by contract.
+    var dragPx by remember(item.id) { mutableFloatStateOf(0f) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(AppShapes.r12)
+            .pointerInput(item.id) {
+                val settle = Animatable(0f)
+                detectHorizontalDragGestures(
+                    onDragStart = { scope.launch { settle.stop() } },
+                    onHorizontalDrag = { change, amount ->
+                        change.consume()
+                        dragPx = (dragPx + amount).coerceIn(-180f, 180f)
+                    },
+                    onDragEnd = {
+                        val threshold = 72.dp.toPx()
+                        if (kotlin.math.abs(dragPx) >= threshold) {
+                            onTypeSelect(if (dragPx > 0f) EntryType.WANT else EntryType.NEED)
+                            haptics.textureTick(0.85f)
+                        } else if (kotlin.math.abs(dragPx) > 8f) {
+                            haptics.tick()
+                        }
+                        scope.launch {
+                            settle.snapTo(dragPx)
+                            settle.animateTo(0f, Motion.spatialSpring())
+                            dragPx = settle.value
+                        }
+                    },
+                    onDragCancel = {
+                        scope.launch {
+                            settle.snapTo(dragPx)
+                            settle.animateTo(0f, Motion.spatialSpring())
+                            dragPx = settle.value
+                        }
+                    }
+                )
+            }
+    ) {
+        val strength = (kotlin.math.abs(dragPx) / 96f).coerceIn(0f, 1f)
+        if (strength > 0.02f) {
+            Text(
+                text = if (dragPx > 0f) "WANT" else "NEED",
+                style = AppType.stamp.copy(fontSize = 26.sp),
+                color = (if (dragPx > 0f) palette.crimson else palette.marketGreen)
+                    .copy(alpha = 0.25f + 0.45f * strength),
+                modifier = Modifier
+                    .align(if (dragPx > 0f) Alignment.CenterStart else Alignment.CenterEnd)
+                    .graphicsLayer { rotationZ = if (dragPx > 0f) -8f else 8f }
+                    .padding(horizontal = 14.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    translationX = dragPx
+                    rotationZ = dragPx * 0.02f
+                }
+                .clip(AppShapes.r12)
             .background(palette.surfaceCard)
             .border(
                 BorderStroke(
@@ -487,6 +552,7 @@ private fun ScannedItemRow(
                     )
                 }
             }
+        }
         }
     }
 }

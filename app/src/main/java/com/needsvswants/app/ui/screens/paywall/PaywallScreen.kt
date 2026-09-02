@@ -2,6 +2,7 @@ package com.needsvswants.app.ui.screens.paywall
 
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -64,20 +65,26 @@ import com.needsvswants.app.ui.theme.GiltButton
 import com.needsvswants.app.ui.theme.GiltRule
 import com.needsvswants.app.ui.theme.LedgerField
 import com.needsvswants.app.ui.theme.MembershipPlan
+import com.needsvswants.app.ui.theme.MembershipSealBadge
 import com.needsvswants.app.ui.theme.Motion
 import com.needsvswants.app.ui.theme.NeedWantSealMark
+import com.needsvswants.app.ui.theme.origamiUnfold
 import com.needsvswants.app.ui.theme.PaywallCopy
 import com.needsvswants.app.ui.theme.PaywallNoticeSurface
 import com.needsvswants.app.ui.theme.PaywallType
 import com.needsvswants.app.ui.theme.PlanTierCard
 import com.needsvswants.app.ui.theme.TrialTimelineCard
+import com.needsvswants.app.ui.theme.unfoldSealProgress
+import com.needsvswants.app.ui.theme.unfoldSheetProgress
 import com.needsvswants.app.ui.theme.rememberAppHaptics
 import com.needsvswants.app.ui.theme.themedInkWash
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Pro/Max membership desk.
@@ -519,14 +526,51 @@ fun PaywallScreen(
 
                 AnimatedVisibility(
                     visible = selected == MembershipPlan.Pro || selected == MembershipPlan.Max,
-                    enter = fadeIn(Motion.entrance()) + slideInVertically(Motion.entrance()) { it / 8 },
+                    enter = fadeIn(Motion.entrance()),
                     exit = fadeOut(Motion.feedback())
                 ) {
-                    TrialTimelineCard(
-                        forMax = selected == MembershipPlan.Max,
-                        provider = effectiveProvider,
-                        period = selectedPeriod
-                    )
+                    // Two-stage origami unfold (D195): the billing slip unfolds
+                    // down from its top hinge, then the tier seal stamps home.
+                    val slipKey = selected to effectiveProvider
+                    val unfold = remember { Animatable(0f) }
+                    LaunchedEffect(slipKey) {
+                        if (Motion.enabled) {
+                            unfold.snapTo(0f)
+                            unfold.animateTo(1f, Motion.unfold())
+                            haptics.seal()
+                        } else {
+                            unfold.snapTo(1f)
+                        }
+                    }
+                    Column {
+                        TrialTimelineCard(
+                            forMax = selected == MembershipPlan.Max,
+                            provider = effectiveProvider,
+                            period = selectedPeriod,
+                            modifier = Modifier.origamiUnfold(unfoldSheetProgress(unfold.value))
+                        )
+                        val sealProgress = unfoldSealProgress(unfold.value)
+                        if (sealProgress > 0f) {
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        alpha = sealProgress
+                                        val s = lerp(1.45f, 1f, sealProgress)
+                                        scaleX = s
+                                        scaleY = s
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                MembershipSealBadge(
+                                    label = if (selected == MembershipPlan.Max) "MAX" else "PRO",
+                                    size = 40.dp,
+                                    crimsonRing = selected == MembershipPlan.Max
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (isSignedIn) {

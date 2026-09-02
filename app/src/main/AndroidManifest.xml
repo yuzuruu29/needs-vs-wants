@@ -4,6 +4,8 @@
     <!-- Supabase auth / entitlement remote calls (Task 3 seam; unused while SUPABASE_URL is blank) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- D195 frequency-tuned haptics through Vibrator composition primitives. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
         android:name=".NeedsVsWantsApp"

@@ -1,10 +1,19 @@
 package com.needsvswants.app.ui.screens.history
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,9 +22,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,11 +76,32 @@ fun HistoryScreen(
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     var editTarget by remember { mutableStateOf<Entry?>(null) }
     var actionTarget by remember { mutableStateOf<Entry?>(null) }
+    // Row expanded into its entry slip (D195); one open slip at a time.
+    var expandedEntryId by remember { mutableStateOf<Long?>(null) }
     var importPending by remember { mutableStateOf<ImportUseCase.Result?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val haptics = rememberAppHaptics()
     val context = LocalContext.current
+
+    // Shared delete + undo (dialog confirm and perforated tear both land here).
+    val deleteWithUndo: (Entry) -> Unit = { target ->
+        actionTarget = null
+        expandedEntryId = null
+        haptics.warn()
+        viewModel.deleteEntry(target)
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                message = "Deleted \"${target.item}\"",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Long
+            ).let { result ->
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.restoreEntry(target)
+                }
+            }
+        }
+    }
 
     // Opens the system document picker (SAF) for a CSV file to import.
     val importLauncher = rememberLauncherForActivityResult(
@@ -389,10 +426,16 @@ fun HistoryScreen(
                                     GiltRule(width = 28.dp)
                                     Spacer(Modifier.height(10.dp))
                                     dayEntries.forEach { entry ->
-                                        EntryLedgerRow(
+                                        ExpandableTearEntry(
                                             entry = entry,
                                             symbol = symbol,
-                                            onDelete = { actionTarget = entry }
+                                            expanded = expandedEntryId == entry.id,
+                                            onToggle = {
+                                                expandedEntryId =
+                                                    if (expandedEntryId == entry.id) null else entry.id
+                                            },
+                                            onDelete = { actionTarget = entry },
+                                            onDeleteConfirmed = { deleteWithUndo(entry) }
                                         )
                                     }
                                 }
@@ -411,22 +454,7 @@ fun HistoryScreen(
                     actionTarget = null
                     editTarget = entry
                 },
-                onDelete = {
-                    actionTarget = null
-                    haptics.warn()
-                    viewModel.deleteEntry(entry)
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Deleted \"${entry.item}\"",
-                            actionLabel = "Undo",
-                            duration = SnackbarDuration.Long
-                        ).let { result ->
-                            if (result == SnackbarResult.ActionPerformed) {
-                                viewModel.restoreEntry(entry)
-                            }
-                        }
-                    }
-                }
+                onDelete = { deleteWithUndo(entry) }
             )
         }
 
@@ -705,6 +733,223 @@ private fun EditEntryDialog(
                 }
             }
         }
+    }
+}
+
+
+/** Fraction of row width the perforated tear must pass to commit the delete (D195). */
+internal const val TEAR_RELEASE_FRACTION = 0.42f
+
+/** Pure paper shear: tear progress (0..1) to rotation degrees of the tearing flap. */
+internal fun tearShearDegrees(fraction: Float): Float = fraction * 4.5f
+
+/**
+ * Expandable ledger entry (D195). Tap unfolds the row into its entry slip while
+ * the elastic [animateContentSize] spring pushes the adjacent ledger lines away.
+ * A horizontal perforated tear — paper shear, granular texture ticks, flutter
+ * drop — dismisses the entry straight into the delete + undo flow.
+ */
+@Composable
+private fun ExpandableTearEntry(
+    entry: Entry,
+    symbol: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onDeleteConfirmed: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (Motion.enabled) {
+                    Modifier.animateContentSize(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                            visibilityThreshold = IntSize.VisibilityThreshold
+                        )
+                    )
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        TearDismissRow(
+            entry = entry,
+            symbol = symbol,
+            onOpen = onToggle,
+            onDelete = onDelete,
+            onDeleteConfirmed = onDeleteConfirmed
+        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(Motion.state()),
+            exit = fadeOut(Motion.feedback())
+        ) {
+            EntrySlip(entry = entry, symbol = symbol)
+        }
+    }
+}
+
+/**
+ * Perforated tear-to-dismiss wrapper around [EntryLedgerRow]. Dragging right
+ * tears the row off its ledger line: the desk shows through, a dotted
+ * perforation rides the tear front, texture ticks fire along the path, and
+ * past the release threshold the flap shears off with a flutter and the
+ * entry is deleted (undo via snackbar). Under the threshold it springs back.
+ */
+@Composable
+private fun TearDismissRow(
+    entry: Entry,
+    symbol: String,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit,
+    onDeleteConfirmed: () -> Unit
+) {
+    val palette = AppTheme.colors
+    val haptics = rememberAppHaptics()
+    val scope = rememberCoroutineScope()
+    var rowWidth by remember { mutableIntStateOf(0) }
+    var tearPx by remember { mutableFloatStateOf(0f) }
+    var lastTickPx by remember { mutableFloatStateOf(0f) }
+    var committing by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged { rowWidth = it.width }
+            .pointerInput(entry.id, rowWidth) {
+                if (rowWidth <= 0) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        lastTickPx = tearPx
+                    },
+                    onHorizontalDrag = { change, dragAmount ->
+                        if (committing) return@detectHorizontalDragGestures
+                        change.consume()
+                        val next = (tearPx + dragAmount)
+                            .coerceIn(0f, rowWidth * 0.75f)
+                        if (kotlin.math.abs(next - lastTickPx) >= 26f) {
+                            lastTickPx = next
+                            haptics.textureTick(0.42f)
+                        }
+                        tearPx = next
+                    },
+                    onDragEnd = {
+                        val releasePx = rowWidth * TEAR_RELEASE_FRACTION
+                        if (tearPx >= releasePx) {
+                            committing = true
+                            haptics.textureTick(0.9f)
+                            scope.launch {
+                                val flight = Animatable(tearPx)
+                                flight.animateTo(rowWidth + 80f, Motion.receiptPrint())
+                                tearPx = flight.value
+                                onDeleteConfirmed()
+                                committing = false
+                            }
+                        } else {
+                            scope.launch {
+                                val settle = Animatable(tearPx)
+                                settle.animateTo(0f, Motion.spatialSpring())
+                                tearPx = settle.value
+                            }
+                        }
+                    },
+                    onDragCancel = {
+                        scope.launch {
+                            val settle = Animatable(tearPx)
+                            settle.animateTo(0f, Motion.spatialSpring())
+                            tearPx = settle.value
+                        }
+                    }
+                )
+            }
+    ) {
+        // Desk under-layer: revealed as the flap tears away, perforation dots
+        // riding the tear front.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(palette.surfaceSunken, AppShapes.r12)
+                .drawBehind {
+                    val x = tearPx - 6.dp.toPx()
+                    if (x > 2f) {
+                        val r = 1.6f.dp.toPx()
+                        var y = 4f
+                        while (y < size.height) {
+                            drawCircle(palette.surfaceCard.copy(alpha = 0.85f), radius = r, center = Offset(x, y))
+                            y += 9f.dp.toPx()
+                        }
+                    }
+                }
+        )
+        EntryLedgerRow(
+            entry = entry,
+            symbol = symbol,
+            onDelete = onDelete,
+            onClick = onOpen,
+            modifier = Modifier.graphicsLayer {
+                translationX = tearPx
+                rotationZ = tearShearDegrees((tearPx / rowWidth.coerceAtLeast(1)).coerceIn(0f, 1f))
+                transformOrigin = TransformOrigin(1f, 0.5f)
+                if (tearPx > 1f) {
+                    shadowElevation = 8.dp.toPx()
+                    shape = AppShapes.r12
+                }
+            }
+        )
+    }
+}
+
+/** Expanded receipt-slip detail for one entry (D195). */
+@Composable
+private fun EntrySlip(entry: Entry, symbol: String) {
+    val palette = AppTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .paperSurface(rememberPaperSpec(PaperKind.RECEIPT, goldEdge = true), AppShapes.r12)
+            .padding(horizontal = scaledSpacing(16f), vertical = scaledSpacing(12f))
+    ) {
+        Eyebrow("ENTRY SLIP", color = palette.gilt)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = entry.item,
+            style = AppType.titleSm,
+            color = palette.textPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+        SlipLine("DATE", entry.date)
+        SlipLine("TIME", entry.time)
+        SlipLine(
+            "TYPE",
+            if (entry.type == EntryType.NEED) "NEED" else "WANT",
+            valueColor = if (entry.type == EntryType.NEED) palette.need else palette.want
+        )
+        SlipLine("COST", entry.costCents.toMoney(symbol))
+    }
+}
+
+@Composable
+private fun SlipLine(label: String, value: String, valueColor: Color = AppTheme.colors.textSecondary) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            style = AppType.eyebrowSm,
+            color = AppTheme.colors.textMuted,
+            modifier = Modifier.width(72.dp)
+        )
+        Text(
+            text = value,
+            style = AppType.bodySm,
+            color = valueColor
+        )
     }
 }
 

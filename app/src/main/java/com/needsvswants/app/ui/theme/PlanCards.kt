@@ -91,6 +91,7 @@ fun MembershipSealBadge(
     crimsonRing: Boolean = false
 ) {
     val c = AppTheme.colors
+    val tilt = rememberTiltFoil()
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         if (crimsonRing) {
             Box(
@@ -109,7 +110,8 @@ fun MembershipSealBadge(
                     ),
                     shape = CircleShape
                 )
-                .border(BorderStroke(1.5.dp, c.goldSoft.copy(alpha = 0.9f)), CircleShape),
+                .border(BorderStroke(1.5.dp, c.goldSoft.copy(alpha = 0.9f)), CircleShape)
+                .tiltFoilSpecular(tilt, glowColor = c.onGold.copy(alpha = 1f), alpha = 0.22f),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -272,6 +274,7 @@ fun PlanTierCard(
                         ),
                         AppShapes.r16
                     )
+                    .tiltFoilSpecular(rememberTiltFoil(), alpha = 0.16f)
             )
         }
 

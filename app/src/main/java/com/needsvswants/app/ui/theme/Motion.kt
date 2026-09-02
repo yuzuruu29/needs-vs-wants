@@ -62,6 +62,14 @@ object Motion {
     const val PortalSuckMs = 320
     /** Percentage sheet expands after the void. */
     const val PortalRevealMs = 380
+    /** Two-stage origami slip unfold (paywall membership slip). */
+    const val UnfoldMs = 520
+    /** Unfold fraction of [UnfoldMs] spent opening the sheet; the rest is the seal landing. */
+    const val UnfoldSheetPortion = 0.7f
+    /** Max rotateX of the origami sheet at the closed hinge. */
+    const val UnfoldMaxDegrees = 88f
+    /** Low-frequency breathing period for budget-dial tension near the ceiling. */
+    const val TensionPulseMs = 1600
 
     /** Stamp landing scale — seal stamp grows in from here. */
     const val StampLandingScale = 0.8f
@@ -179,6 +187,12 @@ object Motion {
     /** Receipt slip land (paywall). */
     fun <T> receiptPrint(): TweenSpec<T> = tween(
         durationMillis = if (enabled) ReceiptPrintMs else 1,
+        easing = EasePaperFlip
+    )
+
+    /** Origami slip unfold (paywall membership slip). */
+    fun <T> unfold(): TweenSpec<T> = tween(
+        durationMillis = if (enabled) UnfoldMs else 1,
         easing = EasePaperFlip
     )
 
