@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.26",
-  "versionCode": 34,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.26.apk",
-  "sha256": "bc3676768b4c6034ca293b4d29a8b7bc6ee0ee6522c2a51bfbf200b8fe549ef7",
-  "notes": "Tilt-foil seals, ink-bleed stamps, tear-to-delete diary, sparkline loupe, wax-seal pull refresh, primitive haptics, keyboard float",
+  "versionName": "2.0.27",
+  "versionCode": 35,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.27.apk",
+  "sha256": "15c92224e6fddeeaf60611856145754ed56d7fc90ecb0bac03aa32c325879797",
+  "notes": "Startup crash fix (bottom bar), plus tilt-foil seals, ink-bleed stamps, tear-to-delete, loupe scrub, wax-seal pull refresh",
   "updatedAt": "2026-09-03T00:00:00.000Z"
 }
