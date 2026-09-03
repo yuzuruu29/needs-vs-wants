@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -126,6 +127,7 @@ fun ReceiptSorterModal(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .imePadding()
                         .padding(top = 16.dp)
                 ) {
                 // Top navigation bar
@@ -153,7 +155,7 @@ fun ReceiptSorterModal(
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(44.dp)
                             .background(palette.surfaceRaised, CircleShape)
                     ) {
                         Icon(
@@ -477,7 +479,7 @@ private fun ScannedItemRow(
 
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(44.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.DeleteOutline,

@@ -44,7 +44,7 @@ const locks = [
   ['notify endpoint', /xpwcrloarciomikfudln\.supabase\.co\/functions\/v1\/notify_signup/],
   ['honeypot field', /name="website" class="hp-field"/],
   // audit-gap locks: download trust block
-  ['apk sha256 on page', /15c92224e6fddeeaf60611856145754ed56d7fc90ecb0bac03aa32c325879797/],
+  ['apk sha256 on page', /0e97de0a56899099c22879754b2a52d662692d395affd908a780b275cff70445/],
   ['cert sha256 on page', /5fc43fb6e3a4d8e72123895d4b05d5f83082d8c6b242f1a8f8fd3039d551c961/],
   // audit-gap locks: subset woff2 fonts (TTFs were never in public/ and 404ed in prod)
   ['woff2 body font', /\.\/fonts\/source-sans3-regular\.woff2/],
@@ -62,7 +62,9 @@ const locks = [
   ['backup auto step', /Auto-backup daily/],
   ['subscribe guide', /How to subscribe, and how to get it back/],
   ['restore purchases step', /Restore purchases/],
+  ['all-30-day demo range', /dOff\(-30\)/],
 ];
+if (html.includes('dOff(-34)')) fail('stale 35-day demo range dOff(-34) still present');
 ['no network calls', '100% offline', 'NotebookLM', 'No ads, no tracking', 'No ads, no analytics'].forEach(claim => {
   if (html.includes(claim)) fail('banned claim present: ' + claim);
   else console.log('claim OK absent:', claim);

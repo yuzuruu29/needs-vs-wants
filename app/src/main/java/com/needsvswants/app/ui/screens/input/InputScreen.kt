@@ -574,9 +574,10 @@ fun InputScreen(
                                                 }
                                             )
                                             val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-                                            for (hour in 6..currentHour) {
+                                            val startHour = if (currentHour < 6) 0 else 6
+                                            for (hour in startHour..currentHour) {
                                                 SelectChip(
-                                                    label = String.format("%02d:00", hour),
+                                                    label = String.format(Locale.US, "%02d:00", hour),
                                                     selected = sealHour == hour,
                                                     color = palette.gilt,
                                                     compact = true,

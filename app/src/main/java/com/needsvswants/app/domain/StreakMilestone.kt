@@ -2,7 +2,7 @@ package com.needsvswants.app.domain
 
 /**
  * Quiet ledger milestones — typographic marks, not emoji badges.
- * Thresholds match the 35-day trainer cycle.
+ * Thresholds are streak-day marks. MASTER at 35 sits past the Free 30-day window.
  */
 enum class StreakMilestone(val days: Int, val label: String) {
     SPARK(3, "3-day mark"),

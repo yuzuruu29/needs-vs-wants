@@ -7,11 +7,13 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntSize
 
 /**
  * Single motion-token source for the physical-ledger feel.
@@ -33,12 +35,6 @@ object Motion {
     const val OdometerRollMs = 500
     /** Idle breath period — slow ambient pulse for hero rings. */
     const val IdleMs = 2400
-    /** Specular shine full rotation. */
-    const val OrbShineMs = 9000
-    /**
-     * Main-tab paper page-turn duration. Snappier than the website notepad
-     * (700ms) so five-tab navigation stays fluid while still reading as paper.
-     */
     /**
      * Main-tab paper page-turn. Kept short so horizontal swipes feel snappy
      * against vertical scroll (nested scroll still owns the other axis).
@@ -70,6 +66,8 @@ object Motion {
     const val UnfoldMaxDegrees = 88f
     /** Low-frequency breathing period for budget-dial tension near the ceiling. */
     const val TensionPulseMs = 1600
+    /** Paper shimmer sweep loop for loading skeletons. */
+    const val ShimmerMs = 1200
 
     /** Stamp landing scale — seal stamp grows in from here. */
     const val StampLandingScale = 0.8f
@@ -219,6 +217,17 @@ object Motion {
         )
     } else {
         tween<Float>(1)
+    }
+
+    /** Elastic content-size spring for expanding rows and cards. */
+    fun contentSizeSpring(): FiniteAnimationSpec<IntSize> = if (enabled) {
+        spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+            visibilityThreshold = IntSize.VisibilityThreshold
+        )
+    } else {
+        tween(1)
     }
 
     /** Selection (nav pill, chips) — crisp settle, no rubber bounce (D102). */

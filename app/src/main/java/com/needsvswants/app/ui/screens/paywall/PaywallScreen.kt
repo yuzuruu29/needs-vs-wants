@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -365,11 +367,8 @@ fun PaywallScreen(
     val showProviderSelector = (selected == MembershipPlan.Pro || selected == MembershipPlan.Max) &&
         payPalAvailable && payMongoAvailable
 
-    // Predictive back (design audit #10): scale the desk down proportional to the
-    // system back gesture so the user sees the previous surface beneath, then
-    // dismiss on commit. Progress 0..1, negligible at rest.
-    var backScale by remember { mutableStateOf(1f) }
-    var backAlpha by remember { mutableStateOf(1f) }
+    var backScale by remember { mutableFloatStateOf(1f) }
+    var backAlpha by remember { mutableFloatStateOf(1f) }
     PredictiveBackHandler(enabled = true) {
         it.collect { event ->
             backScale = 1f - (event.progress * 0.08f)
@@ -1037,7 +1036,7 @@ private fun EmailOtpDialog(
             color = c.surfaceCard,
             border = BorderStroke(1.dp, c.gold.copy(alpha = 0.35f))
         ) {
-            Column(modifier = Modifier.padding(22.dp)) {
+            Column(modifier = Modifier.imePadding().padding(22.dp)) {
                 Eyebrow("EMAIL SIGN-IN", color = c.crimson)
                 Spacer(Modifier.height(6.dp))
                 Text(

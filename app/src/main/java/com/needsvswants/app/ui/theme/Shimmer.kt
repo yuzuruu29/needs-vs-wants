@@ -40,7 +40,7 @@ fun PaperShimmer(
         initialValue = -0.5f,
         targetValue = 1.5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = Motion.EaseStandard),
+            animation = tween(Motion.ShimmerMs, easing = Motion.EaseStandard),
             repeatMode = RepeatMode.Restart
         ),
         label = "paperShimmerOffset"

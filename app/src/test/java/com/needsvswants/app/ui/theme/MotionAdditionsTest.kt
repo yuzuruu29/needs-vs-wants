@@ -1,6 +1,7 @@
 package com.needsvswants.app.ui.theme
 
 import com.needsvswants.app.ui.screens.history.tearShearDegrees
+import androidx.compose.animation.core.TweenSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -81,6 +82,22 @@ class MotionAdditionsTest {
         for (seed in 1L..200L) {
             val rate = organicRate(seed = seed)
             assertTrue("rate $rate out of bounds", rate in 0.98f..1.02f)
+        }
+    }
+
+    @Test
+    fun `shimmer sweep period is tokenized`() {
+        assertEquals(1200, Motion.ShimmerMs)
+    }
+
+    @Test
+    fun `content size spring collapses to 1ms when motion is disabled`() {
+        Motion.updateEnabled(0f)
+        try {
+            val spec = Motion.contentSizeSpring() as TweenSpec<*>
+            assertEquals(1, spec.durationMillis)
+        } finally {
+            Motion.updateEnabled(1f, false)
         }
     }
 }

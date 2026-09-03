@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.27",
-  "versionCode": 35,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.27.apk",
-  "sha256": "15c92224e6fddeeaf60611856145754ed56d7fc90ecb0bac03aa32c325879797",
-  "notes": "Startup crash fix (bottom bar), plus tilt-foil seals, ink-bleed stamps, tear-to-delete, loupe scrub, wax-seal pull refresh",
-  "updatedAt": "2026-09-03T00:00:00.000Z"
+  "versionName": "2.0.29",
+  "versionCode": 37,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.29.apk",
+  "sha256": "0e97de0a56899099c22879754b2a52d662692d395affd908a780b275cff70445",
+  "notes": "Keyboard dead band, centred spend dial, Free All 30-day window, tear/receipt motion that actually springs, pull-to-refresh tracks real sync",
+  "updatedAt": "2026-09-04T00:00:00.000Z"
 }

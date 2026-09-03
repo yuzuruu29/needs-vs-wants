@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -194,10 +195,16 @@ fun AppNavigation(
             .statusBarsPadding()
             .nestedScroll(fabScrollConnection)
     ) {
+        // Hide the bar while the IME is up so Scaffold does not keep its height above the keyboard.
+        val density = LocalDensity.current
+        val imeInsets = WindowInsets.ime
+        val imeVisible by remember(density, imeInsets) {
+            derivedStateOf { imeInsets.getBottom(density) > 0 }
+        }
         Scaffold(
             containerColor = AppTheme.colors.background,
             bottomBar = {
-                if (!paywallOpen) {
+                if (!paywallOpen && !imeVisible) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -387,7 +394,7 @@ fun AppNavigation(
         // Quick-log FAB (design audit #13): floats on every tab except Log itself.
         // Hidden while the paywall covers the desk and while the user scrolls down.
         AnimatedVisibility(
-            visible = fabVisible && !paywallOpen &&
+            visible = fabVisible && !paywallOpen && !imeVisible &&
                 MainTab.visibleEntries().getOrNull(pagerState.currentPage) != MainTab.Log,
             enter = fadeIn(Motion.feedback()) + scaleIn(initialScale = 0.8f, animationSpec = Motion.feedback()),
             exit = fadeOut(Motion.feedback()) + scaleOut(targetScale = 0.8f, animationSpec = Motion.feedback())

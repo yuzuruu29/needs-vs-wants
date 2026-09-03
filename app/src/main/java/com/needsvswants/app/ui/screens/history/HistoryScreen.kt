@@ -1,12 +1,8 @@
 package com.needsvswants.app.ui.screens.history
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
@@ -17,7 +13,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +26,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -660,7 +654,7 @@ private fun EditEntryDialog(
                 AppShapes.r20
             )
         ) {
-            Column(modifier = Modifier.padding(22.dp)) {
+            Column(modifier = Modifier.imePadding().padding(22.dp)) {
                 Eyebrow("EDIT ENTRY", color = c.crimson)
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -764,11 +758,7 @@ private fun ExpandableTearEntry(
             .then(
                 if (Motion.enabled) {
                     Modifier.animateContentSize(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMediumLow,
-                            visibilityThreshold = IntSize.VisibilityThreshold
-                        )
+                        animationSpec = Motion.contentSizeSpring()
                     )
                 } else {
                     Modifier

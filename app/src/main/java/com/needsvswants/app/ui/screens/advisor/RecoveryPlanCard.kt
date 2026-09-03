@@ -78,10 +78,10 @@ fun RecoveryPlanCard(
                         contentDescription = "Dismiss recovery plan",
                         tint = palette.textMuted,
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
                             .clickable(onClick = onDismiss)
-                            .padding(4.dp)
+                            .padding(12.dp)
                     )
                 }
 

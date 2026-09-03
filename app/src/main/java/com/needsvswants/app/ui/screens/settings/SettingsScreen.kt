@@ -39,6 +39,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -586,7 +587,7 @@ fun SettingsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showWipeConfirm = true }
+                    .clickable(role = Role.Button) { showWipeConfirm = true }
                     .padding(horizontal = 16.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -607,7 +608,7 @@ fun SettingsScreen(
                 }
                 Icon(
                     Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    "wipe",
+                    contentDescription = null,
                     tint = palette.danger.copy(alpha = 0.6f)
                 )
             }

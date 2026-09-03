@@ -64,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.needsvswants.app.data.model.EntryType
 import com.needsvswants.app.domain.BudgetStatus
+import com.needsvswants.app.domain.Entitlement
 import com.needsvswants.app.domain.DailySpend
 import com.needsvswants.app.domain.Period
 import com.needsvswants.app.domain.StreakMilestone
@@ -74,8 +75,6 @@ import com.needsvswants.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,9 +102,7 @@ fun SummaryScreen(
     var showInstructions by remember { mutableStateOf(false) }
     var showSplitPortal by remember { mutableStateOf(false) }
     var currentMilestone by remember { mutableStateOf<StreakMilestone?>(null) }
-    // Pull-to-refresh (design audit #11): auto-dismiss shortly after a refresh
-    // so the gold spinner never sticks if the reactive flows don't re-emit.
-    var refreshing by remember { mutableStateOf(false) }
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val palette = AppTheme.colors
     val haptics = rememberAppHaptics()
     val sfx = rememberAppSfx()
@@ -153,20 +150,11 @@ fun SummaryScreen(
     }
 
     val pullState = rememberPullToRefreshState()
-    // Auto-dismiss the gold spinner shortly after it starts — the stats/entitlement
-    // flows re-emit reactively, but this guarantees the indicator retracts.
-    LaunchedEffect(refreshing) {
-        if (refreshing) {
-            delay(900)
-            refreshing = false
-        }
-    }
     PullToRefreshBox(
         isRefreshing = refreshing,
         onRefresh = {
             // Wax seal press lands on release (D195).
             haptics.seal()
-            refreshing = true
             viewModel.refresh()
         },
         state = pullState,
@@ -485,8 +473,10 @@ fun SummaryScreen(
                                 ) {
                                     Eyebrow("TOTAL", color = palette.textMuted, size = 11)
                                     Spacer(Modifier.height(4.dp))
-                                    // Whole units only — ".00" cramps the dial and shifts alignment.
-                                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    BoxWithConstraints(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         val totalText = stats.totalCents.toMoneyWhole(symbol)
                                         val dialMoney = fittingMoneySize(totalText, 22.sp, maxWidth)
                                         // Odometer digit roll — the signature money moment (D184/D191).
@@ -761,10 +751,8 @@ private fun SplitPercentagePortal(
     val reveal = remember { Animatable(0f) }
     val scrim = remember { Animatable(0f) }
 
-    // Predictive back (design audit #10): scale the sheet down with the system
-    // back gesture so the user sees the Summary beneath, then dismiss on commit.
-    var backScale by remember { mutableStateOf(1f) }
-    var backAlpha by remember { mutableStateOf(1f) }
+    var backScale by remember { mutableFloatStateOf(1f) }
+    var backAlpha by remember { mutableFloatStateOf(1f) }
     PredictiveBackHandler(enabled = true) {
         it.collect { event ->
             backScale = 1f - (event.progress * 0.08f)
@@ -1065,10 +1053,8 @@ fun InstructionsOverlay(
     val startTitle = "Seal your first entry"
     val startBody = "Your sheet is waiting on the Log tab. Seal one real purchase and the diary begins."
 
-    // Predictive back (design audit #10): scale the instructions sheet down with
-    // the system back gesture, then dismiss on commit.
-    var backScale by remember { mutableStateOf(1f) }
-    var backAlpha by remember { mutableStateOf(1f) }
+    var backScale by remember { mutableFloatStateOf(1f) }
+    var backAlpha by remember { mutableFloatStateOf(1f) }
     PredictiveBackHandler(enabled = true) {
         it.collect { event ->
             backScale = 1f - (event.progress * 0.08f)
@@ -1426,26 +1412,28 @@ private fun getPeriodLabel(period: Period, paid: Boolean): String = when (period
     Period.ALL -> if (paid) "ALL TIME" else "ALL 30 DAYS"
 }
 
-private fun getPeriodRange(period: Period, paid: Boolean): String {
-    val fmt = SimpleDateFormat("MMM d", Locale.getDefault())
-    val today = Calendar.getInstance()
+internal fun getPeriodRange(
+    period: Period,
+    paid: Boolean,
+    baseDate: Calendar = Calendar.getInstance()
+): String {
+    val fmt = SimpleDateFormat("MMM d", Locale.US)
+    val today = baseDate.clone() as Calendar
     return when (period) {
         Period.DAY -> fmt.format(today.time)
         Period.WEEK -> {
-            // Inclusive 7 calendar days — matches PeriodWindow.WEEK (today − 6).
-            val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
+            val start = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -6) }
             "${fmt.format(start.time)}–${fmt.format(today.time)}"
         }
         Period.MONTH -> {
-            // Inclusive 30 calendar days — matches PeriodWindow.MONTH (today − 29).
-            val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -29) }
+            val start = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -29) }
             "${fmt.format(start.time)}–${fmt.format(today.time)}"
         }
         Period.ALL -> if (paid) {
             "Since your first entry"
         } else {
-            val start = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -34) }
-            "${fmt.format(start.time)}–${fmt.format(today.time)}"
+            val start = Date(today.timeInMillis - Entitlement.FREE_RETENTION_MILLIS)
+            "${fmt.format(start)}–${fmt.format(today.time)}"
         }
     }
 }
@@ -1495,11 +1483,12 @@ private fun SealPullIndicator(
         if (refreshing && Motion.enabled) {
             press.animateTo(1f, Motion.seal())
         } else if (!refreshing) {
-            press.snapTo(0f)
+            if (Motion.enabled) press.animateTo(0f, Motion.state())
+            else press.snapTo(0f)
         }
     }
     val pull = distanceFraction.coerceIn(0f, 1.5f)
-    if (pull <= 0.02f && !refreshing) return
+    if (pull <= 0.02f && !refreshing && press.value <= 0.02f) return
     Canvas(modifier.size(width = 64.dp, height = 92.dp)) {
         val cx = size.width / 2f
         val restY = size.height * 0.42f

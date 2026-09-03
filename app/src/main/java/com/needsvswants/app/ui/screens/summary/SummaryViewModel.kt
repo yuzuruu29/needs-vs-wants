@@ -22,6 +22,7 @@ import com.needsvswants.app.domain.toMoney
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -204,15 +205,25 @@ class SummaryViewModel @Inject constructor(
      * [com.needsvswants.app.data.db.EntryDao] and entitlement flows, so a fresh
      * entitlement re-emits the period stats downstream. Best-effort —
      * offline-first stays silent on failure.
+     *
+     * [refreshing] is true for exactly the sync window so the pull indicator
+     * tracks real work instead of a fixed timer. Re-entrant calls no-op.
      */
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
     fun refresh() {
+        if (!_refreshing.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
+                yield()
                 entitlementSync.refreshOnce()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
                 // Best-effort only: a network/parse failure never surfaces here.
+            } finally {
+                _refreshing.value = false
             }
         }
     }

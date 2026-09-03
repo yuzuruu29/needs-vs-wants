@@ -27,11 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -337,40 +334,3 @@ fun Modifier.origamiUnfold(progress: Float, offsetYDp: Float = 6f): Modifier =
             translationY = (1f - (progress - 0.9f) / 0.1f) * offsetYDp.dp.toPx()
         }
     }
-
-/**
- * Specular shine modifier — sweeps a subtle luxury gold reflection across
- * cards or dials when motion is enabled.
- */
-@Composable
-fun Modifier.specularShine(
-    glowColor: Color = AppTheme.colors.gold,
-    alpha: Float = 0.22f
-): Modifier = composed {
-    if (!Motion.enabled) return@composed this
-    val transition = rememberInfiniteTransition(label = "specularShine")
-    val progress = transition.animateFloat(
-        initialValue = -0.5f,
-        targetValue = 1.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(Motion.OrbShineMs, easing = Motion.EaseStandard),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shineProgress"
-    )
-    this.drawBehind {
-        val w = size.width
-        val h = size.height
-        val startX = progress.value * w
-        val sweepBrush = Brush.linearGradient(
-            colors = listOf(
-                Color.Transparent,
-                glowColor.copy(alpha = alpha),
-                Color.Transparent
-            ),
-            start = Offset(startX, 0f),
-            end = Offset(startX + w * 0.35f, h)
-        )
-        drawRect(sweepBrush)
-    }
-}
