@@ -497,7 +497,12 @@ class GooglePlayBillingController @Inject constructor(
         if (alreadyAcknowledged) return@withContext true
         val client = billingClient
         if (client == null) {
-            android.util.Log.w(LOG_TAG, "Cannot acknowledge $purchaseToken: BillingClient unavailable.")
+            // Never log a whole purchase token: it is the bearer credential the
+            // backend accepts to grant an entitlement. A prefix is enough to correlate.
+            android.util.Log.w(
+                LOG_TAG,
+                "Cannot acknowledge ${purchaseToken.take(8)}…: BillingClient unavailable."
+            )
             return@withContext false
         }
         val ackParams = AcknowledgePurchaseParams.newBuilder()
@@ -514,7 +519,10 @@ class GooglePlayBillingController @Inject constructor(
             result.responseCode == BillingClient.BillingResponseCode.OK
         if (!acknowledged) {
             val detail = result?.debugMessage?.takeIf { it.isNotBlank() } ?: "timed out"
-            android.util.Log.w(LOG_TAG, "Acknowledgement failed for $purchaseToken: $detail")
+            android.util.Log.w(
+                LOG_TAG,
+                "Acknowledgement failed for ${purchaseToken.take(8)}…: $detail"
+            )
         }
         acknowledged
     }

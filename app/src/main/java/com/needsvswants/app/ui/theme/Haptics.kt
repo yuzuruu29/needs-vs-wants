@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.annotation.RequiresApi
@@ -19,7 +20,10 @@ import android.annotation.SuppressLint
  *
  * D103: respects Settings "Vibration" via [enabled] / [LocalHapticsEnabled].
  * D195: frequency-tuned feedback through VibrationEffect.Composition primitives
- * (API 30+, TEXTURE_TICK 31+, LOW_TICK 33+) with constant fallbacks.
+ * (TICK/THUD on API 30+, LOW_TICK hum on 33+) with constant fallbacks. The
+ * composition path is gated on the OS touch-feedback setting as well as
+ * [enabled], because Vibrator.vibrate is not filtered by it the way
+ * View.performHapticFeedback is.
  */
 class AppHaptics(
     private val view: View,
@@ -132,7 +136,7 @@ class AppHaptics(
         supported: IntArray,
         block: (VibrationEffect.Composition) -> Unit,
     ) {
-        if (!enabled) return
+        if (!enabled || !systemHapticsEnabled()) return
         val v = vibrator
         if (v == null ||
             !runCatching { v.areAllPrimitivesSupported(*supported) }.getOrDefault(false)
@@ -152,6 +156,19 @@ class AppHaptics(
         val constant = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) modern else legacy
         view.performHapticFeedback(constant)
     }
+
+    /**
+     * Mirrors the filter [perform] gets for free: a user who turned off touch
+     * feedback in system settings must not be buzzed by the composition path.
+     * Framework-cached, so this is cheap to call per tick.
+     */
+    private fun systemHapticsEnabled(): Boolean = runCatching {
+        Settings.System.getInt(
+            view.context.contentResolver,
+            Settings.System.HAPTIC_FEEDBACK_ENABLED,
+            1
+        ) != 0
+    }.getOrDefault(true)
 
     private fun resolveVibrator(context: Context): Vibrator? = runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

@@ -59,6 +59,15 @@ class MotionAdditionsTest {
     }
 
     @Test
+    fun `stamp bleed matte eases on a smoothstep, not a straight line`() {
+        // The endpoints agree either way, which is exactly why the Kotlin copy
+        // drifted to a linear ramp while the shader kept smoothstep. Pin the
+        // middle of the fade window, where the two curves actually disagree.
+        assertEquals(0.9766f, stampBleedMatte(0.7f), 1e-3f)
+        assertEquals(0.925f, stampBleedMatte(0.8f), 1e-3f)
+    }
+
+    @Test
     fun `tear shear grows linearly to 4_5 degrees`() {
         assertEquals(0f, tearShearDegrees(0f), 1e-6f)
         assertEquals(2.25f, tearShearDegrees(0.5f), 1e-4f)

@@ -26,35 +26,40 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
  */
 fun stampBleedFront(progress: Float): Float = 0.22f + 0.24f * progress.coerceIn(0f, 1f)
 
-/** Pure matte fade factor: full wet contrast early, -15% by full settle. */
-fun stampBleedMatte(progress: Float): Float =
-    1f - 0.15f * ((progress - 0.6f) / 0.4f).coerceIn(0f, 1f)
+/**
+ * Pure matte fade factor: full wet contrast early, -15% by full settle. Hermite
+ * (smoothstep) easing, matching the curve the shader used to compute inline.
+ */
+fun stampBleedMatte(progress: Float): Float {
+    val t = ((progress - 0.6f) / 0.4f).coerceIn(0f, 1f)
+    return 1f - 0.15f * (t * t * (3f - 2f * t))
+}
 
 private const val STAMP_BLEED_AGSL = """
     uniform float2 resolution;
-    uniform float progress;
+    uniform float front;
+    uniform float matte;
     uniform float4 ink;
 
     half4 main(in float2 fragCoord) {
         float2 c = fragCoord / resolution - 0.5;
         float d = length(c) * 1.25;
         float n = fract(sin(dot(floor(fragCoord * 0.55), vec2(127.1, 311.7))) * 43758.5453);
-        float front = 0.22 + 0.24 * progress;
         float grain = n * 0.11;
         float body = 1.0 - smoothstep(front - 0.05, front, d + grain);
         float rim = smoothstep(front - 0.16, front - 0.06, d + grain)
                   * (1.0 - smoothstep(front - 0.06, front, d + grain));
-        float matte = 1.0 - 0.15 * smoothstep(0.6, 1.0, progress);
         float a = (body + rim * 0.25) * matte;
         return half4(ink.rgb, ink.a * a);
     }
 """
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-private fun DrawScope.drawBleed(progress: Float, ink: Color) {
-    val shader = RuntimeShader(STAMP_BLEED_AGSL)
+private fun DrawScope.drawBleed(shader: RuntimeShader, progress: Float, ink: Color) {
+    val p = progress.coerceIn(0f, 1f)
     shader.setFloatUniform("resolution", size.width, size.height)
-    shader.setFloatUniform("progress", progress.coerceIn(0f, 1f))
+    shader.setFloatUniform("front", stampBleedFront(p))
+    shader.setFloatUniform("matte", stampBleedMatte(p))
     shader.setFloatUniform("ink", ink.red, ink.green, ink.blue, ink.alpha)
     drawRect(androidx.compose.ui.graphics.ShaderBrush(shader))
 }
@@ -71,11 +76,21 @@ fun Modifier.inkBleedStamp(
     progressOverride: Float? = null,
 ): Modifier = composed {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@composed this
+    // One shader per modifier instance. The RuntimeShader constructor compiles the
+    // AGSL source, so building it inside the draw pass recompiled it every frame.
+    val shader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            RuntimeShader(STAMP_BLEED_AGSL)
+        } else {
+            null
+        }
+    } ?: return@composed this
+
     if (progressOverride != null) {
         return@composed if (progressOverride > 0f) {
             drawBehind {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    drawBleed(progressOverride, ink)
+                    drawBleed(shader, progressOverride, ink)
                 }
             }
         } else {
@@ -89,11 +104,12 @@ fun Modifier.inkBleedStamp(
             progress.animateTo(1f, Motion.inkSettle())
         }
     }
-    val value = progress.value
-    if (value <= 0f) return@composed this
+    // progress is read inside the draw lambda, so the bleed animates in the draw
+    // phase instead of recomposing this subtree on every frame.
     drawBehind {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            drawBleed(value, ink)
+        val p = progress.value
+        if (p > 0f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            drawBleed(shader, p, ink)
         }
     }
 }

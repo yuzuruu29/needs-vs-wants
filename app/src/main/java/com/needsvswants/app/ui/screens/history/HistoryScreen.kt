@@ -837,30 +837,38 @@ private fun TearDismissRow(
                         tearPx = next
                     },
                     onDragEnd = {
-                        val releasePx = rowWidth * TEAR_RELEASE_FRACTION
-                        if (tearPx >= releasePx) {
-                            committing = true
-                            haptics.textureTick(0.9f)
-                            scope.launch {
-                                val flight = Animatable(tearPx)
-                                flight.animateTo(rowWidth + 80f, Motion.receiptPrint())
-                                tearPx = flight.value
-                                onDeleteConfirmed()
-                                committing = false
-                            }
-                        } else {
-                            scope.launch {
-                                val settle = Animatable(tearPx)
-                                settle.animateTo(0f, Motion.spatialSpring())
-                                tearPx = settle.value
+                        // committing guard: the flight leaves tearPx above the release
+                        // threshold, so a second release during the flight would fire
+                        // onDeleteConfirmed (and its undo snackbar) a second time.
+                        if (!committing) {
+                            val releasePx = rowWidth * TEAR_RELEASE_FRACTION
+                            if (tearPx >= releasePx) {
+                                committing = true
+                                haptics.textureTick(0.9f)
+                                scope.launch {
+                                    // The trailing block publishes every frame; without
+                                    // it the row freezes and teleports on the last one.
+                                    Animatable(tearPx).animateTo(
+                                        rowWidth + 80f,
+                                        Motion.receiptPrint()
+                                    ) { tearPx = value }
+                                    onDeleteConfirmed()
+                                    committing = false
+                                }
+                            } else {
+                                scope.launch {
+                                    Animatable(tearPx)
+                                        .animateTo(0f, Motion.spatialSpring()) { tearPx = value }
+                                }
                             }
                         }
                     },
                     onDragCancel = {
-                        scope.launch {
-                            val settle = Animatable(tearPx)
-                            settle.animateTo(0f, Motion.spatialSpring())
-                            tearPx = settle.value
+                        if (!committing) {
+                            scope.launch {
+                                Animatable(tearPx)
+                                    .animateTo(0f, Motion.spatialSpring()) { tearPx = value }
+                            }
                         }
                     }
                 )

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -90,9 +91,11 @@ fun SpendDial(
         label = "needsSweepDegrees"
     )
     // Tension breathing — gated on motion so reduced motion shows a steady glow.
-    val breath = if (tension > 0f && Motion.enabled) {
+    // Kept as State and read in the draw phase below: reading it here would
+    // recompose the whole dial every frame for as long as the tension holds.
+    val breath: State<Float>? = if (tension > 0f && Motion.enabled) {
         val transition = rememberInfiniteTransition(label = "dialTension")
-        val value by transition.animateFloat(
+        transition.animateFloat(
             initialValue = 0.55f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
@@ -101,9 +104,8 @@ fun SpendDial(
             ),
             label = "dialTensionBreath"
         )
-        value
     } else {
-        1f
+        null
     }
 
     Box(
@@ -148,7 +150,9 @@ fun SpendDial(
                 val haloTopLeft = Offset(haloInset, haloInset)
                 val haloSize = Size(min - haloInset * 2f, min - haloInset * 2f)
                 drawArc(
-                    color = palette.gold.copy(alpha = 0.40f * tension * breath),
+                    color = palette.gold.copy(
+                        alpha = dialTensionGlowAlpha(tension, breath?.value ?: 1f)
+                    ),
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,

@@ -2,17 +2,13 @@ package com.needsvswants.app.ui.theme
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioManager
 import android.media.SoundPool
-import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.needsvswants.app.R
 import java.util.Random
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Organic playback rate for repeated UI sounds: ±2% pitch variance so a row of
@@ -28,8 +24,8 @@ internal fun organicRate(seed: Long = System.nanoTime()): Float =
  *
  * D103: play on the **media** stream at full gain so clips are audible even when
  * system touch-sounds / ASSISTANCE_SONIFICATION are muted. Gate only on the
- * Settings [enabled] flag (and per-sample load), not a global "all three loaded"
- * latch that could stay false forever.
+ * Settings [enabled] flag (and a non-zero sample id), not a global "all three
+ * loaded" latch that could stay false forever.
  */
 interface AppSfx {
     fun tap()
@@ -84,9 +80,6 @@ class SoundPoolAppSfx(context: Context) : AppSfx {
     @Volatile
     override var enabled: Boolean = true
 
-    private val loaded = ConcurrentHashMap.newKeySet<Int>()
-    private val anyLoadFailed = AtomicBoolean(false)
-
     private val pool: SoundPool = SoundPool.Builder()
         .setMaxStreams(6)
         .setAudioAttributes(
@@ -104,31 +97,9 @@ class SoundPoolAppSfx(context: Context) : AppSfx {
     private var orbId = 0
 
     init {
-        pool.setOnLoadCompleteListener { _, sampleId, status ->
-            if (status == 0) {
-                loaded.add(sampleId)
-            } else {
-                anyLoadFailed.set(true)
-            }
-        }
         tapId = pool.load(appContext, R.raw.sfx_tap, 1)
         longPressId = pool.load(appContext, R.raw.sfx_long_press, 1)
         orbId = pool.load(appContext, R.raw.sfx_orb, 1)
-        // Some devices fire load-complete before the listener is fully wired;
-        // mark non-zero load ids optimistically so early taps still try to play.
-        if (tapId != 0) loaded.add(tapId)
-        if (longPressId != 0) loaded.add(longPressId)
-        if (orbId != 0) loaded.add(orbId)
-
-        // Ensure music stream is not left at absolute zero by the app path
-        // (we never raise above current user volume — only unmute stream type).
-        runCatching {
-            val am = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // No-op force; just touch stream so routing wakes on some OEMs.
-                am.getStreamVolume(AudioManager.STREAM_MUSIC)
-            }
-        }
     }
 
     override fun tap() = play(tapId, volume = 1f)
@@ -145,7 +116,6 @@ class SoundPoolAppSfx(context: Context) : AppSfx {
     }
 
     fun release() {
-        loaded.clear()
         runCatching { pool.release() }
     }
 

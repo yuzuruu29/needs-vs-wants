@@ -16,7 +16,7 @@
 -dontwarn com.google.android.gms.**
 
 # Sentry 8.x references API 35 classes (app-start / profiling) that don't
-# exist on compileSdk 34; usage is API-level guarded at runtime, so R8 only
+# exist on compileSdk 36; usage is API-level guarded at runtime, so R8 only
 # needs the warnings suppressed. Sentry ships its own consumer keep rules.
 -dontwarn android.app.ApplicationStartInfo
 -dontwarn android.os.ProfilingManager

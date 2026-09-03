@@ -376,15 +376,15 @@ private fun ScannedItemRow(
                         }
                         scope.launch {
                             settle.snapTo(dragPx)
-                            settle.animateTo(0f, Motion.spatialSpring())
-                            dragPx = settle.value
+                            // Trailing block publishes every frame; without it the card
+                            // freezes at the drag offset and snaps back in one jump.
+                            settle.animateTo(0f, Motion.spatialSpring()) { dragPx = value }
                         }
                     },
                     onDragCancel = {
                         scope.launch {
                             settle.snapTo(dragPx)
-                            settle.animateTo(0f, Motion.spatialSpring())
-                            dragPx = settle.value
+                            settle.animateTo(0f, Motion.spatialSpring()) { dragPx = value }
                         }
                     }
                 )

@@ -21,11 +21,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -273,7 +270,6 @@ private fun RollingDigit(
     style: TextStyle,
     color: Color?,
 ) {
-    var previous by remember { mutableStateOf(char) }
     AnimatedContent(
         targetState = char,
         transitionSpec = {
@@ -287,11 +283,12 @@ private fun RollingDigit(
         },
         label = "odometerDigit"
     ) { digit ->
-        val rolling = digit != previous
-        val blur = remember(rolling) { Animatable(if (rolling) 1f else 0f) }
-        LaunchedEffect(digit, rolling) {
-            if (rolling) blur.animateTo(0f, Motion.odometer())
-        }
+        // AnimatedContent gives each target digit its own remember scope, so a
+        // newly rolled-in digit starts blurred and settles on its own. The old
+        // previous/SideEffect pair wrote state during composition, which reset
+        // this Animatable a frame in and meant the blur never actually rendered.
+        val blur = remember { Animatable(1f) }
+        LaunchedEffect(Unit) { blur.animateTo(0f, Motion.odometer()) }
         Text(
             text = digit.toString(),
             style = style,
@@ -306,7 +303,6 @@ private fun RollingDigit(
             }
         )
     }
-    SideEffect { if (char != previous) previous = char }
 }
 
 /**
@@ -330,19 +326,17 @@ fun unfoldSealProgress(progress: Float): Float =
  * swings down from edge-on ([Motion.UnfoldMaxDegrees]) to flat while fading in,
  * then settles with a short drop in the final tenth of [progress].
  */
-fun Modifier.origamiUnfold(progress: Float, offsetYDp: Float = 6f): Modifier = composed {
-    val settlePx = with(LocalDensity.current) { offsetYDp.dp.toPx() }
-    this.graphicsLayer {
+fun Modifier.origamiUnfold(progress: Float, offsetYDp: Float = 6f): Modifier =
+    graphicsLayer {
         if (progress >= 1f) return@graphicsLayer
         rotationX = unfoldSheetRotationX(progress)
         alpha = (progress / 0.25f).coerceIn(0f, 1f)
         transformOrigin = TransformOrigin(0.5f, 0f)
         cameraDistance = Motion.PageFlipCameraDistance * density
         if (progress > 0.9f) {
-            translationY = (1f - (progress - 0.9f) / 0.1f) * settlePx
+            translationY = (1f - (progress - 0.9f) / 0.1f) * offsetYDp.dp.toPx()
         }
     }
-}
 
 /**
  * Specular shine modifier — sweeps a subtle luxury gold reflection across
@@ -355,7 +349,7 @@ fun Modifier.specularShine(
 ): Modifier = composed {
     if (!Motion.enabled) return@composed this
     val transition = rememberInfiniteTransition(label = "specularShine")
-    val progress by transition.animateFloat(
+    val progress = transition.animateFloat(
         initialValue = -0.5f,
         targetValue = 1.5f,
         animationSpec = infiniteRepeatable(
@@ -367,7 +361,7 @@ fun Modifier.specularShine(
     this.drawBehind {
         val w = size.width
         val h = size.height
-        val startX = progress * w
+        val startX = progress.value * w
         val sweepBrush = Brush.linearGradient(
             colors = listOf(
                 Color.Transparent,
