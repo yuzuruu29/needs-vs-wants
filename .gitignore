@@ -19,8 +19,12 @@ local.properties
 # Screenshots / design artifacts
 *.png
 *.jpg
-# ...but keep the app-icon brand sources trackable
+# Tracked image assets
 !docs/assets/brand/*
+!app/src/main/res/**/*.png
+!app/src/main/res/**/*.jpg
+!website/public/*.png
+!docs/google-play/assets/*.png
 
 # iOS build artifacts
 ios/DerivedData/
