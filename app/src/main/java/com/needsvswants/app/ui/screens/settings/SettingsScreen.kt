@@ -739,7 +739,9 @@ fun SettingsScreen(
                     style = AppType.caption,
                     color = palette.textSecondary,
                     modifier = Modifier
-                        .clickable {
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp)
+                        .clickable(role = Role.Button) {
                             runCatching {
                                 context.startActivity(
                                     Intent(
@@ -749,18 +751,20 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 10.dp)
                 )
                 Spacer(Modifier.height(6.dp))
                 updateAvailable?.let { update ->
                     Text(
-                        "Update available — v${update.versionName}. Tap to download.",
+                        "Update available: v${update.versionName}. Tap to download.",
                         style = AppType.caption,
                         color = palette.marketGreen,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
-                            .clickable { openUrl(context, update.apkUrl) }
-                            .padding(vertical = 4.dp)
+                            .fillMaxWidth()
+                            .heightIn(min = 44.dp)
+                            .clickable(role = Role.Button) { openUrl(context, update.apkUrl) }
+                            .padding(vertical = 10.dp)
                     )
                 }
                 Text(
@@ -768,8 +772,12 @@ fun SettingsScreen(
                     style = AppType.caption,
                     color = palette.textSecondary,
                     modifier = Modifier
-                        .clickable { if (!updateCheckBusy) viewModel.checkForUpdates() }
-                        .padding(vertical = 4.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp)
+                        .clickable(role = Role.Button) {
+                            if (!updateCheckBusy) viewModel.checkForUpdates()
+                        }
+                        .padding(vertical = 10.dp)
                 )
                 updateFeedback?.let { feedback ->
                     Text(feedback, style = AppType.caption, color = palette.textMuted)
@@ -822,7 +830,8 @@ fun SettingsScreen(
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .heightIn(min = 44.dp)
+                                .clickable(role = Role.Button) {
                                     if (hapticsEnabled) haptics.tick()
                                     viewModel.setReminderHour(hour, context)
                                     showReminderTimePicker = false
@@ -938,7 +947,8 @@ private fun SettingsNavRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .heightIn(min = 44.dp)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -977,7 +987,8 @@ private fun PreferenceRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .heightIn(min = 44.dp)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

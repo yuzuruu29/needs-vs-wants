@@ -201,6 +201,41 @@ class InputViewModelTest {
     }
 
     @Test
+    fun free_at20Entries_spreadAcrossDays_canStillSeal() = runTest(dispatcher) {
+        val yesterday = System.currentTimeMillis() - 86_400_000L
+        dao.entries.value = List(20) { i ->
+            seedEntry(dateUtc = yesterday - i, item = "Old $i")
+        }
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        advanceUntilIdle()
+
+        assertFalse(vm.isSheetFull)
+        fillForm(vm)
+        vm.trySeal()
+        advanceUntilIdle()
+
+        assertEquals(21, dao.entries.value.size)
+        assertEquals("Coffee", dao.entries.value.last().item)
+    }
+
+    @Test
+    fun startNewSheet_deletesTodayOnly() = runTest(dispatcher) {
+        val yesterday = System.currentTimeMillis() - 86_400_000L
+        val todayEntry = seedEntry(item = "Today lunch")
+        val yesterdayEntry = seedEntry(dateUtc = yesterday, item = "Yesterday rice")
+        dao.entries.value = listOf(todayEntry, yesterdayEntry)
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.sheetEntries.collect {} }
+        advanceUntilIdle()
+
+        vm.startNewSheet()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Yesterday rice"), dao.entries.value.map { it.item })
+    }
+
+    @Test
     fun free_at20Entries_cannotSeal() = runTest(dispatcher) {
         dao.entries.value = List(20) { seedEntry(dateUtc = System.currentTimeMillis() - it) }
         val vm = buildViewModel()

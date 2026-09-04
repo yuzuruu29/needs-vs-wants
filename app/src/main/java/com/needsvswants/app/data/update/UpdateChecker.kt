@@ -19,19 +19,23 @@ import javax.inject.Singleton
 class UpdateChecker @Inject constructor(
     private val preferences: AppPreferences
 ) {
-    /** Throttled check; pass [force] for the Settings "Check now" row. */
-    suspend fun checkOnce(force: Boolean = false) {
+    /**
+     * Throttled check; pass [force] for the Settings "Check now" row.
+     * Returns false when the network call fails so a user-initiated check
+     * can tell the truth instead of claiming the build is current.
+     */
+    suspend fun checkOnce(force: Boolean = false): Boolean {
         val now = System.currentTimeMillis()
-        if (!force && !shouldCheck(preferences.lastUpdateCheckAt.first(), now)) return
+        if (!force && !shouldCheck(preferences.lastUpdateCheckAt.first(), now)) return true
         preferences.setLastUpdateCheckAt(now)
-        HttpJsonClient.request(VERSION_URL).onSuccess { body ->
+        val result = HttpJsonClient.request(VERSION_URL)
+        result.onSuccess { body ->
             val remote = parseVersionJson(body)
             preferences.setUpdateAvailable(
                 remote?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }
             )
         }
-        // Failures are silent by design (offline is normal); the throttle
-        // stamp above stops hot retry loops either way.
+        return result.isSuccess
     }
 
     companion object {
@@ -44,6 +48,16 @@ class UpdateChecker @Inject constructor(
             nowMillis: Long,
             intervalMillis: Long = CHECK_INTERVAL_MS
         ): Boolean = nowMillis - lastCheckAt >= intervalMillis
+
+        /** Copy for a user-tapped check. Background polls stay silent. */
+        fun feedbackAfterCheck(
+            succeeded: Boolean,
+            available: AvailableUpdate?
+        ): String? = when {
+            !succeeded -> "Couldn't check right now. Try again."
+            available != null -> null
+            else -> "You're on the latest version."
+        }
 
         /**
          * Parses the site's version.json (`versionName`, `versionCode`,

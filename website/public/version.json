@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.29",
-  "versionCode": 37,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.29.apk",
-  "sha256": "0e97de0a56899099c22879754b2a52d662692d395affd908a780b275cff70445",
-  "notes": "Keyboard dead band, centred spend dial, Free All 30-day window, tear/receipt motion that actually springs, pull-to-refresh tracks real sync",
-  "updatedAt": "2026-09-04T00:00:00.000Z"
+  "versionName": "2.0.30",
+  "versionCode": 38,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.30.apk",
+  "sha256": "c7fee854b0efca3f0fcd70c0b145d768fba2552e9d9c196f60cc786c0eee5d4e",
+  "notes": "History loads on an empty diary, New sheet clears today only, day-first receipt dates, honest update check, 44dp Settings taps",
+  "updatedAt": "2026-09-04T14:10:00.000Z"
 }

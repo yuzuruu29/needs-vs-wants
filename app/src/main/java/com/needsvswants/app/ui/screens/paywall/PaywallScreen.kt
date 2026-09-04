@@ -640,11 +640,12 @@ fun PaywallScreen(
                                 style = PaywallType.stickyNote,
                                 color = palette.crimson,
                                 modifier = Modifier
+                                    .heightIn(min = 44.dp)
                                     .clickable(
                                         enabled = !authState.busy,
                                         role = Role.Button
                                     ) { authViewModel.openEmailOtp() }
-                                    .padding(vertical = 4.dp)
+                                    .padding(vertical = 10.dp)
                             )
                         }
                     }

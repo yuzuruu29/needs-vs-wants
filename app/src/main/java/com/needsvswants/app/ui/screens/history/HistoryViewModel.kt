@@ -89,14 +89,22 @@ class HistoryViewModel @Inject constructor(
     private val dailyBudgetRepository: DailyBudgetRepository,
     private val preferences: AppPreferences,
     private val entitlementRepository: EntitlementRepository,
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context?
 ) : ViewModel() {
     val entitlement: StateFlow<com.needsvswants.app.domain.Entitlement> = entitlementRepository.entitlement
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.needsvswants.app.domain.Entitlement.Free)
 
+    /** True until the first entries emission lands (cold-start skeleton, design audit #2). */
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
     // The repository already bounds this stream to the tier's retention window
     // (Free: last 30 days, hidden rows stay stored; paid: lifetime).
+    // onEach sits before stateIn so it sees every upstream emission. On an empty
+    // diary the first one equals the emptyList() seed, which the StateFlow would
+    // conflate away, leaving a skeleton that never clears.
     val entries: StateFlow<List<Entry>> = entryRepository.observeAll()
+        .onEach { _loading.value = false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val currencySymbol: StateFlow<String> = preferences.currencySymbol
@@ -150,24 +158,13 @@ class HistoryViewModel @Inject constructor(
         buildHistoryDays(list, budgets, query, type, period, System.currentTimeMillis())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** True until the first real entries emission lands (cold-start skeleton, design audit #2). */
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            entries.drop(1).first()
-            _loading.value = false
-        }
-    }
-
     val isPro: StateFlow<Boolean> = entitlementRepository.isPro
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun deleteEntry(entry: Entry): Entry {
         viewModelScope.launch {
             entryRepository.delete(entry)
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
         // Return the caller's copy so the UI can offer an undo that restores it by id.
         return entry
@@ -177,7 +174,7 @@ class HistoryViewModel @Inject constructor(
     fun restoreEntry(entry: Entry) {
         viewModelScope.launch {
             entryRepository.restore(entry)
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
 
@@ -185,7 +182,7 @@ class HistoryViewModel @Inject constructor(
     fun updateEntry(entry: Entry) {
         viewModelScope.launch {
             entryRepository.update(entry)
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }
 
@@ -196,7 +193,7 @@ class HistoryViewModel @Inject constructor(
             for (entry in entries) {
                 entryRepository.insert(entry)
             }
-            runCatching { NvwWidget.refreshAll(appContext) }
+            appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
         return entries.size
     }

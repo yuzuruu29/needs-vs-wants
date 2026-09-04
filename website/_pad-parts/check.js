@@ -44,7 +44,7 @@ const locks = [
   ['notify endpoint', /xpwcrloarciomikfudln\.supabase\.co\/functions\/v1\/notify_signup/],
   ['honeypot field', /name="website" class="hp-field"/],
   // audit-gap locks: download trust block
-  ['apk sha256 on page', /0e97de0a56899099c22879754b2a52d662692d395affd908a780b275cff70445/],
+  ['apk sha256 on page', /c7fee854b0efca3f0fcd70c0b145d768fba2552e9d9c196f60cc786c0eee5d4e/],
   ['cert sha256 on page', /5fc43fb6e3a4d8e72123895d4b05d5f83082d8c6b242f1a8f8fd3039d551c961/],
   // audit-gap locks: subset woff2 fonts (TTFs were never in public/ and 404ed in prod)
   ['woff2 body font', /\.\/fonts\/source-sans3-regular\.woff2/],
@@ -63,8 +63,12 @@ const locks = [
   ['subscribe guide', /How to subscribe, and how to get it back/],
   ['restore purchases step', /Restore purchases/],
   ['all-30-day demo range', /dOff\(-30\)/],
+  ['receipt scanner pro bullet', /Receipt scanner/],
 ];
 if (html.includes('dOff(-34)')) fail('stale 35-day demo range dOff(-34) still present');
+if (html.includes('Jun 27 - Jul 31')) fail('stale 35-day histRange fallback');
+if (html.includes('Direct APK updates from this site')) fail('stale Pro bullet Direct APK updates');
+if (html.includes('&ndash;') || html.includes('&mdash;')) fail('html dash entity still present');
 ['no network calls', '100% offline', 'NotebookLM', 'No ads, no tracking', 'No ads, no analytics'].forEach(claim => {
   if (html.includes(claim)) fail('banned claim present: ' + claim);
   else console.log('claim OK absent:', claim);
@@ -93,6 +97,10 @@ fileLocks.forEach(([name, needles]) => {
 for (const name of ['privacy.html', 'terms.html']) {
   const body = fs.readFileSync(path.join(root, 'public', name), 'utf8');
   if (body.includes('[CONTACT EMAIL')) fail('public/' + name + ' still contains the contact placeholder');
+  const textish = body.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<[^>]+>/g, '');
+  if (/—/.test(textish) || /–/.test(textish) || body.includes('&ndash;') || body.includes('&mdash;')) {
+    fail('public/' + name + ' still contains an em/en dash');
+  }
 }
 const ogPath = path.join(root, 'public', 'og-image.png');
 if (!fs.existsSync(ogPath) || fs.statSync(ogPath).size < 10000) fail('og-image.png missing or too small');

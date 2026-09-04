@@ -131,4 +131,35 @@ class ReceiptParserTest {
         val result = ReceiptParser.parse(ocr)
         assertTrue(result.items.isEmpty())
     }
+
+    @Test
+    fun parse_dayMonthDate_isPhilippineNotAmerican() {
+        val ocr = """
+            PUREGOLD
+            DATE: 04/09/2026
+            FRESH MILK 1L 85.00
+            TOTAL 85.00
+        """.trimIndent()
+        val result = ReceiptParser.parse(ocr)
+        assertNotNull(result.dateUtc)
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = result.dateUtc!! }
+        assertEquals(java.util.Calendar.SEPTEMBER, cal.get(java.util.Calendar.MONTH))
+        assertEquals(4, cal.get(java.util.Calendar.DAY_OF_MONTH))
+        assertEquals(2026, cal.get(java.util.Calendar.YEAR))
+    }
+
+    @Test
+    fun parse_impossibleDayMonth_fallsBackToMonthDay() {
+        val ocr = """
+            7-ELEVEN
+            DATE: 08/16/2026
+            WATER 20.00
+            TOTAL 20.00
+        """.trimIndent()
+        val result = ReceiptParser.parse(ocr)
+        assertNotNull(result.dateUtc)
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = result.dateUtc!! }
+        assertEquals(java.util.Calendar.AUGUST, cal.get(java.util.Calendar.MONTH))
+        assertEquals(16, cal.get(java.util.Calendar.DAY_OF_MONTH))
+    }
 }

@@ -48,9 +48,12 @@ object ReceiptParser {
         """^(?:PHP|PHP\.|P|₱)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})|[0-9]+(?:\.[0-9]{2}))\s*$"""
     )
 
-    // Matches date patterns: 2026-08-16, 08/16/2026, 16-Aug-2026, etc.
+    // Matches date patterns: 2026-08-16, 16/08/2026, 16-Aug-2026, etc.
+    // Order is load-bearing: dd/MM before MM/dd, so an ambiguous 04/09/2026 on a
+    // Philippine receipt reads as 4 September. isLenient = false below rejects 16
+    // as a month, so a US-printed 08/16/2026 still falls through to MM/dd/yyyy.
     private val DATE_PATTERNS = listOf(
-        "yyyy-MM-dd", "MM/dd/yyyy", "dd/MM/yyyy", "yyyy/MM/dd",
+        "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy/MM/dd",
         "dd-MMM-yyyy", "MMM dd, yyyy"
     )
 

@@ -1,5 +1,6 @@
 package com.needsvswants.app.data.update
 
+import com.needsvswants.app.data.prefs.AvailableUpdate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -45,5 +46,27 @@ class UpdateCheckerTest {
         assertFalse(UpdateChecker.shouldCheck(now - 1, now))
         assertFalse(UpdateChecker.shouldCheck(now - UpdateChecker.CHECK_INTERVAL_MS + 1, now))
         assertTrue(UpdateChecker.shouldCheck(now - UpdateChecker.CHECK_INTERVAL_MS, now))
+    }
+
+    @Test
+    fun `user tap does not claim latest when the check failed`() {
+        assertEquals(
+            "Couldn't check right now. Try again.",
+            UpdateChecker.feedbackAfterCheck(succeeded = false, available = null)
+        )
+    }
+
+    @Test
+    fun `user tap stays quiet when an update row will show`() {
+        val update = AvailableUpdate("2.0.30", 38, "https://needs-vs-wants.vercel.app/downloads/a.apk")
+        assertNull(UpdateChecker.feedbackAfterCheck(succeeded = true, available = update))
+    }
+
+    @Test
+    fun `user tap says latest only after a successful empty check`() {
+        assertEquals(
+            "You're on the latest version.",
+            UpdateChecker.feedbackAfterCheck(succeeded = true, available = null)
+        )
     }
 }

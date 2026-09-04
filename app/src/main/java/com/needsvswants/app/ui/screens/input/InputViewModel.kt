@@ -128,7 +128,7 @@ class InputViewModel @Inject constructor(
     val isSheetFull: Boolean get() {
         val now = System.currentTimeMillis()
         if (entitlement.value.hasProAccessAt(now)) return false
-        return sheetEntries.value.size >= 20
+        return sheetEntries.value.count { it.date == todayString() } >= 20
     }
 
     var activeItem = MutableStateFlow("")
@@ -399,7 +399,8 @@ class InputViewModel @Inject constructor(
         } ?: now
         sealHourOverride.value = null
         val existing = sheetEntries.value
-        val willComplete = !entitlement.value.hasProAccessAt(now) && existing.size + 1 >= 20
+        val willComplete = !entitlement.value.hasProAccessAt(now) &&
+            existing.count { it.date == todayString() } + 1 >= 20
         val firstEver = existing.isEmpty()
         val firstOfDay = existing.none { it.date == todayString() }
         val streakDay = if (firstOfDay) {
@@ -554,9 +555,14 @@ class InputViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Clears today's page only, as the confirm dialog promises. Every earlier
+     * day stays in History: a new sheet is a page flip, not a shredder.
+     */
     fun startNewSheet() {
         viewModelScope.launch {
-            entries.deleteAll()
+            val today = todayString()
+            sheetEntries.value.filter { it.date == today }.forEach { entries.delete(it) }
             appContext?.let { ctx -> runCatching { NvwWidget.refreshAll(ctx) } }
         }
     }

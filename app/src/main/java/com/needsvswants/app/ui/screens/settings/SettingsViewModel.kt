@@ -23,6 +23,7 @@ import com.needsvswants.app.domain.ThemeId
 import com.needsvswants.app.widget.NvwWidget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -292,13 +293,19 @@ class SettingsViewModel @Inject constructor(
             if (_updateCheckBusy.value) return@launch
             _updateCheckBusy.value = true
             _updateFeedback.value = null
-            runCatching { updateChecker.checkOnce(force = true) }
-            _updateFeedback.value = if (preferences.updateAvailable.first() != null) {
-                null // the "Update available" row itself is the feedback
-            } else {
-                "You're on the latest version."
+            try {
+                val ok = updateChecker.checkOnce(force = true)
+                _updateFeedback.value = UpdateChecker.feedbackAfterCheck(
+                    succeeded = ok,
+                    available = preferences.updateAvailable.first()
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                _updateFeedback.value = UpdateChecker.feedbackAfterCheck(false, null)
+            } finally {
+                _updateCheckBusy.value = false
             }
-            _updateCheckBusy.value = false
         }
     }
 
