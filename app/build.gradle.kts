@@ -105,11 +105,8 @@ android {
         manifestPlaceholders["deepLinkScheme"] = "needsvswants"
         // Mirrored into BuildConfig so checkout requests can tell the server
         // which scheme the redirect pages should bounce back to (plain-flavor
-        // deep-link fix — the pages hardcoded needsvswants:// before).
+        // deep-link fix: the pages hardcoded needsvswants:// before).
         buildConfigField("String", "DEEP_LINK_SCHEME", "\"needsvswants\"")
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-        }
     }
 
     // Dual distribution: `direct` (sideload APK + PayPal/PayMongo) vs
@@ -173,11 +170,27 @@ android {
         }
     }
 
+    val includeX86 = project.hasProperty("includeX86") ||
+        System.getenv("INCLUDE_X86") == "true" ||
+        localProp("INCLUDE_X86") == "true"
+
     buildTypes {
+        debug {
+            ndk {
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+            }
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs["release"]
+            ndk {
+                if (includeX86) {
+                    abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+                } else {
+                    abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+                }
+            }
         }
     }
 
