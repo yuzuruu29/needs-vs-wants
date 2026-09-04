@@ -100,4 +100,15 @@ class MotionAdditionsTest {
             Motion.updateEnabled(1f, false)
         }
     }
+
+    @Test
+    fun `split money prefix isolates currency symbol and space for optical centering`() {
+        assertEquals("₱ " to "300", splitMoneyPrefix("₱ 300", "₱"))
+        assertEquals("$ " to "1,250", splitMoneyPrefix("$ 1,250", "$"))
+        assertEquals("S$ " to "99", splitMoneyPrefix("S$ 99", "S$"))
+        assertEquals("$" to "300", splitMoneyPrefix("$300", "$"))
+        assertEquals("¥" to "5000", splitMoneyPrefix("¥5000", "¥"))
+        assertEquals(null, splitMoneyPrefix("300", "₱"))
+        assertEquals(null, splitMoneyPrefix("₱ 300", ""))
+    }
 }

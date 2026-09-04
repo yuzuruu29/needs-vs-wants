@@ -64,7 +64,7 @@ fun SpendDial(
     needsSweepDegrees: Float,
     empty: Boolean,
     modifier: Modifier = Modifier,
-    dialSize: Dp = 200.dp,
+    dialSize: Dp = 210.dp,
     tensionLevel: Float = 0f,
     onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,

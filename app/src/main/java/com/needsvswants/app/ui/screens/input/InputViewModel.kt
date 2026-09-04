@@ -125,6 +125,16 @@ class InputViewModel @Inject constructor(
     private val _adState = MutableStateFlow<AdState>(AdState.Idle)
     val adState: StateFlow<AdState> = _adState.asStateFlow()
 
+    /**
+     * Today's page only. The Log sheet is a single day: its header, its
+     * "SEALED TODAY" ledger and its n / 20 counter all mean today, and every
+     * earlier day lives in History. [sheetEntries] stays whole-diary because
+     * streaks, replay chips, the advisor pack and the backup nudge want it.
+     */
+    val todayEntries: StateFlow<List<Entry>> = sheetEntries
+        .map { list -> list.filter { it.date == todayString() } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val isSheetFull: Boolean get() {
         val now = System.currentTimeMillis()
         if (entitlement.value.hasProAccessAt(now)) return false

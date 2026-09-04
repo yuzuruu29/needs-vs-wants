@@ -220,6 +220,21 @@ class InputViewModelTest {
     }
 
     @Test
+    fun todayEntries_excludesEarlierDays() = runTest(dispatcher) {
+        val yesterday = System.currentTimeMillis() - 86_400_000L
+        dao.entries.value = listOf(
+            seedEntry(item = "Today lunch"),
+            seedEntry(dateUtc = yesterday, item = "Yesterday rice")
+        )
+        val vm = buildViewModel()
+        backgroundScope.launch { vm.todayEntries.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(2, vm.sheetEntries.value.size)
+        assertEquals(listOf("Today lunch"), vm.todayEntries.value.map { it.item })
+    }
+
+    @Test
     fun startNewSheet_deletesTodayOnly() = runTest(dispatcher) {
         val yesterday = System.currentTimeMillis() - 86_400_000L
         val todayEntry = seedEntry(item = "Today lunch")

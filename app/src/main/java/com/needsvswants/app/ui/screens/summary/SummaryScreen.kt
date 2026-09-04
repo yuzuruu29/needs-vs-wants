@@ -409,21 +409,39 @@ fun SummaryScreen(
                                 )
                             }
                         } else {
-                            // Period empty but history exists — keep the orb + contextual copy.
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 SpendDial(
                                     needsSweepDegrees = 0f,
                                     empty = true,
-                                    dialSize = 200.dp
+                                    dialSize = 210.dp
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp)
+                                    ) {
                                         Eyebrow("READY", color = palette.textMuted, size = 11)
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(
-                                            "—",
-                                            style = AppType.moneyLg,
-                                            color = palette.textSecondary
-                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        BoxWithConstraints(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            val emptyText = 0L.toMoneyWhole(symbol)
+                                            val dialMoney = fittingMoneySize("$symbol $emptyText", 22.sp, maxWidth)
+                                            AnimatedOdometerMoney(
+                                                cents = 0L,
+                                                symbol = symbol,
+                                                wholeOnly = true,
+                                                opticalCentering = true,
+                                                style = AppType.moneyLg.copy(
+                                                    fontSize = dialMoney,
+                                                    lineHeight = dialMoney * 1.15f,
+                                                    color = palette.textSecondary
+                                                )
+                                            )
+                                        }
                                     }
                                 }
                                 Spacer(Modifier.height(16.dp))
@@ -446,7 +464,6 @@ fun SummaryScreen(
                             animationSpec = Motion.entrance(),
                             label = "donutNeedsSweep"
                         )
-                        // Budget tension feeds the dial's breathing halo + heavier press (D195).
                         val budgetTension = (budgetStatus as? BudgetStatus.On)
                             ?.let { dialTension(it.progress) } ?: 0f
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -478,12 +495,12 @@ fun SummaryScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         val totalText = stats.totalCents.toMoneyWhole(symbol)
-                                        val dialMoney = fittingMoneySize(totalText, 22.sp, maxWidth)
-                                        // Odometer digit roll — the signature money moment (D184/D191).
+                                        val dialMoney = fittingMoneySize("$symbol $totalText", 22.sp, maxWidth)
                                         AnimatedOdometerMoney(
                                             cents = stats.totalCents,
                                             symbol = symbol,
                                             wholeOnly = true,
+                                            opticalCentering = true,
                                             style = AppType.moneyLg.copy(
                                                 fontSize = dialMoney,
                                                 lineHeight = dialMoney * 1.15f,
@@ -501,12 +518,30 @@ fun SummaryScreen(
                             )
                             Spacer(Modifier.height(10.dp))
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                LegendChip(palette.need, "Need", stats.needsPct)
-                                Box(modifier = Modifier.width(1.dp).height(14.dp).background(palette.inkDivider))
-                                LegendChip(palette.want, "Want", stats.wantsPct)
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    LegendChip(palette.need, "Need", stats.needsPct)
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(14.dp)
+                                        .background(palette.inkDivider)
+                                )
+                                Spacer(Modifier.width(14.dp))
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    LegendChip(palette.want, "Want", stats.wantsPct)
+                                }
                             }
                         }
                     }

@@ -127,7 +127,7 @@ fun InputScreen(
     onOpenPaywall: () -> Unit = {},
     onOpenSettings: () -> Unit = {}
 ) {
-    val entries by viewModel.sheetEntries.collectAsStateWithLifecycle()
+    val entries by viewModel.todayEntries.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val item by viewModel.activeItem.collectAsStateWithLifecycle()
     val cost by viewModel.activeCost.collectAsStateWithLifecycle()

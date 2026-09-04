@@ -16,9 +16,13 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -217,6 +221,20 @@ fun rememberIdleBreathAlpha(): Float {
 }
 
 /**
+ * Splits formatted money text into its leading currency prefix and numeric part
+ * for balanced optical centering on hero dials.
+ */
+fun splitMoneyPrefix(text: String, symbol: String): Pair<String, String>? {
+    if (symbol.isEmpty() || !text.startsWith(symbol)) return null
+    val spacePrefix = "$symbol "
+    return if (text.startsWith(spacePrefix)) {
+        spacePrefix to text.removePrefix(spacePrefix)
+    } else {
+        symbol to text.removePrefix(symbol)
+    }
+}
+
+/**
  * Animated Odometer Money count-up with independent vertical digit roll animation.
  *
  * Digits roll vertically into place using [Motion.odometer], while formatting
@@ -230,32 +248,96 @@ fun AnimatedOdometerMoney(
     style: TextStyle = AppType.moneyLg,
     color: Color? = null,
     wholeOnly: Boolean = false,
+    opticalCentering: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val text = if (wholeOnly) cents.toMoneyWhole(symbol) else cents.toMoney(symbol)
+    val resolvedColor = color ?: Color.Unspecified
+    val split = if (opticalCentering) splitMoneyPrefix(text, symbol) else null
+    val rowModifier = modifier.semantics(mergeDescendants = true) {
+        contentDescription = text
+    }
     if (!Motion.enabled) {
-        Text(
-            text = text,
-            modifier = modifier,
-            style = style,
-            color = color ?: Color.Unspecified
-        )
+        if (split != null) {
+            val (prefix, numberPart) = split
+            Row(
+                modifier = rowModifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = prefix,
+                    style = style,
+                    color = resolvedColor
+                )
+                Text(
+                    text = numberPart,
+                    style = style,
+                    color = resolvedColor
+                )
+                Text(
+                    text = prefix,
+                    style = style,
+                    color = Color.Transparent,
+                    modifier = Modifier.clearAndSetSemantics { }
+                )
+            }
+        } else {
+            Text(
+                text = text,
+                modifier = modifier,
+                style = style,
+                color = resolvedColor
+            )
+        }
         return
     }
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        text.forEachIndexed { index, char ->
-            if (char.isDigit()) {
-                RollingDigit(char = char, style = style, color = color)
-            } else {
-                Text(
-                    text = char.toString(),
-                    style = style,
-                    color = color ?: Color.Unspecified
-                )
+    if (split != null) {
+        val (prefix, numberPart) = split
+        Row(
+            modifier = rowModifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = prefix,
+                style = style,
+                color = resolvedColor
+            )
+            numberPart.forEach { char ->
+                if (char.isDigit()) {
+                    RollingDigit(char = char, style = style, color = color)
+                } else {
+                    Text(
+                        text = char.toString(),
+                        style = style,
+                        color = resolvedColor
+                    )
+                }
+            }
+            Text(
+                text = prefix,
+                style = style,
+                color = Color.Transparent,
+                modifier = Modifier.clearAndSetSemantics { }
+            )
+        }
+    } else {
+        Row(
+            modifier = rowModifier,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            text.forEach { char ->
+                if (char.isDigit()) {
+                    RollingDigit(char = char, style = style, color = color)
+                } else {
+                    Text(
+                        text = char.toString(),
+                        style = style,
+                        color = resolvedColor
+                    )
+                }
             }
         }
     }
@@ -269,6 +351,7 @@ private fun RollingDigit(
 ) {
     AnimatedContent(
         targetState = char,
+        contentAlignment = Alignment.Center,
         transitionSpec = {
             if (targetState > initialState) {
                 (slideInVertically(animationSpec = Motion.odometer()) { height -> height } + fadeIn(Motion.odometer()))
