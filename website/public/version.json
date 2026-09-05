@@ -1,8 +1,8 @@
 {
-  "versionName": "2.0.30",
-  "versionCode": 38,
-  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.30.apk",
-  "sha256": "c7fee854b0efca3f0fcd70c0b145d768fba2552e9d9c196f60cc786c0eee5d4e",
-  "notes": "History loads on an empty diary, New sheet clears today only, day-first receipt dates, honest update check, 44dp Settings taps",
-  "updatedAt": "2026-09-04T14:10:00.000Z"
+  "versionName": "2.0.31",
+  "versionCode": 39,
+  "apkUrl": "https://needs-vs-wants.vercel.app/downloads/needs-vs-wants-2.0.31.apk",
+  "sha256": "d8d1b436301b7c4912c6bd3ab4118b3e3c2d9135f7dbe8cd5b8f200495cae0e9",
+  "notes": "Log sheet is today only, odometer money stays centred, Play versionCode 39",
+  "updatedAt": "2026-09-04T20:25:00.000Z"
 }
